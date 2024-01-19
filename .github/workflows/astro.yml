@@ -3,7 +3,9 @@
 # To get started with Astro see: https://docs.astro.build/en/getting-started/
 #
 name: Deploy SkiCycleRun (astro site) to AWS S3 Static Host
-
+env:
+  AWS_S3_SKICYCLERUN: skicyclerun.com
+  
 on:
   # Runs on pushes targeting the default branch
   push:
@@ -38,7 +40,7 @@ jobs:
           aws-region: us-west-1
       
       - name: deploy to s3
-        run: aws s3 sync ./dist/ s3://${{ AWS_S3_SKICYCLERUN }}/
+        run: aws s3 sync ./dist/ s3://$AWS_S3_SKICYCLERUN/
       
       - name: invalidate cloudfront cache
         run: aws cloudfront create-invalidation --distribution-id {{ MY_CLOUDFRONT_DISTRO_ID }}--paths "/*" "/"
