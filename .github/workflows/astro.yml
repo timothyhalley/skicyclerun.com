@@ -30,11 +30,11 @@ jobs:
           npm install
           npm run build
       
-      - name: configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Set up AWS CLI
+        uses: aws-actions/configure-aws-credentials@v1
         with:
-          role-to-assume: {{ GITHUB_ACTION_ROLE_ARN }}
-          role-session-name: github-cd
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-1
       
       - name: deploy to s3
