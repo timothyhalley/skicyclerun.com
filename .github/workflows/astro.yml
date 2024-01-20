@@ -44,4 +44,4 @@ jobs:
         run: aws s3 sync ./dist/ s3://$AWS_S3_SKICYCLERUN/
       
       - name: invalidate cloudfront cache
-        run: aws cloudfront create-invalidation --distribution-id $AWS_CLOUNDFRONT_ID --paths "/*" "/"
+        run: aws cloudfront create-invalidation --distribution-id $AWS_CLOUDFRONT_ID --paths "/*" "/"
