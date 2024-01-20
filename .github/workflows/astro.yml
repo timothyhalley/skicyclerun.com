@@ -5,6 +5,7 @@
 name: Deploy SkiCycleRun (astro site) to AWS S3 Static Host
 env:
   AWS_S3_SKICYCLERUN: skicyclerun.com
+  AWS_CLOUDFRONT_ID: EARVLGQCWG1WP
   
 on:
   # Runs on pushes targeting the default branch
@@ -43,4 +44,4 @@ jobs:
         run: aws s3 sync ./dist/ s3://$AWS_S3_SKICYCLERUN/
       
       - name: invalidate cloudfront cache
-        run: aws cloudfront create-invalidation --distribution-id {{ EARVLGQCWG1WP }} --paths "/*" "/"
+        run: aws cloudfront create-invalidation --distribution-id $AWS_CLOUNDFRONT_ID --paths "/*" "/"
