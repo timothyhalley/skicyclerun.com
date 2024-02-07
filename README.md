@@ -1,3 +1,32 @@
+# Ski Cycle Run Adventures 🧳
+
+## 🚅 Features
+
+- [x] Recent activity in travel
+- [x] AI and other technology topics
+- [x] Math and Programming tips
+
+
+## ✅ Lighthouse Score
+
+<p align="center">
+  <a href="https://pagespeed.web.dev/analysis/https-skicyclerun-com/9wb9dytc6d?form_factor=desktop">
+    <img width="710" alt="SkiCycleRun Lighthouse Score" src="lighthouse-score.svg">
+  <a>
+</p>
+
+
+----------------------
+# AWS CLI Commands
+
+## Clear cloudfront commands
+### aws cloudfront list-distributions --output table --query 'DistributionList.Items[*].[Id,Origins.Items[0].DomainName]'
+### 
+
+
+----------------------
+
+
 # Astro Starter Kit: Minimal
 
 ```sh
