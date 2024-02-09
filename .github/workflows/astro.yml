@@ -3,8 +3,6 @@
 # To get started with Astro see: https://docs.astro.build/en/getting-started/
 #
 name: Deploy SkiCycleRun (astro site) to AWS S3 Static Host
-author: Timothy Halley
-description: Build and deploy skicyclerun.com to AWS S3 static website
 
 env:
   AWS_S3_SKICYCLERUN: skicyclerun.com
@@ -18,10 +16,6 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-runs:
-  using: 'node20'
-  main: 'main.js'
-  
 jobs:
   deploy_to_s3:
     name: deploy astro to s3
