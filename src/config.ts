@@ -10,6 +10,7 @@ export const SITE: Site = {
     postPerPage: 3,
     blogType: 'Unknown',
     scheduledPostMargin: 15 * 60 * 1000, // 15 minutes
+    version: '2024-02-08-0001'
 };
 
 export const LOCALE = {

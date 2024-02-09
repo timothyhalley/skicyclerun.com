@@ -10,6 +10,7 @@ export type Site = {
     postPerPage: number;
     blogType: string;
     scheduledPostMargin: number;
+    version: string;
 };
 
 export type SocialObjects = {
