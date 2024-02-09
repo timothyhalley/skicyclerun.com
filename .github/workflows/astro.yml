@@ -7,7 +7,6 @@ name: Deploy SkiCycleRun (astro site) to AWS S3 Static Host
 env:
   AWS_S3_SKICYCLERUN: skicyclerun.com
   AWS_CLOUDFRONT_ID: EARVLGQCWG1WP
-  AWS_PROFILE_ODIC: '--profile AdministratorAccess-635874589224'
   
 on:
   # Runs on pushes targeting the default branch
@@ -43,7 +42,7 @@ jobs:
           aws-region: us-west-2
       
       - name: deploy to s3
-        run: aws s3 sync ./dist/ s3://$AWS_S3_SKICYCLERUN/ $AWS_PROFILE_ODIC
+        run: aws s3 sync ./dist/ s3://$AWS_S3_SKICYCLERUN/ ${{ secrets.AWS_PROFILE_KEY }}
       
       - name: invalidate cloudfront cache
         run: aws cloudfront create-invalidation --distribution-id $AWS_CLOUDFRONT_ID --paths "/*" "/"
