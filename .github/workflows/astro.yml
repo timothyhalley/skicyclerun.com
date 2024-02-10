@@ -42,7 +42,7 @@ jobs:
           aws-region: us-west-2
       
       - name: deploy to s3
-        run: aws s3 sync ./dist/ s3://$AWS_S3_SKICYCLERUN/ ${{ secrets.AWS_PROFILE_KEY }}
+        run: aws s3 sync ./dist/ s3://$AWS_S3_SKICYCLERUN/
       
       - name: invalidate cloudfront cache
         run: aws cloudfront create-invalidation --distribution-id $AWS_CLOUDFRONT_ID --paths "/*" "/"
