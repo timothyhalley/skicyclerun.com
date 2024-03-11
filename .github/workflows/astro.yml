@@ -6,7 +6,7 @@ name: Deploy SkiCycleRun (astro site) to AWS S3 Static Host
 
 env:
   AWS_S3_SKICYCLERUN: skicyclerun.com
-  AWS_CLOUDFRONT_ID: E1ZL8KW5G4NHW
+  AWS_CLOUDFRONT_ID: EG2MWPWJ56AVU
   
 on:
   # Runs on pushes targeting the default branch
