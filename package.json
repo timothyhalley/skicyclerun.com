@@ -28,7 +28,7 @@
     "remark-toc": "latest",
     "satori": "latest",
     "tailwindcss": "latest",
-    "tw-elements": "latest",
+    "tw-elements": "^2.0.0",
     "typescript": "latest"
   },
   "devDependencies": {
