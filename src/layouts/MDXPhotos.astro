@@ -7,9 +7,6 @@ const res = await fetch(
 const photos = await res.json();
 const count = 0;
 // console.log("📷 ~ photos:\n", photos);
-
-const { message = "Welcome, skicyclerun!" } = Astro.props;
-import book from "@images/openbook.svg";
 ---
 
 <html>
@@ -61,7 +58,7 @@ import book from "@images/openbook.svg";
             />
           </div>
           <div class="md:p-2 w-1/2 p-1">
-            <img
+            <Image
               alt="gallery"
               class="block h-full w-full rounded-lg object-cover object-center"
               src={photos[4]}
@@ -109,8 +106,8 @@ import book from "@images/openbook.svg";
 
         // Get image URLs.
         const photos = this.dataset.photos;
-        const albumUrls = photos.split(",");
-        const totalImages = albumUrls.length;
+        const albumUrls = photos!.split(",");
+        const totalImages = albumUrls?.length;
 
         const imageElements = this.querySelectorAll("img");
         imageElements.forEach((image, index) => {
@@ -136,23 +133,22 @@ import book from "@images/openbook.svg";
 
     // Function to toggle visibility
     function toggleVisibility() {
-      if (gallery.style.display === "none") {
-        hero.style.display = "none";
-        gallery.style.display = "grid";
-        toggleButton.innerHTML = "Hero View";
-        // gallery.classList.toggle("invisible");
-        // gallery.classList.toggle("visible");
+      if (gallery!.style.display === "none") {
+        hero!.style.display = "none";
+        gallery!.style.display = "grid";
+        toggleButton!.innerHTML = "Hero View";
       } else {
-        hero.style.display = "grid";
-        gallery.style.display = "none";
-        toggleButton.innerHTML = "Gallery View";
+        hero!.style.display = "grid";
+        gallery!.style.display = "none";
+        toggleButton!.innerHTML = "Gallery View";
+        // alert("Hero");
         // hero.classList.toggle("invisible");
         // hero.classList.toggle("visible");
       }
     }
 
     // Attach click event listener to the button
-    toggleButton.addEventListener("click", toggleVisibility);
+    toggleButton!.addEventListener("click", toggleVisibility);
   </script>
 
 
