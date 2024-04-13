@@ -1,0 +1,159 @@
+---
+import { Image } from "astro:assets";
+const { frontmatter } = Astro.props;
+const res = await fetch(
+  `https://api.skicyclerun.com/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${frontmatter.album}/&numPhotos=50`
+);
+const photos = await res.json();
+const count = 0;
+// console.log("📷 ~ photos:\n", photos);
+
+const { message = "Welcome, skicyclerun!" } = Astro.props;
+import book from "@images/openbook.svg";
+---
+
+<html>
+  <!-- ... -->
+  <h1>{frontmatter.title}</h1>
+  <h2>Post author: {frontmatter.author}</h2>
+  <p>{frontmatter.description}</p>
+  <h3>{frontmatter.album}</h3>
+
+  <slot />
+  <!-- Markdown content is injected here -->
+
+  <astro-photo data-photos={photos}>
+    <div id="gallery" class="lg:px-32 lg:pt-24 container mx-auto px-5 py-2">
+      <div class="md:-m-2 -m-1 flex flex-wrap">
+        <div class="flex w-1/2 flex-wrap">
+          <div class="md:p-2 w-1/2 p-1">
+            <Image
+              alt="gallery"
+              class="block h-full w-full rounded-lg object-cover object-center"
+              src={photos[0]}
+              inferSize={true}
+            />
+          </div>
+          <div class="md:p-2 w-1/2 p-1">
+            <Image
+              alt="gallery"
+              class="block h-full w-full rounded-lg object-cover object-center"
+              src={photos[1]}
+              inferSize={true}
+            />
+          </div>
+          <div class="md:p-2 w-full p-1">
+            <Image
+              alt="gallery"
+              class="block h-full w-full rounded-lg object-cover object-center"
+              src={photos[2]}
+              inferSize={true}
+            />
+          </div>
+        </div>
+        <div class="flex w-1/2 flex-wrap">
+          <div class="md:p-2 w-full p-1">
+            <Image
+              alt="gallery"
+              class="block h-full w-full rounded-lg object-cover object-center"
+              src={photos[3]}
+              inferSize={true}
+            />
+          </div>
+          <div class="md:p-2 w-1/2 p-1">
+            <img
+              alt="gallery"
+              class="block h-full w-full rounded-lg object-cover object-center"
+              src={photos[4]}
+              inferSize={true}
+            />
+          </div>
+          <div class="md:p-2 w-1/2 p-1">
+            <Image
+              alt="gallery"
+              class="block h-full w-full rounded-lg object-cover object-center"
+              src={photos[5]}
+              inferSize={true}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="hero" class="lg:px-32 lg:pt-24 container mx-auto hidden px-5 py-2">
+      <div class="md:-m-2 -m-1 flex flex-wrap">
+        <Image
+          alt="gallery"
+          class="block h-full w-full rounded-lg object-cover object-center"
+          src={photos[0]}
+          inferSize={true}
+        />
+      </div>
+    </div>
+
+    <div class="container mx-auto p-4">
+      <!-- Toggle button -->
+      <button
+        id="toggleButton"
+        class="mt-4 rounded-md bg-gray-600 px-4 py-2 text-white"
+      >
+        Hero View
+      </button>
+    </div>
+  </astro-photo>
+
+  <script>
+    class AstroPhoto extends HTMLElement {
+      constructor() {
+        super();
+        let count = 0; // Initialize at zero on page load
+
+        // Get image URLs.
+        const photos = this.dataset.photos;
+        const albumUrls = photos.split(",");
+        const totalImages = albumUrls.length;
+
+        const imageElements = this.querySelectorAll("img");
+        imageElements.forEach((image, index) => {
+          image.src = albumUrls[index]; // Set initial src
+          image.addEventListener("click", () => {
+            count = (count + 1) % totalImages; // Cycle through URLs
+            imageElements.forEach((img, i) => {
+              img.src = albumUrls[(count + i) % totalImages]; // Update src for all images
+            });
+          });
+        });
+      }
+    }
+
+    // Define the custom element
+    customElements.define("astro-photo", AstroPhoto);
+
+    // toggle div sections
+    // Get references to the div elements
+    const gallery = document.getElementById("gallery");
+    const hero = document.getElementById("hero");
+    const toggleButton = document.getElementById("toggleButton");
+
+    // Function to toggle visibility
+    function toggleVisibility() {
+      if (gallery.style.display === "none") {
+        hero.style.display = "none";
+        gallery.style.display = "grid";
+        toggleButton.innerHTML = "Hero View";
+        // gallery.classList.toggle("invisible");
+        // gallery.classList.toggle("visible");
+      } else {
+        hero.style.display = "grid";
+        gallery.style.display = "none";
+        toggleButton.innerHTML = "Gallery View";
+        // hero.classList.toggle("invisible");
+        // hero.classList.toggle("visible");
+      }
+    }
+
+    // Attach click event listener to the button
+    toggleButton.addEventListener("click", toggleVisibility);
+  </script>
+
+
+</html>
