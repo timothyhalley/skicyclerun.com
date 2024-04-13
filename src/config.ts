@@ -7,8 +7,8 @@ export const SITE: Site = {
     title: "SkiCycleRun",
     ogImage: "skicyclerun-og.jpeg",
     lightAndDarkMode: true,
-    postPerPage: 3,
-    blogType: 'Unknown',
+    postPerPage: 5,
+    blogType: 'GENERAL',
     scheduledPostMargin: 15 * 60 * 1000, // 15 minutes
     version: '2024-02-08-0001'
 };
