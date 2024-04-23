@@ -4,12 +4,12 @@ slug: project-guide
 type: 'PROJECT'
 pubDatetime: 2024-01-27T14:30:00-08:00
 modDatetime: 2024-01-27T14:50:00-08:00
-featured: true
+featured: false
 draft: false
 tags:
   - skicyclerun
-  - info
-  - setup
+  - tech
+  - development
 description:
   Help to properly add/update and manage a blog post.
 author: Tim Halley

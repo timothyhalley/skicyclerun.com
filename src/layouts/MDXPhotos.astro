@@ -1,12 +1,23 @@
 ---
 import { Image } from "astro:assets";
+import { object } from "astro/zod";
+
 const { frontmatter } = Astro.props;
 const res = await fetch(
   `https://api.skicyclerun.com/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${frontmatter.album}/&numPhotos=50`
 );
-const photos = await res.json();
-const count = 0;
-// console.log("📷 ~ photos:\n", photos);
+let photos = await res.json();
+if (photos.length == 0) {
+  console.log("ERROR: remote API call return zero items for pictures/album");
+} else {
+  // for (const key in photos) {
+  //   if (photos.hasOwnProperty(key)) {
+  //     console.log(`${key}: ${photos[key]}`);
+  //   }
+  // }
+  console.log("INFO:📷 ~ Photos: ", photos.length, " type of: ", typeof photos);
+  console.log(photos);
+}
 ---
 
 <html>

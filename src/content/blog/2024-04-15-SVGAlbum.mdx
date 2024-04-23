@@ -1,0 +1,27 @@
+---
+layout: "@layouts/MDXSVGPhotos.astro"
+author: Tim Halley
+pubDatetime: 2024-04-15T15:15:15-08:00
+title: SVG Photo Collage
+type: 'PHOTOS'
+slug: SVG-Collage
+featured: false
+tags:
+  - development
+  - SVGPhotos
+class: "2024 > Development > Photos > SVG "
+description: "Collage of photos converted to SVG for effect"
+album: "svgphotos"
+---
+
+1. What Is SVG?
+  - SVG stands for Scalable Vector Graphics. It’s a web standard used to define vector-based graphics within web pages.
+  - Unlike raster images (such as JPEG or PNG), SVGs are resolution-independent. They maintain crisp quality regardless of their size or display context.
+  - SVGs are based on XML and provide markup to describe paths, shapes, and text within a viewport1.
+2. Why Use SVGs?
+  - Frontend Optimization: Replacing other image formats with SVGs reduces file size and improves website performance. Inline SVGs don’t require additional HTTP requests.
+  - Responsive Design: SVGs can adapt to various screen sizes and orientations, making them ideal for responsive web design.
+  - Consistency: However, rendering SVGs consistently across all browsers can be challenging due to differences in how browsers handle them2.
+3. Rendering Differences Across Browsers:
+  - While SVGs are supported on all modern browsers (including older ones like IE9), their rendering behavior varies.
+  - The viewbox attribute is crucial for making SVGs responsive. It defines the coordinate system and aspect ratio.

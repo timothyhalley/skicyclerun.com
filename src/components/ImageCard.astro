@@ -1,0 +1,30 @@
+---
+// AstroDoc: https://docs.astro.build/en/recipes/build-custom-img-component/
+// Recipe: https://docs.astro.build/en/recipes/dynamically-importing-images/#recipe
+import { getAlbumPhotos, getRandomImage, getFileName } from "@utils/library.ts";
+import type { ImageMetadata } from "astro";
+import { Image } from "astro:assets";
+interface Props {
+  imagePath: string;
+  altText: string;
+  twCSS: string;
+  maxWidth: string;
+}
+
+const { imagePath, altText, twCSS, maxWidth } = Astro.props;
+// console.log("DEBUG: Props: 👉", imagePath);
+
+// const { imagePath, altText, name, age } = Astro.props;
+const images = import.meta.glob<{ default: ImageMetadata }>(
+  "@images/*.{jpeg,jpg,png,gif,svg}"
+);
+
+const imageItem = getRandomImage(images);
+const imageName = getFileName(imagePath);
+
+// console.log("Random image metadata:",imageItem," --> from props: ",imagePath);
+---
+
+<div class={twCSS}>
+  <Image src={images[imageItem]()} alt={imageName} />
+</div>
