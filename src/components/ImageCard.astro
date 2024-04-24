@@ -16,7 +16,7 @@ const { imagePath, altText, twCSS, maxWidth } = Astro.props;
 
 // const { imagePath, altText, name, age } = Astro.props;
 const images = import.meta.glob<{ default: ImageMetadata }>(
-  "@images/*.{jpeg,jpg,png,gif,svg}"
+  "./src/images/*.{jpeg,jpg,png,gif,svg}"
 );
 
 const imageItem = getRandomImage(images);

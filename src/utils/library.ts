@@ -8,15 +8,15 @@ export async function getAlbumPhotos(album: any) {
 
     // get src images as an alternative (SVG)
     const imageObject = await import.meta.glob<{ default: ImageMetadata }>(
-      "@images/*.{jpeg,jpg,png,gif,svg}"
+      "./src/images/*.{jpeg,jpg,png,gif,svg}"
     );
-    console.log("DEBUG: LIB - BEFORE: 👉", imageObject)
+    // console.log("DEBUG: LIB - BEFORE: 👉", imageObject)
     const imageArray = Object.keys(imageObject);
 
     photos = imageArray;
 
   }
-  console.log("DEBUG: LIB AFTER: 👉", photos)
+  // console.log("DEBUG: LIB AFTER: 👉", photos)
   return photos;
 }
 
@@ -26,7 +26,7 @@ export function getRandomImage(
   const imagePaths = Object.keys(imagesObject);
   const randomIndex = Math.floor(Math.random() * imagePaths.length);
   const randomImagePath = imagePaths[randomIndex];
-  console.log("DEBUG: getRandomImage: 👉", randomImagePath, " -- obj: ", imagesObject[randomImagePath]);
+  // console.log("DEBUG: getRandomImage: 👉", randomImagePath, " -- obj: ", imagesObject[randomImagePath]);
   // return imagesObject[randomImagePath];
   return randomImagePath;
 }
