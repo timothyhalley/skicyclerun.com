@@ -1,0 +1,28 @@
+---
+import { Image } from "astro:assets";
+import {
+  getAlbumPhotos,
+  getRandomImage,
+  getFileName,
+} from "@components/Library.astro";
+
+interface Props {
+  src: string;
+  alt: string;
+  css: string;
+  max: string;
+}
+
+const { src, alt, css, max } = Astro.props;
+
+const images = import.meta.glob<{ default: ImageMetadata }>(
+  "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
+);
+
+const imageItem = getRandomImage(images);
+const imageName = getFileName(src);
+---
+
+<div class={css}>
+  <Image src={images[imageItem]()} alt={imageName} />
+</div>

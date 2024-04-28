@@ -1,0 +1,72 @@
+---
+export async function getLocalImages() {
+  const imageObject = await import.meta.glob<{ default: ImageMetadata }>(
+    "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
+  );
+  const imageKeys = Object.keys(imageObject);
+  // Replace '/src/assets' with '@images' in each path
+  const modifiedPaths = imageKeys.map(path =>
+    path.replace("/src/assets", "@images")
+  );
+  // console.log("DEBUG: -- photos: 👇\n", modifiedPaths);
+  return modifiedPaths;
+}
+
+export async function getAlbumPhotos(album: any): Promise<any[]> {
+  try {
+    let photos = [];
+    if (album != "local") {
+      const photoURL = `https://api.skicyclerun.com/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=50`;
+      // console.log("🌎 URL: ", photoURL);
+      const res = await fetch(photoURL);
+      // console.log("RES:", res);
+      photos = await res.json();
+      if (photos.length == 0) {
+        photos = await getAlbumPhotos("default");
+      }
+    } else {
+      photos = await getLocalImages();
+    }
+
+    // console.log("DEBUG: LIB AFTER: 👉", photos);
+    return photos;
+  } catch (error) {
+    console.log("ERROR", error);
+    throw error;
+  }
+}
+
+export function getRandomImage(
+  imagesObject: Record<string, () => Promise<{ default: ImageMetadata }>>
+) {
+  const imagePaths = Object.keys(imagesObject);
+  const randomIndex = Math.floor(Math.random() * imagePaths.length);
+  const randomImagePath = imagePaths[randomIndex];
+
+  return randomImagePath;
+}
+
+export function getImage(
+  imagesObject: Record<string, () => Promise<{ default: ImageMetadata }>>
+) {
+  const imagePaths = Object.keys(imagesObject);
+  const randomIndex = Math.floor(Math.random() * imagePaths.length);
+  const randomImagePath = imagePaths[randomIndex];
+
+  return randomImagePath;
+}
+
+export function getFileName(path: string | null): string {
+  // console.log("DEBUG FUNCTION getFileName: ", path);
+  if (path != null) {
+    const matchResult = path.match(/[-_\w]+[.][\w]+$/i);
+    if (matchResult) {
+      return matchResult[0];
+    } else {
+      return "imageNotMatched";
+    }
+  } else {
+    return "imageNotFound";
+  }
+}
+---

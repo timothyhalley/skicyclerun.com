@@ -1,0 +1,26 @@
+---
+import ImageX from "@components/TestImage.astro";
+
+import { getAlbumPhotos } from "@components/Library.astro";
+
+const imagePaths = await getAlbumPhotos("local");
+console.log("MAIN: path --> ", imagePaths);
+---
+
+<ImageX
+  src="/src/assets/images/openbook.svg"
+  alt="A headshot of Priya against a brick wall background."
+  css="Priya"
+  max="25"
+/>
+
+<div>
+  <h1>Image Gallery</h1>
+  <div class="image-list">
+    {
+      imagePaths.map(image => (
+        <ImageX src={image.src} alt={image.alt} css="Priya" max="25" />
+      ))
+    }
+  </div>
+</div>
