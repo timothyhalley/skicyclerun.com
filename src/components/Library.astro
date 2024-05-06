@@ -1,15 +1,28 @@
 ---
+export function getRndValue(images: any) {
+  const randomIndex = Math.floor(Math.random() * images.length);
+  return images[randomIndex];
+}
+
 export async function getLocalImages() {
   const imageObject = await import.meta.glob<{ default: ImageMetadata }>(
     "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
   );
   const imageKeys = Object.keys(imageObject);
   // Replace '/src/assets' with '@images' in each path
-  const modifiedPaths = imageKeys.map(path =>
-    path.replace("/src/assets", "@images")
-  );
+  // const modifiedPaths = imageKeys.map(path =>
+  //   path.replace("/src/assets", "@images")
+  // );
   // console.log("DEBUG: -- photos: 👇\n", modifiedPaths);
-  return modifiedPaths;
+  //return modifiedPaths;
+  return imageKeys;
+}
+
+export async function getImgMeta(imgPath: string) {
+  console.log("getImgMeta: ", imgPath);
+  // const imgObj = await import.meta.glob<{ default: ImageMetadata }>(imgPath);
+  // console.log("getImgMeta meta: ", imgObj);
+  return imgPath;
 }
 
 export async function getAlbumPhotos(album: any): Promise<any[]> {
@@ -46,14 +59,32 @@ export function getRandomImage(
   return randomImagePath;
 }
 
-export function getImage(
-  imagesObject: Record<string, () => Promise<{ default: ImageMetadata }>>
+export function findKeyWithValue(
+  searchString: string,
+  obj: Record<string, any>
 ) {
-  const imagePaths = Object.keys(imagesObject);
-  const randomIndex = Math.floor(Math.random() * imagePaths.length);
-  const randomImagePath = imagePaths[randomIndex];
+  for (const key in obj) {
+    console.log("findKeyWithValue: key == ", key);
+    if (key.includes(searchString)) {
+      return { key, value: obj[key] };
+    }
+  }
+  return null; // Return null if no match is found
+}
 
-  return randomImagePath;
+export function findSubstring(array: any, target: any) {
+  for (const entry of array) {
+    if (entry.includes(target)) {
+      return entry;
+    }
+  }
+  return null; // Return null if the substring is not found in any entry
+}
+
+export function getImage(imgSrc: string, imgObj: object) {
+  const result = findSubstring(imgObj, imgSrc);
+  console.log("GetImage: result: ", result);
+  return result;
 }
 
 export function getFileName(path: string | null): string {

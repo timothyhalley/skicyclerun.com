@@ -1,26 +1,25 @@
 ---
 import ImageX from "@components/TestImage.astro";
 
-import { getAlbumPhotos } from "@components/Library.astro";
+import {
+  getAlbumPhotos,
+  getRndValue,
+  getImgMeta,
+} from "@components/Library.astro";
+console.log("\n\n[DEBUG] ---------------------------------------\n");
+const imageArray = await getAlbumPhotos("local");
+console.log("MAIN: path --> ", imageArray);
+let rndImage = getRndValue(imageArray);
+console.log("Random entry: ", rndImage);
+const imgLoc = await getImgMeta(rndImage);
+const imgCSS = "block h-full w-full rounded-lg object-cover object-center";
 
-const imagePaths = await getAlbumPhotos("local");
-console.log("MAIN: path --> ", imagePaths);
+console.log("[FINAL] - ", imgLoc);
 ---
 
 <ImageX
-  src="/src/assets/images/openbook.svg"
-  alt="A headshot of Priya against a brick wall background."
-  css="Priya"
-  max="25"
+  imagePath={imgLoc}
+  altText="A headshot of Priya against a brick wall background."
+  name="Priya"
+  age={25}
 />
-
-<div>
-  <h1>Image Gallery</h1>
-  <div class="image-list">
-    {
-      imagePaths.map(image => (
-        <ImageX src={image.src} alt={image.alt} css="Priya" max="25" />
-      ))
-    }
-  </div>
-</div>

@@ -4,6 +4,7 @@ title: 'About'
 ---
 import { Image } from "astro:assets";
 import plaguedoctor from "@images/plaguedoctor.svg";
+import ImageCard from "@components/ImageCard.astro";
 
 I've been a principal architect at large Fortune listed companies for over 30 years.
 As a technology professional with  years of experience in delivering software and
@@ -22,6 +23,12 @@ While not in my office, I'm at my outdoor office: SKIING, CYCLING, and HIKING/RU
 
 <Image src={plaguedoctor} alt="Getting past the lockdown"/>
 
+<ImageCard
+  imagePath={'somepath.src.jpg'}
+  altText="A headshot of Priya against a brick wall background."
+  name="Priya"
+  age={25}
+/>
 ## Index of tags
 
 Tags:

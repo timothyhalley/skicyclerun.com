@@ -1,28 +1,26 @@
 ---
+import type { ImageMetadata } from "astro";
 import { Image } from "astro:assets";
-import {
-  getAlbumPhotos,
-  getRandomImage,
-  getFileName,
-} from "@components/Library.astro";
 
 interface Props {
-  src: string;
-  alt: string;
-  css: string;
-  max: string;
+  imagePath: string;
+  altText: string;
+  name: string;
+  age: number;
 }
 
-const { src, alt, css, max } = Astro.props;
-
+const { imagePath, altText, name, age } = Astro.props;
 const images = import.meta.glob<{ default: ImageMetadata }>(
   "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
 );
-
-const imageItem = getRandomImage(images);
-const imageName = getFileName(src);
+if (!images[imagePath])
+  throw new Error(
+    `"${imagePath}" does not exist in glob: "src/assets/*.{jpeg,jpg,png,gif}"`
+  );
 ---
 
-<div class={css}>
-  <Image src={images[imageItem]()} alt={imageName} />
+<div class="card">
+  <h2>{name}</h2>
+  <p>Age: {age}</p>
+  <Image src={images[imagePath]()} alt={altText} />
 </div>
