@@ -14,7 +14,7 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
   <h1>{frontmatter.title}</h1>
   <h2>Post author: {frontmatter.author}</h2>
   <p>{frontmatter.description}</p>
-  <h3>{frontmatter.album}</h3>
+
   <astro-photo data-photos={photos}>
     <div id="gallery" class="lg:px-32 lg:pt-24 container mx-auto px-5 py-2">
       <div class="md:-m-2 -m-1 flex flex-wrap">
@@ -140,6 +140,11 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
       toggleButton?.addEventListener("click", toggleVisibility);
     </script>
   </astro-photo>
+
+  <!-- Markdown content is injected here -->
+  <slot />
+  <!-- Markdown content is injected here -->
+  <h3>Album: {frontmatter.album}</h3>
 
 
 </html>

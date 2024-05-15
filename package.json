@@ -27,7 +27,6 @@
     "remark-collapse": "latest",
     "remark-toc": "latest",
     "satori": "latest",
-    "tailwindcss": "latest",
     "typescript": "latest"
   },
   "devDependencies": {
@@ -49,7 +48,8 @@
     "prettier-plugin-astro": "latest",
     "prettier-plugin-tailwindcss": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "tailwindcss": "latest"
   },
   "config": {
     "commitizen": {
