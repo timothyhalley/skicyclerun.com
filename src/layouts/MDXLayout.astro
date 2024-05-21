@@ -1,9 +1,11 @@
 ---
 const { frontmatter } = Astro.props;
-const res = await fetch(
-  `https://api.skicyclerun.com/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${frontmatter.album}/&numPhotos=6`
-);
-const photos = await res.json();
+import { getAlbumPhotos } from "@components/Library.astro";
+let photos = await getAlbumPhotos(`${frontmatter.album}`);
+// const res = await fetch(
+//   `https://api.skicyclerun.com/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${frontmatter.album}/&numPhotos=50`
+// );
+// const photos = await res.json();
 // console.log("📷 ~ photos:\n", photos);
 ---
 
