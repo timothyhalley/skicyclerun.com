@@ -1,7 +1,7 @@
 ---
 import { getAlbumPhotos } from "@components/Library.astro";
 import CustomImage from "@components/ImageCard.astro";
-import { Image } from "astro:assets";
+// import { Image } from "astro:assets";
 const { frontmatter } = Astro.props;
 
 let photos = await getAlbumPhotos(`${frontmatter.album}`);
@@ -10,7 +10,6 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
 ---
 
 <html>
-  <!-- ... -->
   <h1>{frontmatter.title}</h1>
   <h2>Post author: {frontmatter.author}</h2>
   <p>{frontmatter.description}</p>
