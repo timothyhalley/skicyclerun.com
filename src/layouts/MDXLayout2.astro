@@ -1,0 +1,148 @@
+---
+import { getAlbumPhotos } from "@components/Library.astro";
+import CustomImage from "@components/ImageCard.astro";
+const { frontmatter } = Astro.props;
+
+let photos = await getAlbumPhotos(`${frontmatter.album}`);
+if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
+// console.log("[DEBUG Console] photos: ", photos);
+---
+
+<html>
+  <h1>{frontmatter.title}</h1>
+  <h2>Post author: {frontmatter.author}</h2>
+  <p>{frontmatter.description}</p>
+
+  <astro-photo data-photos={photos}>
+    <div id="gallery" class="lg:px-32 lg:pt-24 container mx-auto px-5 py-2">
+      <div class="md:-m-2 -m-1 flex flex-wrap">
+        <div class="flex w-1/2 flex-wrap">
+          <div class="md:p-2 w-1/2 p-1">
+            <CustomImage
+              imagePath={photos[0]}
+              altText="skicyclerun"
+              twCSS="block h-full w-full rounded-lg object-cover object-center"
+              maxWidth="480"
+            />
+          </div>
+          <div class="md:p-2 w-1/2 p-1">
+            <CustomImage
+              imagePath={photos[1]}
+              altText="skicyclerun"
+              twCSS="block h-full w-full rounded-lg object-cover object-center"
+              maxWidth="480"
+            />
+          </div>
+          <div class="md:p-2 w-full p-1">
+            <CustomImage
+              imagePath={photos[2]}
+              altText="skicyclerun"
+              twCSS="block h-full w-full rounded-lg object-cover object-center"
+              maxWidth="480"
+            />
+          </div>
+        </div>
+        <div class="flex w-1/2 flex-wrap">
+          <div class="md:p-2 w-full p-1">
+            <CustomImage
+              imagePath={photos[3]}
+              altText="skicyclerun"
+              twCSS="block h-full w-full rounded-lg object-cover object-center"
+              maxWidth="480"
+            />
+          </div>
+          <div class="md:p-2 w-1/2 p-1">
+            <CustomImage
+              imagePath={photos[4]}
+              altText="skicyclerun"
+              twCSS="block h-full w-full rounded-lg object-cover object-center"
+              maxWidth="480"
+            />
+          </div>
+          <div class="md:p-2 w-1/2 p-1">
+            <CustomImage
+              imagePath={photos[5]}
+              altText="skicyclerun"
+              twCSS="block h-full w-full rounded-lg object-cover object-center"
+              maxWidth="480"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="hero" class="lg:px-32 lg:pt-24 container mx-auto hidden px-5 py-2">
+      <div class="md:-m-2 -m-1 flex flex-wrap">
+        <img
+          alt="gallery"
+          class="block h-full w-full rounded-lg object-cover object-center"
+          src={photos[0]}
+        />
+      </div>
+    </div>
+
+    <div class="container mx-auto p-4">
+      <button
+        id="toggleButton"
+        class="mt-4 rounded-md bg-gray-600 px-4 py-2 text-white"
+      >
+        Hero View
+      </button>
+    </div>
+  </astro-photo>
+
+  <!-- Markdown content is injected here -->
+  <slot />
+  <!-- Markdown content is injected here -->
+  <h3>Album: {frontmatter.album}</h3>
+
+  <script>
+    class AstroPhoto extends HTMLElement {
+      constructor() {
+        super();
+        let count = 0; // Initialize at zero on page load
+
+        // Get image URLs.
+        const photos = this.dataset.photos;
+        if (photos) {
+          const albumUrls = photos.split(",");
+          const totalImages = albumUrls?.length;
+          const imageElements = this.querySelectorAll("img");
+          imageElements.forEach((image, index) => {
+            image.src = albumUrls[index]; // Set initial src
+            image.addEventListener("click", () => {
+              count = (count + 1) % totalImages; // Cycle through URLs
+              imageElements.forEach((img, i) => {
+                img.src = albumUrls[(count + i) % totalImages]; // Update src for all images
+              });
+            });
+          });
+        }
+      }
+    }
+    // Define the custom element
+    customElements.define("astro-photo", AstroPhoto);
+
+    // Function to toggle visibility
+    // TODO: Create a way to shift between HERO mode & Gallery mode
+    function toggleVisibility() {
+      if (gallery!.style.display === "none") {
+        hero!.style.display = "none";
+        gallery!.style.display = "grid";
+        toggleButton!.innerHTML = "Hero View";
+      } else {
+        hero!.style.display = "grid";
+        gallery!.style.display = "none";
+        toggleButton!.innerHTML = "Gallery";
+      }
+    }
+
+    const gallery = document.getElementById("gallery");
+    const hero = document.getElementById("hero");
+    const toggleButton = document.getElementById("toggleButton");
+
+    // Attach click event listener to the button
+    toggleButton?.addEventListener("click", toggleVisibility);
+  </script>
+
+
+</html>

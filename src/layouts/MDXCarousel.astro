@@ -1,12 +1,11 @@
 ---
 import { getAlbumPhotos } from "@components/Library.astro";
 import CustomImage from "@components/ImageCard.astro";
-// import { Image } from "astro:assets";
 const { frontmatter } = Astro.props;
 
 let photos = await getAlbumPhotos(`${frontmatter.album}`);
 if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
-// console.log("photos: ", photos);
+// console.log("[DEBUG Console] photos: ", photos);
 ---
 
 <html>

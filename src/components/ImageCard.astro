@@ -16,7 +16,7 @@ interface Props {
 }
 
 const { imagePath, altText, twCSS, maxWidth } = Astro.props;
-// console.log("DEBUG: Props: 👉", imagePath);
+// console.log("[DEBUG Console] ImageCard:Props: 👉", imagePath);
 
 // const { imagePath, altText, name, age } = Astro.props;
 const images = import.meta.glob<{ default: ImageMetadata }>(
@@ -26,7 +26,7 @@ const images = import.meta.glob<{ default: ImageMetadata }>(
 const imageItem = getRandomImage(images);
 const imageName = getFileName(imagePath);
 
-// console.log("Get some image imported: 🤮 ", await images[imageItem]());
+// console.log("[DEBUG] ImageCard - This is the one 👉: ", imageItem);
 ---
 
 <div class={twCSS}>
