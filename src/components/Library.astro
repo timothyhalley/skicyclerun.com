@@ -29,7 +29,7 @@ export async function getAlbumPhotos(album: any): Promise<any[]> {
   try {
     let photos = [];
     if (album != "local") {
-      const photoURL = `https://api.skicyclerun.com/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=50`;
+      const photoURL = `https://api.skicyclerun.com/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=150`;
       // console.log("🌎 URL: ", photoURL);
       const res = await fetch(photoURL);
       // console.log("RES:", res);
