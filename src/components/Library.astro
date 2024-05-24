@@ -9,12 +9,7 @@ export async function getLocalImages() {
     "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
   );
   const imageKeys = Object.keys(imageObject);
-  // Replace '/src/assets' with '@images' in each path
-  // const modifiedPaths = imageKeys.map(path =>
-  //   path.replace("/src/assets", "@images")
-  // );
-  // console.log("DEBUG: -- photos: 👇\n", modifiedPaths);
-  //return modifiedPaths;
+  console.log("[DEBUG] 🌎 Local Image: ", imageKeys);
   return imageKeys;
 }
 
@@ -30,12 +25,15 @@ export async function getAlbumPhotos(album: any): Promise<any[]> {
     let photos = [];
     if (album != "local") {
       const photoURL = `https://api.skicyclerun.com/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=150`;
-      // console.log("🌎 URL: ", photoURL);
+      console.log("[DEBUG] 🌎 URL: ", photoURL);
       const res = await fetch(photoURL);
-      // console.log("RES:", res);
       photos = await res.json();
-      if (photos.length == 0) {
+      console.log("[DEBUG] 🌎 Photos: ", photos);
+      if (photos.message == "Internal server error") {
         photos = await getAlbumPhotos("default");
+        if (photos.message == "Internal server error") {
+          photos = await getLocalImages();
+        }
       }
     } else {
       photos = await getLocalImages();
