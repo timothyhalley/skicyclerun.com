@@ -9,7 +9,7 @@ export async function getLocalImages() {
     "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
   );
   const imageKeys = Object.keys(imageObject);
-  console.log("[DEBUG] 🌎 Local Image: ", imageKeys);
+  // console.log("[DEBUG] 🌎 Local Image: ", imageKeys);
   return imageKeys;
 }
 
@@ -28,7 +28,7 @@ export async function getAlbumPhotos(album: any): Promise<any[]> {
       console.log("[DEBUG] 🌎 URL: ", photoURL);
       const res = await fetch(photoURL);
       photos = await res.json();
-      console.log("[DEBUG] 🌎 Photos: ", photos);
+      // console.log("[DEBUG] 🌎 Photos: ", photos);
 
       // Likely a miss match on album name - or S3 unavail where then local SVG are served
       if (photos.message === "Internal server error") {
