@@ -22,6 +22,7 @@
     "@astrojs/rss": "latest",
     "@resvg/resvg-js": "latest",
     "astro": "latest",
+    "astro-embed": "latest",
     "fuse.js": "latest",
     "github-slugger": "latest",
     "remark-collapse": "latest",
