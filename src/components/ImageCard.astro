@@ -1,34 +1,49 @@
 ---
 // AstroDoc: https://docs.astro.build/en/recipes/build-custom-img-component/
 // Recipe: https://docs.astro.build/en/recipes/dynamically-importing-images/#recipe
+
 import {
   getAlbumPhotos,
   getRandomImage,
   getFileName,
 } from "@components/Library.astro";
-import type { ImageMetadata } from "astro";
 import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
 interface Props {
   imagePath: string;
   altText: string;
   twCSS: string;
-  maxWidth: string;
+  maxWidth: number;
 }
 
-const { imagePath, altText, twCSS, maxWidth } = Astro.props;
-// console.log("[DEBUG Console] ImageCard:Props: 👉", imagePath);
+const { imagePath, altText, twCSS, maxWidth } = Astro.props as Props;
 
-// const { imagePath, altText, name, age } = Astro.props;
-const images = import.meta.glob<{ default: ImageMetadata }>(
-  "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
-);
+// Import all images from the specified directory.
+const images: Record<string, () => Promise<{ default: ImageMetadata }>> =
+  import.meta.glob<{ default: ImageMetadata }>(
+    "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
+  );
 
-const imageItem = getRandomImage(images);
+// Retrieve a random image
+const randomImageKey = getRandomImage(images);
+
+// Get the file name from the image path
 const imageName = getFileName(imagePath);
 
-// console.log("[DEBUG] ImageCard - This is the one 👉: ", imageItem);
+// Error handling for image retrieval
+if (!randomImageKey) {
+  console.error("No images found.");
+  return;
+}
+
+// Asynchronously get the image
+const imagePromise = images[randomImageKey]();
+
+// Wait for the image to load
+const image = await imagePromise;
 ---
 
 <div class={twCSS}>
-  <Image src={images[imageItem]()} alt={imageName} />
+  <Image src={image.default} alt={altText} width={maxWidth} />
 </div>
