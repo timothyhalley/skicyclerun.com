@@ -3,14 +3,14 @@ import type { Site, SocialObjects } from "../types";
 export const SITE: Site = {
     website: "https://skicylerun.com/",
     author: "Tim H",
-    desc: "Adventures, Escapades and Musings",
+    desc: "Adventures, Escapades and Technology Insights",
     title: "SkiCycleRun",
     ogImage: "skicyclerun-og.jpeg",
     lightAndDarkMode: true,
     postPerPage: 5,
     blogType: 'GENERAL',
     scheduledPostMargin: 15 * 60 * 1000, // 15 minutes
-    version: '2024-02-08-0001'
+    version: '2025-07-25-0001'
 };
 
 export const LOCALE = {
