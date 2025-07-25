@@ -12,7 +12,7 @@ tags:
   - development
 description:
   Help to properly add/update and manage a blog post.
-author: Tim Halley
+author: Halo Cyclone
 ---
 
 This is a guide to configure the site and working with its project stack.
