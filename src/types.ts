@@ -8,7 +8,9 @@ export type Site = {
     ogImage?: string;
     lightAndDarkMode: boolean;
     postPerPage: number;
+    blogType: string;
     scheduledPostMargin: number;
+    version: string;
 };
 
 export type SocialObjects = {

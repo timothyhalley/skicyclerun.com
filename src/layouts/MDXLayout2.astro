@@ -10,7 +10,7 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
 
 <html>
   <h1>{frontmatter.title}</h1>
-  <h2>Post author: {frontmatter.author}</h2>
+
   <p>{frontmatter.description}</p>
 
   <astro-photo data-photos={photos}>
@@ -93,6 +93,7 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
   <!-- Markdown content is injected here -->
   <slot />
   <!-- Markdown content is injected here -->
+  <h2>Post author: {frontmatter.author}</h2>
   <h3>Album: {frontmatter.album}</h3>
 
   <script>
