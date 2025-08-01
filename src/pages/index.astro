@@ -31,11 +31,11 @@ const socialCount = SOCIALS.filter(social => social.active).length;
       </div>
 
       <Image src={mtnTops} alt="top of the mtn" />
-      <p>
+      <p >
         🌍 Travel & Terrain Photos from the road—mountains, bikes, hikes. Places visited, moments captured, & past paths retraced. 🎿🚴‍♀️🥾
       </p>
       <p>
-        🔬 Knowledge & Code Topics span space, physics, AI, and programming. Clean ideas, clear logic, endless exploration. 💻🔭
+        🔬 Explore topics of interest regarding technology, coding and the latest in AI areas ✨ and research. 💻🔭
       </p>
       <p class="my-50 m-20">
         This project tech-stack is based on Astro.Build. Details as well as
@@ -47,7 +47,7 @@ const socialCount = SOCIALS.filter(social => social.active).length;
           PROJECT SETUP GUIDE
         </LinkButton>
       </p>
-      {
+      <!-- {
         // only display if at least one social link is enabled
         socialCount > 0 && (
           <div class="social-wrapper">
@@ -55,7 +55,7 @@ const socialCount = SOCIALS.filter(social => social.active).length;
             <Socials />
           </div>
         )
-      }
+      } -->
     </section>
 
     <Hr />
@@ -64,7 +64,7 @@ const socialCount = SOCIALS.filter(social => social.active).length;
       featuredPosts.length > 0 && (
         <>
           <section id="featured">
-            <h2>Featured</h2>
+            <h2>Featured Topics</h2>
             <ul>
               {featuredPosts.map(({ data, slug }) => (
                 <Card
