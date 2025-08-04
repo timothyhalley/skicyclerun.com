@@ -22,7 +22,7 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
               imagePath={photos[0]}
               altText="skicyclerun"
               twCSS="block h-full w-full rounded-lg object-cover object-center"
-              maxWidth="480"
+              maxWidth={480}
             />
           </div>
           <div class="md:p-2 w-1/2 p-1">
@@ -30,7 +30,7 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
               imagePath={photos[1]}
               altText="skicyclerun"
               twCSS="block h-full w-full rounded-lg object-cover object-center"
-              maxWidth="480"
+              maxWidth={480}
             />
           </div>
           <div class="md:p-2 w-full p-1">
@@ -38,7 +38,7 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
               imagePath={photos[2]}
               altText="skicyclerun"
               twCSS="block h-full w-full rounded-lg object-cover object-center"
-              maxWidth="480"
+              maxWidth={480}
             />
           </div>
         </div>
@@ -48,7 +48,7 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
               imagePath={photos[3]}
               altText="skicyclerun"
               twCSS="block h-full w-full rounded-lg object-cover object-center"
-              maxWidth="480"
+              maxWidth={480}
             />
           </div>
           <div class="md:p-2 w-1/2 p-1">
@@ -56,7 +56,7 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
               imagePath={photos[4]}
               altText="skicyclerun"
               twCSS="block h-full w-full rounded-lg object-cover object-center"
-              maxWidth="480"
+              maxWidth={480}
             />
           </div>
           <div class="md:p-2 w-1/2 p-1">
@@ -64,7 +64,7 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
               imagePath={photos[5]}
               altText="skicyclerun"
               twCSS="block h-full w-full rounded-lg object-cover object-center"
-              maxWidth="480"
+              maxWidth={480}
             />
           </div>
         </div>
@@ -96,7 +96,89 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
   <h2>Post author: {frontmatter.author}</h2>
   <h3>Album: {frontmatter.album}</h3>
 
-  <script>
+<script>
+  class AstroPhoto extends HTMLElement {
+    constructor() {
+      super();
+      console.log("✅ AstroPhoto constructor called");
+
+      // Image setup logic moved to connectedCallback for DOM safety
+      this.photoCycleInitialized = false;
+      this.toggleInitialized = false;
+    }
+
+    connectedCallback() {
+      console.log("🔌 astro-photo connected to DOM");
+
+      // 🖼️ Setup photo cycling if not already done
+      if (!this.photoCycleInitialized) {
+        const photos = this.dataset.photos;
+        if (!photos) return console.warn("⛔ No photos found in dataset");
+
+        const albumUrls = photos.split(",");
+        const totalImages = albumUrls.length;
+        const imageElements = this.querySelectorAll("img");
+
+        console.log("🖼️ Found", imageElements.length, "images");
+
+        let count = 0;
+        imageElements.forEach((image, index) => {
+          image.src = albumUrls[index];
+          image.addEventListener("click", () => {
+            count = (count + 1) % totalImages;
+            imageElements.forEach((img, i) => {
+              img.src = albumUrls[(count + i) % totalImages];
+              console.log(`🔄 Updating img[${i}] to ${img.src}`);
+            });
+          });
+        });
+
+        this.photoCycleInitialized = true;
+      }
+
+      // 🧭 Setup toggle logic
+      if (!this.toggleInitialized) {
+        const gallery = this.querySelector("#gallery");
+        const hero = this.querySelector("#hero");
+        const toggleButton = this.querySelector("#toggleButton");
+
+        console.log("📌 Gallery:", gallery);
+        console.log("📌 Hero:", hero);
+        console.log("📌 Toggle Button:", toggleButton);
+
+        if (!gallery || !hero || !toggleButton) {
+          console.error("⛔ Required elements missing inside <astro-photo>");
+          return;
+        }
+
+        // 🎬 Initial state
+        gallery.style.display = "grid";
+        hero.style.display = "none";
+        toggleButton.innerHTML = "Hero View";
+        console.log("🎯 Initial state applied");
+
+        toggleButton.addEventListener("click", () => {
+          console.log("🧨 Toggle clicked");
+
+          const isGalleryVisible = gallery.style.display !== "none";
+          gallery.style.display = isGalleryVisible ? "none" : "grid";
+          hero.style.display = isGalleryVisible ? "grid" : "none";
+          toggleButton.innerHTML = isGalleryVisible ? "Gallery" : "Hero View";
+
+          console.log("🔁 Toggled: Gallery =", gallery.style.display, "Hero =", hero.style.display);
+        });
+
+        console.log("🔗 Toggle listener attached");
+        this.toggleInitialized = true;
+      }
+    }
+  }
+
+  customElements.define("astro-photo", AstroPhoto);
+  console.log("📦 astro-photo custom element defined");
+</script>
+
+  <!-- <script>
     class AstroPhoto extends HTMLElement {
       constructor() {
         super();
@@ -143,7 +225,7 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
 
     // Attach click event listener to the button
     toggleButton?.addEventListener("click", toggleVisibility);
-  </script>
+  </script> -->
 
 
 </html>
