@@ -38,7 +38,7 @@
     "@types/github-slugger": "latest",
     "@types/react": "latest",
     "@typescript-eslint/parser": "latest",
-    "astro": "^5.12.3",
+    "astro": "^5.12.8",
     "astro-eslint-parser": "latest",
     "commitizen": "latest",
     "cz-conventional-changelog": "latest",

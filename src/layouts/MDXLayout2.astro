@@ -98,13 +98,12 @@ if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
 
 <script>
   class AstroPhoto extends HTMLElement {
+    toggleInitialized = false;
+    photoCycleInitialized = false;
+
     constructor() {
       super();
       console.log("✅ AstroPhoto constructor called");
-
-      // Image setup logic moved to connectedCallback for DOM safety
-      this.photoCycleInitialized = false;
-      this.toggleInitialized = false;
     }
 
     connectedCallback() {
