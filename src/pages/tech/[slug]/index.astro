@@ -1,0 +1,44 @@
+---
+import { type CollectionEntry, getCollection } from "astro:content";
+import Tech from "@layouts/Tech.astro";
+import TechDetails from "@layouts/TechDetails.astro";
+import getSortedTech from "@utils/getSortedTech";
+import getPageNumbers from "@utils/getPageNumbers";
+import getPagination from "@utils/getPagination";
+
+export interface Props {
+  post: CollectionEntry<"tech">;
+}
+
+export async function getStaticPaths() {
+  const posts = await getCollection("tech", ({ data }) => !data.draft);
+
+  const techResult = posts.map(post => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+
+  console.log("[DEBUG] src > pages > aitech > slug >> index.astro: techResults\n", techResult);
+
+  const pagePaths = getPageNumbers(posts.length).map(pageNum => ({
+    params: { slug: String(pageNum) },
+  }));
+  return [...techResult, ...pagePaths];
+}
+
+const { slug } = Astro.params;
+const { post } = Astro.props;
+
+console.log("[DEBUG] Astro params and props --> ", slug, "    ");
+
+const posts = await getCollection("tech");
+
+const sortedPosts = getSortedTech(posts);
+
+const pagination = getPagination({
+  posts: sortedPosts,
+  page: slug,
+});
+---
+
+{post ? <TechDetails post={post} /> : <Tech {...pagination} />}
