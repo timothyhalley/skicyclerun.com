@@ -57,7 +57,7 @@ if (!photos || photos.length === 0) throw new Error(`"${frontmatter.album}" retu
       <div class="carousel-track" id="carouselTrack">
         {photos.map((photo, index) => (
           <div class="carousel-slide" data-src={photo.src}>
-            <CustomImage src={photo.src} alt={photo.alt ?? `Photo ${index + 1}`} class="clickable-image" />
+            <CustomImage src={photo.src} altText={photo.alt ?? `Photo ${index + 1}`} class="clickable-image" />
           </div>
         ))}
       </div>

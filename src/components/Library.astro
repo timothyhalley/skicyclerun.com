@@ -23,28 +23,47 @@ export async function getImgMeta(imgPath: string) {
 export async function getAlbumPhotos(album: any): Promise<any[]> {
   try {
     let photos = [];
+
     if (album !== "local") {
       const photoURL = `https://api.skicyclerun.com/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=150`;
-      // console.log("[DEBUG] 🌎 URL: ", photoURL);
       const res = await fetch(photoURL);
       photos = await res.json();
-      // console.log("[DEBUG] 🌎 Photos: ", photos);
+      photos = photos.map((p: any, i: number) => ({
+        ...p,
+        altText: p.altText ?? `Photo ${i + 1}`,
+        sourceType: "remote",
+      }));
 
-      // Likely a miss match on album name - or S3 unavail where then local SVG are served
       if (photos.message === "Internal server error") {
         photos = (await getAlbumPhotos("default")) || (await getLocalImages());
       }
     } else {
-      photos = await getLocalImages();
+      const imagePaths = await getLocalImages();
+      const imageModules = import.meta.glob<{ default: ImageMetadata }>(
+        "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
+      );
+
+      photos = await Promise.all(
+        imagePaths.map(async (path: string, i: number) => {
+          const mod = imageModules[path];
+          const img = mod ? await mod() : null;
+          return {
+            src: img?.default ?? undefined,
+            altText: `Photo ${i + 1}`,
+            sourceType: "local",
+          };
+        })
+      );
     }
 
-    // console.log("DEBUG: LIB AFTER: 👉", photos);
     return photos;
+
   } catch (error) {
     console.log("ERROR:getAlbumPhotos", error);
     throw error;
   }
 }
+
 
 export function getRandomImage(
   imagesObject: Record<string, () => Promise<{ default: ImageMetadata }>>
