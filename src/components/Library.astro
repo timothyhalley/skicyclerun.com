@@ -9,32 +9,40 @@ export async function getLocalImages() {
     "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
   );
   const imageKeys = Object.keys(imageObject);
-  // console.log("[DEBUG] 🌎 Local Image: ", imageKeys);
   return imageKeys;
 }
 
 export async function getImgMeta(imgPath: string) {
   console.log("getImgMeta: ", imgPath);
-  // const imgObj = await import.meta.glob<{ default: ImageMetadata }>(imgPath);
-  // console.log("getImgMeta meta: ", imgObj);
   return imgPath;
 }
 
 export async function getAlbumPhotos(album: any): Promise<any[]> {
   try {
-    let photos = [];
+    let photos: any[] = [];
 
     if (album !== "local") {
       const photoURL = `https://api.skicyclerun.com/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=150`;
       const res = await fetch(photoURL);
-      photos = await res.json();
-      photos = photos.map((p: any, i: number) => ({
-        ...p,
-        altText: p.altText ?? `Photo ${i + 1}`,
-        sourceType: "remote",
-      }));
+      const data = await res.json();
 
-      if (photos.message === "Internal server error") {
+      // ✅ Defensive check: only map if data is an array
+      if (Array.isArray(data)) {
+        photos = data.map((p: any, i: number) => {
+          const src = typeof p === "string" ? p : p?.src;
+          return {
+            src,
+            altText: p?.altText ?? `Photo ${i + 1}`,
+            sourceType: "remote",
+          };
+        });
+      } else {
+        console.warn("⚠️ Unexpected response format from photo API:", data);
+        photos = [];
+      }
+
+      // ✅ Preserve fallback logic
+      if ((data as any)?.message === "Internal server error") {
         photos = (await getAlbumPhotos("default")) || (await getLocalImages());
       }
     } else {
@@ -48,7 +56,7 @@ export async function getAlbumPhotos(album: any): Promise<any[]> {
           const mod = imageModules[path];
           const img = mod ? await mod() : null;
           return {
-            src: img?.default ?? undefined,
+            src: img?.default?.src ?? undefined, // ✅ Use the actual image path
             altText: `Photo ${i + 1}`,
             sourceType: "local",
           };
@@ -57,13 +65,11 @@ export async function getAlbumPhotos(album: any): Promise<any[]> {
     }
 
     return photos;
-
   } catch (error) {
     console.log("ERROR:getAlbumPhotos", error);
     throw error;
   }
 }
-
 
 export function getRandomImage(
   imagesObject: Record<string, () => Promise<{ default: ImageMetadata }>>
@@ -85,35 +91,68 @@ export function findKeyWithValue(
       return { key, value: obj[key] };
     }
   }
-  return null; // Return null if no match is found
+  return null;
 }
 
-export function findSubstring(array: any, target: any) {
-  for (const entry of array) {
-    if (entry.includes(target)) {
-      return entry;
+// export function findSubstring(obj: Record<string, any>, target: string): any {
+//   for (const key in obj) {
+//     if (key.includes(target)) {
+//       return obj[key];
+//     }
+//   }
+//   return null;
+// }
+
+export function findSubstring(
+  imageName: string,
+  imageModules: Record<string, any>
+) {
+  for (const key in imageModules) {
+    if (key.endsWith(imageName)) {
+      return imageModules[key];
     }
   }
-  return null; // Return null if the substring is not found in any entry
+  console.warn("❌ No match found for:", imageName);
+  return null;
 }
 
-export function getImage(imgSrc: string, imgObj: object) {
-  const result = findSubstring(imgObj, imgSrc);
-  console.log("GetImage: result: ", result);
+export function getImage(imgSrc: unknown, imgObj: Record<string, any>) {
+  if (typeof imgSrc !== "string") {
+    console.warn("⚠️ getImage received non-string imgSrc:", imgSrc);
+    return null;
+  }
+
+  console.log("🔍 Available image keys:", Object.keys(imgObj));
+  console.log("🔍 Looking for match with:", imgSrc);
+
+  const result = findSubstring(imgSrc, imgObj);
+  if (!result) {
+    console.warn("⚠️ getImage could not find match for:", imgSrc);
+  }
   return result;
 }
 
-export function getFileName(path: string | null): string {
-  // console.log("DEBUG FUNCTION getFileName: ", path);
-  if (path != null) {
-    const matchResult = path.match(/[-_\w]+[.][\w]+$/i);
-    if (matchResult) {
-      return matchResult[0];
-    } else {
-      return "imageNotMatched";
-    }
-  } else {
+export function getFileName(path: unknown): string {
+  if (typeof path === "object" && path !== null && "src" in path) {
+    path = (path as any).src;
+  }
+
+  if (typeof path !== "string") return "imageNotFound";
+
+  const cleanPath = path.split("?")[0];
+
+  // Bail if it's a hashed Astro path or remote URL
+  if (cleanPath.startsWith("/_astro/") || cleanPath.startsWith("http")) {
     return "imageNotFound";
   }
+
+  const matchResult = cleanPath.match(
+    /\/([\w-]+)(?:\.[\w]+)*\.(svg|jpeg|jpg|png|gif)$/i
+  );
+  if (matchResult) {
+    return `${matchResult[1]}.${matchResult[2]}`;
+  }
+  console.warn("⚠️ - getFileName received non-string path:", path);
+  return "imageNotFound";
 }
 ---

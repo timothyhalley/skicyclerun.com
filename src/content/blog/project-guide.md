@@ -28,7 +28,7 @@ Additional build information can be found in the project [README.MD](https://git
 
 Frontmatter is the "key" meta data for any blog post (article). Frontmatter is at top of the post and
 is based on the the content scheme defined in the src/content/config.ts. There you can find what
-is required and optional. 
+is required and optional.
 
 Table below covers each field:
 
@@ -46,7 +46,7 @@ Table below covers each field:
 | **_canonicalURL_** | Canonical URL (absolute), in case the article already exists on other source.               | default = `Astro.site` + `Astro.url.pathname` |
 | **_author_**       | Author of the post.                                                                         | default = SITE.author                         |
 
-> For pub/mod dates use ISO 8601 datetime format. Use  https://timestampgenerator.com/ and select correct date & time period or use console and run: `new Date().toISOString()` an alternate method. 
+> For pub/mod dates use ISO 8601 datetime format. Use  <https://timestampgenerator.com/> and select correct date & time period or use console and run: `new Date().toISOString()` an alternate method.
 
 > When adding new blog post, update schema meta data by running `npm run sync` in the terminal.
 
@@ -54,13 +54,15 @@ Table below covers each field:
 
 ## Adding table of contents
 
-To add a TOC: 
+To add a TOC:
+
 - Write `Table of contents` in h2 format (## in markdown). Typically found near top of post.
+
 > Hint: run `npm run sync` to reindex TOC if a new entry is made (h2 - h5).
 
 ## Headings
 
-Note that the `title` frontmatter is used for a `heading` and `H1` tags will create conflicts when post is index. 
+Note that the `title` frontmatter is used for a `heading` and `H1` tags will create conflicts when post is index.
 
 ## Storing Images for Blog Content
 
@@ -90,7 +92,7 @@ export const SITE: Site = {
     author: "Tim H",
     desc: "In search of all things Visionary, Vivacious and Voluptuous",
     title: "SkiCycleRun",
-    ogImage: "skicyclerun-og.jpeg",
+    ogImage: "/src/assets/images/hikeclimb.svg",
     lightAndDarkMode: true,
     postPerPage: 3,
     blogType: 'Unknown',
@@ -100,20 +102,19 @@ export const SITE: Site = {
 
 New feature in SkiCycleRun v1.4.0, introducing dynamic OG image generation for blog posts.
 
-
 ## OG Image
 
 The OG images is displayed when the website URL is shared on social media.
 
 ### Default/Static OG image
 
-The project can specify a new OG image in frontmatter: `ogImage` or let the default be used `public/SkiCycleRun-og.jpg`. 
+The project can specify a new OG image in frontmatter: `ogImage` or let the default be used `public/SkiCycleRun-og.jpeg`.
 
 ### Dynamic OG Image
 
 Vercel's [Satori](https://github.com/vercel/satori) package is used for dynamic OG image generation.
 
- > See: [Satori](https://github.com/vercel/satori) how to create the dynamic OG image feature. Likely need to change this to GenAI API for increase entertainment and fun possibilities! 😵‍💫 
+ > See: [Satori](https://github.com/vercel/satori) how to create the dynamic OG image feature. Likely need to change this to GenAI API for increase entertainment and fun possibilities! 😵‍💫
 
 ## Choose primary color scheme
 
@@ -127,6 +128,7 @@ const primaryColorScheme = ""; // "light" | "dark"
 // Get theme data from local storage
 const currentTheme = localStorage.getItem("theme");
 ```
+
 > Note: Other theme settings available in this file.
 
 - `""` - system's prefers-color-scheme. (default)
@@ -284,11 +286,15 @@ Need to find decent articles on this topic
 ## Appendix & Resources
 
 ### SVG resources
+
 - [SVG Repo](https://www.svgrepo.com/)
+
 ### Icon resources
+
 - [Tabler](https://tabler.io/icons)
 
 - Icon HTML example:
+
 ```html
 <svg
   xmlns="http://www.w3.org/2000/svg"

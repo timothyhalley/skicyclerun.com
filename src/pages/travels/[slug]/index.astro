@@ -1,8 +1,8 @@
 ---
 import { type CollectionEntry, getCollection } from "astro:content";
-import Travels from "@layouts/Travels.astro";
-import TravelDetails from "@layouts/TravelDetails.astro";
-import getSortedTravels from "@utils/getSortedTravels";
+import Posts from "@layouts/Posts.astro";
+import PostDetails from "@layouts/PostDetails.astro";
+import getSortedPosts from "@utils/getSortedPosts";
 import getPageNumbers from "@utils/getPageNumbers";
 import getPagination from "@utils/getPagination";
 
@@ -29,12 +29,12 @@ const { post } = Astro.props;
 
 const posts = await getCollection("blog");
 
-const sortedTravels = getSortedTravels(posts);
+const sortedPosts = getSortedPosts(posts);
 
 const pagination = getPagination({
-  posts: sortedTravels,
+  posts: sortedPosts,
   page: slug,
 });
 ---
 
-{post ? <TravelDetails post={post} /> : <Travels {...pagination} />}
+{post ? <PostDetails post={post} /> : <Posts {...pagination} />}

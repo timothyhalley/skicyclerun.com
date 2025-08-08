@@ -5,7 +5,7 @@ export const SITE: Site = {
     author: "Tim H",
     desc: "Adventures, Technology and Interests",
     title: "SkiCycleRun",
-    ogImage: "skicyclerun-og.jpeg",
+    ogImage: "/src/assets/images/hikeclimb.svg",
     lightAndDarkMode: true,
     postPerPage: 5,
     blogType: 'GENERAL',
