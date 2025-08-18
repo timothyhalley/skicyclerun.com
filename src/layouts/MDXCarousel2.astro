@@ -2,6 +2,7 @@
 import { getAlbumPhotos } from "@components/Library.astro";
 import CustomImage from "@components/ImageCard.astro";
 const { frontmatter } = Astro.props;
+import adventureImage from "@images/adventureoutside.svg";
 
 const photos = await getAlbumPhotos(`${frontmatter.album}`);
 if (!photos || photos.length === 0)
@@ -85,7 +86,7 @@ if (!photos || photos.length === 0)
     </section>
 
     <div id="modal" class="modal">
-      <img id="modalImage" src="" alt="Large view" />
+      <img id="modalImage" src={adventureImage.src} alt="Large view" />
     </div>
 
     <script type="module">

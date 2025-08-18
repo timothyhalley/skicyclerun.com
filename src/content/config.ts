@@ -1,5 +1,6 @@
 import { defineCollection, z, type CollectionEntry } from "astro:content";
 import { BLOG_TYPES } from "../constants/blogTypes";
+import type { RefinementCtx } from "zod";
 
 const sharedSchema = ({ image }: any) =>
   z.object({
@@ -14,11 +15,24 @@ const sharedSchema = ({ image }: any) =>
     tags: z.array(z.string()).default(["others"]),
     cover: image().optional(),
     ogImage: image()
-      .refine(img => img.width >= 1200 && img.height >= 630, {
-        message: "OpenGraph image must be at least 1200 X 630 pixels!",
-      })
+      .optional()
       .or(z.string())
-      .optional(),
+      .superRefine((img: unknown, ctx: RefinementCtx) => {
+        if (
+          typeof img === "object" &&
+          img !== null &&
+          "width" in img &&
+          "height" in img
+        ) {
+          const meta = img as { width: number; height: number };
+          if (meta.width < 1200 || meta.height < 630) {
+            ctx.addIssue({
+              code: "custom",
+              message: "OpenGraph image must be at least 1200 X 630 pixels!",
+            });
+          }
+        }
+      }),
     description: z.string(),
     canonicalURL: z.string().optional(),
     slug: z.string().optional(),
