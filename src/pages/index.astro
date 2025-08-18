@@ -8,7 +8,7 @@ import Hr from "@components/Hr.astro";
 import Card from "@components/Card";
 import Socials from "@components/Socials.astro";
 import getSortedPosts from "@utils/getSortedPosts";
-import { SOCIALS } from "@config";
+import { SkiCycleRunConfig } from "skicyclerun.config";
 
 import { Image } from "astro:assets";
 import mtnTops from "@images/mtntops.svg";
@@ -19,7 +19,9 @@ const sortedPosts = getSortedPosts(posts);
 const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
 const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
 
-const socialCount = SOCIALS.filter(social => social.active).length;
+const socialCount = SkiCycleRunConfig.socials.filter(
+  social => social.active
+).length;
 ---
 
 <Layout>
@@ -31,11 +33,13 @@ const socialCount = SOCIALS.filter(social => social.active).length;
       </div>
 
       <Image src={mtnTops} alt="top of the mtn" />
-      <p >
-        🌍 Travel & Terrain Photos from the road—mountains, bikes, hikes. Places visited, moments captured, & past paths retraced. 🎿🚴‍♀️🥾
+      <p>
+        🌍 Travel & Terrain Photos from the road—mountains, bikes, hikes. Places
+        visited, moments captured, & past paths retraced. 🎿🚴‍♀️🥾
       </p>
       <p>
-        🔬 Explore topics of interest regarding technology, coding and the latest in AI areas ✨ and research. 💻🔭
+        🔬 Explore topics of interest regarding technology, coding and the
+        latest in AI areas ✨ and research. 💻🔭
       </p>
       <p class="my-50 m-20">
         This project tech-stack is based on Astro.Build. Details as well as
@@ -47,15 +51,6 @@ const socialCount = SOCIALS.filter(social => social.active).length;
           PROJECT SETUP GUIDE
         </LinkButton>
       </p>
-      <!-- {
-        // only display if at least one social link is enabled
-        socialCount > 0 && (
-          <div class="social-wrapper">
-            <div class="social-links">Social Links:</div>
-            <Socials />
-          </div>
-        )
-      } -->
     </section>
 
     <Hr />

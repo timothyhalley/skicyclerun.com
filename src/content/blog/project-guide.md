@@ -1,7 +1,7 @@
 ---
 title: Project Guide
 slug: project-guide
-type: 'PROJECT'
+type: 'BETA'
 pubDatetime: 2024-01-27T14:30:00-08:00
 modDatetime: 2024-01-27T14:50:00-08:00
 featured: false

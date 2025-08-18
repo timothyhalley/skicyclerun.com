@@ -1,0 +1,64 @@
+.prose h3 {
+    @apply italic;
+}
+
+.prose p {
+    @apply text-skin-base;
+}
+
+.prose a {
+    @apply text-skin-base decoration-dashed underline-offset-8 hover:text-skin-accent;
+}
+
+.prose blockquote {
+    @apply border-l-skin-accent border-opacity-50 opacity-80;
+}
+
+.prose figcaption {
+    @apply text-skin-base opacity-70;
+}
+
+.prose strong {
+    @apply text-skin-base;
+}
+
+.prose code {
+    @apply rounded bg-skin-card bg-opacity-75 p-1;
+}
+
+.prose code::before,
+.prose code::after {
+    @apply content-none;
+}
+
+.prose ol {
+    @apply text-skin-base;
+}
+
+.prose ul {
+    @apply overflow-x-clip text-skin-base;
+}
+
+.prose li::marker {
+    @apply text-skin-accent;
+}
+
+.prose table {
+    @apply text-skin-base;
+}
+
+.prose th {
+    @apply border border-skin-line;
+}
+
+.prose td {
+    @apply border border-skin-line;
+}
+
+.prose img {
+    @apply my-2 mx-auto border-2 border-skin-line;
+}
+
+.prose hr {
+    @apply border-skin-line;
+}

@@ -49,13 +49,13 @@ const resolvedAltText = altTextProp ?? image?.altText ?? "Untitled";
 const resolvedSourceType = sourceTypeProp ?? image?.sourceType ?? "local";
 
 // 🔍 Debug: Inspect resolved values
-console.log("🧪 ImageCard DEBUG — raw props:", Astro.props);
-console.log(
-  "🧪 ImageCard DEBUG — resolvedImagePath type:",
-  typeof resolvedImagePath
-);
-console.log("🧪 ImageCard DEBUG — resolvedImagePath value:", resolvedImagePath);
-console.log("🧪 ImageCard DEBUG — resolvedSourceType:", resolvedSourceType);
+// console.log("🧪 ImageCard DEBUG — raw props:", Astro.props);
+// console.log(
+//   "🧪 ImageCard DEBUG — resolvedImagePath type:",
+//   typeof resolvedImagePath
+// );
+// console.log("🧪 ImageCard DEBUG — resolvedImagePath value:", resolvedImagePath);
+// console.log("🧪 ImageCard DEBUG — resolvedSourceType:", resolvedSourceType);
 
 // Import all images from the specified directory.
 const images: Record<string, () => Promise<{ default: ImageMetadata }>> =

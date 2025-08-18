@@ -1,4 +1,4 @@
-import { SITE } from "@config";
+import { SkiCycleRunConfig } from "skicyclerun.config";
 import getPageNumbers from "./getPageNumbers";
 
 interface GetPaginationProps<T> {
@@ -21,8 +21,8 @@ const getPagination = <T>({
       ? Number(page)
       : 0;
 
-  const lastPost = isIndex ? SITE.postPerPage : currentPage * SITE.postPerPage;
-  const startPost = isIndex ? 0 : lastPost - SITE.postPerPage;
+  const lastPost = isIndex ? SkiCycleRunConfig.postPerPage : currentPage * SkiCycleRunConfig.postPerPage;
+  const startPost = isIndex ? 0 : lastPost - SkiCycleRunConfig.postPerPage;
   const paginatedPosts = posts.slice(startPost, lastPost);
 
   return {

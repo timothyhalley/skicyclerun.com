@@ -4,20 +4,16 @@ import react from "@astrojs/react";
 import remarkToc from "remark-toc";
 import remarkCollapse from "remark-collapse";
 import sitemap from "@astrojs/sitemap";
-import { SITE } from "./src/config";
+import { SkiCycleRunConfig } from "./src/skicyclerun.config.ts";
 import mdx from '@astrojs/mdx';
+import icon from "astro-icon";
 
 // https://astro.build/config
 export default defineConfig({
-    site: SITE.website,
-    integrations: [
-        tailwind({
-            applyBaseStyles: false,
-        }),
-        react(),
-        sitemap(),
-        mdx(),
-    ],
+    site: SkiCycleRunConfig.website,
+    integrations: [tailwind({
+        applyBaseStyles: false,
+    }), react(), sitemap(), mdx(), icon()],
     markdown: {
         remarkPlugins: [
             remarkToc,

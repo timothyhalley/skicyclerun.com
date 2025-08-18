@@ -11,7 +11,7 @@ function withOpacity(variableName) {
 module.exports = {
     content:
         [
-            "./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}",
+            "./src/**/*.{astro,html,js,jsx,md,mdx,ts,tsx,vue}",
             "./node_modules/tw-elements/dist/js/**/*.js"
         ],
     theme: {
@@ -22,6 +22,16 @@ module.exports = {
         },
 
         extend: {
+            colors: {
+                skin: {
+                    fill: "rgb(var(--color-fill) / <alpha-value>)",
+                    base: "rgb(var(--color-text-base) / <alpha-value>)",
+                    accent: "rgb(var(--color-accent) / <alpha-value>)",
+                    card: "rgb(var(--color-card) / <alpha-value>)",
+                    cardMuted: "rgb(var(--color-card-muted) / <alpha-value>)",
+                    line: "rgb(var(--color-border) / <alpha-value>)",
+                },
+            },
             textColor: {
                 skin: {
                     base: withOpacity("--color-text-base"),

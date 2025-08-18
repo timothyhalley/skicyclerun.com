@@ -43,13 +43,13 @@ const options: SatoriOptions = {
   ],
 };
 
-function svgBufferToPngBuffer(svg: string) {
+function svgBufferToPngBuffer(svg: string): Uint8Array {
   const resvg = new Resvg(svg);
   const pngData = resvg.render();
-  return pngData.asPng();
+  return pngData.asPng(); // This is already a Uint8Array
 }
 
-export async function generateOgImageForPost(post: CollectionEntry<"blog">) {
+export async function generateOgImageForPost(post: CollectionEntry<"blog">): Promise<Uint8Array> {
   const svg = await satori(postOgImage(post), options);
   return svgBufferToPngBuffer(svg);
 }

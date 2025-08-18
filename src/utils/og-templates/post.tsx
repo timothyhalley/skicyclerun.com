@@ -1,4 +1,4 @@
-import { SITE } from "@config";
+import { SkiCycleRunConfig } from "skicyclerun.config";
 import type { CollectionEntry } from "astro:content";
 
 export default (post: CollectionEntry<"blog">) => {
@@ -86,7 +86,7 @@ export default (post: CollectionEntry<"blog">) => {
             </span>
 
             <span style={{ overflow: "hidden", fontWeight: "bold" }}>
-              {SITE.title}
+              {SkiCycleRunConfig.title}
             </span>
           </div>
         </div>

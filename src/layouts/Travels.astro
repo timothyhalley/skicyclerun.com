@@ -6,7 +6,7 @@ import Header from "@components/Header.astro";
 import Footer from "@components/Footer.astro";
 import Pagination from "@components/Pagination.astro";
 import Card from "@components/Card";
-import { SITE } from "@config";
+import { SkiCycleRunConfig } from "skicyclerun.config";
 
 export interface Props {
   currentPage: number;
@@ -17,7 +17,7 @@ export interface Props {
 const { currentPage, totalPages, paginatedPosts } = Astro.props;
 ---
 
-<Layout title={`Travels | ${SITE.title}`}>
+<Layout title={`Travels | ${SkiCycleRunConfig.title}`}>
   <Header activeNav="travels" />
   <Main
     pageTitle="Travels"

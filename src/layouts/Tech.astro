@@ -6,7 +6,7 @@ import Header from "@components/Header.astro";
 import Footer from "@components/Footer.astro";
 import Pagination from "@components/Pagination.astro";
 import Card from "@components/Card";
-import { SITE } from "@config";
+import { SkiCycleRunConfig } from "skicyclerun.config";
 
 export interface Props {
   currentPage: number;
@@ -16,11 +16,10 @@ export interface Props {
 
 // console.log("[DEBUG] src > layouts > AITech.astro: PROPS\n", Astro.props);
 
-
 const { currentPage, totalPages, paginatedPosts } = Astro.props;
 ---
 
-<Layout title={`AI Tech | ${SITE.title}`}>
+<Layout title={`AI Tech | ${SkiCycleRunConfig.title}`}>
   <Header activeNav="AI Tech" />
   <Main
     pageTitle="AI Tech"

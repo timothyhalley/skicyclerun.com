@@ -1,5 +1,5 @@
 ---
-import { LOCALE, SITE } from "@config";
+import { SkiCycleRunConfig } from "skicyclerun.config";
 import "@styles/base.css";
 import { ViewTransitions } from "astro:transitions";
 
@@ -15,10 +15,10 @@ export interface Props {
 }
 
 const {
-  title = SITE.title,
-  author = SITE.author,
-  description = SITE.desc,
-  ogImage = SITE.ogImage,
+  title = SkiCycleRunConfig.title,
+  author = SkiCycleRunConfig.author,
+  description = SkiCycleRunConfig.description,
+  ogImage = SkiCycleRunConfig.ogImage,
   canonicalURL = new URL(Astro.url.pathname, Astro.site).href,
   pubDatetime,
   modDatetime,
@@ -26,14 +26,14 @@ const {
 } = Astro.props;
 
 const socialImageURL = new URL(
-  ogImage ?? SITE.ogImage ?? "og.png",
+  ogImage ?? SkiCycleRunConfig.ogImage ?? "og.png",
   Astro.url.origin
 ).href;
 ---
 
 <!doctype html>
 <html
-  lang=`${LOCALE.lang ?? "en"}`
+  lang=`${SkiCycleRunConfig.locale.lang ?? "en"}`
   class={`${scrollSmooth && "scroll-smooth"}`}
 >
   <head>

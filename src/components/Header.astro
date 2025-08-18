@@ -1,5 +1,5 @@
 ---
-import { LOGO_IMAGE, SITE } from "@config";
+import { SkiCycleRunConfig } from "skicyclerun.config";
 import Hr from "./Hr.astro";
 import LinkButton from "./LinkButton.astro";
 
@@ -16,15 +16,15 @@ const { activeNav } = Astro.props;
     <div class="top-nav-wrap">
       <a href="/" class="logo whitespace-nowrap">
         {
-          LOGO_IMAGE.enable ? (
+          SkiCycleRunConfig.logoImage.enable ? (
             <img
-              src={`/assets/${LOGO_IMAGE.svg ? "logo.svg" : "logo.png"}`}
-              alt={SITE.title}
-              width={LOGO_IMAGE.width}
-              height={LOGO_IMAGE.height}
+              src={`/assets/${SkiCycleRunConfig.logoImage.svg ? "logo.svg" : "logo.png"}`}
+              alt={SkiCycleRunConfig.title}
+              width={SkiCycleRunConfig.logoImage.width}
+              height={SkiCycleRunConfig.logoImage.height}
             />
           ) : (
-            SITE.title
+            SkiCycleRunConfig.title
           )
         }
       </a>
@@ -100,7 +100,7 @@ const { activeNav } = Astro.props;
             </LinkButton>
           </li>
           {
-            SITE.lightAndDarkMode && (
+            SkiCycleRunConfig.lightAndDarkMode && (
               <li>
                 <button
                   id="theme-btn"

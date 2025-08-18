@@ -1,4 +1,4 @@
-import { SITE } from "@config";
+import { SkiCycleRunConfig } from "skicyclerun.config";
 
 export default () => {
   return (
@@ -63,8 +63,8 @@ export default () => {
               textAlign: "center",
             }}
           >
-            <p style={{ fontSize: 72, fontWeight: "bold" }}>{SITE.title}</p>
-            <p style={{ fontSize: 28 }}>{SITE.desc}</p>
+            <p style={{ fontSize: 72, fontWeight: "bold" }}>{SkiCycleRunConfig.title}</p>
+            <p style={{ fontSize: 28 }}>{SkiCycleRunConfig.description}</p>
           </div>
 
           <div
@@ -77,7 +77,7 @@ export default () => {
             }}
           >
             <span style={{ overflow: "hidden", fontWeight: "bold" }}>
-              {new URL(SITE.website).hostname}
+              {new URL(SkiCycleRunConfig.website).hostname}
             </span>
           </div>
         </div>

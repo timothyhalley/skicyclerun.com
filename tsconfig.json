@@ -5,33 +5,51 @@
     "allowJs": true,
     "baseUrl": "src",
     "jsx": "react-jsx",
+    "types": [
+      "astro/client"
+    ],
     "paths": {
       "@assets/*": [
         "assets/*"
       ],
-      "@config": [
-        "config.ts"
-      ],
       "@components/*": [
         "components/*"
+      ],
+      "@config/*": [
+        "config/*"
+      ],
+      "@constants/*": [
+        "constants/*"
       ],
       "@content/*": [
         "content/*"
       ],
+      "@images/*": [
+        "assets/images/*"
+      ],
       "@layouts/*": [
         "layouts/*"
+      ],
+      "@locales/*": [
+        "locales/*"
       ],
       "@pages/*": [
         "pages/*"
       ],
+      "@skicyclerun.config": [
+        "skicyclerun.config.ts"
+      ],
       "@styles/*": [
         "styles/*"
+      ],
+      "@types/*": [
+        "types/*"
       ],
       "@utils/*": [
         "utils/*"
       ],
-      "@images/*": [
-        "assets/images/*"
+      "@yukina/*": [
+        "yukina/*"
       ]
     }
   }
