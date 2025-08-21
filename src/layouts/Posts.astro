@@ -1,12 +1,14 @@
 ---
+// filepath: src/layouts/Posts.astro
 import type { CollectionEntry } from "astro:content";
 import Layout from "@layouts/Layout.astro";
 import Main from "@layouts/Main.astro";
 import Header from "@components/Header.astro";
 import Footer from "@components/Footer.astro";
 import Pagination from "@components/Pagination.astro";
-import Card from "@components/Card";
+import PostCard from '@components/PostCards.astro';
 import { SkiCycleRunConfig } from "skicyclerun.config";
+import { getPhotoCover } from "@utils/getPhotoCover";
 
 export interface Props {
   currentPage: number;
@@ -15,17 +17,31 @@ export interface Props {
 }
 
 const { currentPage, totalPages, paginatedPosts } = Astro.props;
+
+// Fetch cover images for all posts
+const coverImages = await Promise.all(
+  paginatedPosts.map(post => getPhotoCover(post.data.cover ?? "mtntops.svg"))
+);
+paginatedPosts.forEach(post => {
+  console.log('[Posts.astro] title:', post.data.title, 'slug:', post.slug, 'frontmatter.slug:', post.data.slug);
+});
 ---
 
 <Layout title={`Posts | ${SkiCycleRunConfig.title}`}>
   <Header activeNav="posts" />
   <Main pageTitle="Posts" pageDesc="All the articles I've posted.">
     <ul>
-      {
-        paginatedPosts.map(({ data, slug }) => (
-          <Card href={`/posts/${slug}`} frontmatter={data} />
-        ))
-      }
+      {paginatedPosts.map((post, i) => (
+        <PostCard
+          title={post.data.title}
+          author={post.data.author}
+          pubDatetime={post.data.pubDatetime.toISOString()}
+          tags={post.data.tags}
+          description={post.data.description}
+          cover={coverImages[i]}
+          href={`/posts/${post.slug}`}
+        />
+      ))}
     </ul>
   </Main>
 

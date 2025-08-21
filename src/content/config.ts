@@ -13,7 +13,8 @@ const sharedSchema = ({ image }: any) =>
     featured: z.boolean().optional(),
     draft: z.boolean().optional(),
     tags: z.array(z.string()).default(["others"]),
-    cover: image().optional(),
+    // cover: image().optional(),
+    cover: z.string().optional(),
     ogImage: image()
       .optional()
       .or(z.string())
