@@ -22,9 +22,7 @@ const { currentPage, totalPages, paginatedPosts } = Astro.props;
 const coverImages = await Promise.all(
   paginatedPosts.map(post => getPhotoCover(post.data.cover ?? "mtntops.svg"))
 );
-paginatedPosts.forEach(post => {
-  console.log('[Posts.astro] title:', post.data.title, 'slug:', post.slug, 'frontmatter.slug:', post.data.slug);
-});
+
 ---
 
 <Layout title={`Posts | ${SkiCycleRunConfig.title}`}>
