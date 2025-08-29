@@ -49,8 +49,11 @@ function svgBufferToPngBuffer(svg: string): Uint8Array {
   return pngData.asPng(); // This is already a Uint8Array
 }
 
-export async function generateOgImageForPost(post: CollectionEntry<"blog">): Promise<Uint8Array> {
-  const svg = await satori(postOgImage(post), options);
+export async function generateOgImageForPost(
+  post: CollectionEntry<"blog">,
+  siteOrigin: string
+): Promise<Uint8Array> {
+  const svg = await satori(postOgImage(post, siteOrigin), options);
   console.log("Generated SVG for post:", post.data.title);
   return svgBufferToPngBuffer(svg);
 }

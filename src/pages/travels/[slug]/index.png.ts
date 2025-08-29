@@ -9,13 +9,14 @@ export async function getStaticPaths() {
   );
 
   return posts.map(post => ({
-    params: { slug: slugifyStr(post.data.title) },
+    params: { slug: slugifyStr(post.data.title).toLowerCase() },
     props: post,
   }));
 }
 
-export const GET: APIRoute = async ({ props }) => {
-  const png = await generateOgImageForPost(props as CollectionEntry<"blog">);
+export const GET: APIRoute = async ({ props, request }) => {
+  const siteOrigin = new URL(request.url).origin;
+  const png = await generateOgImageForPost(props as CollectionEntry<"blog">, siteOrigin);
   return new Response(png.buffer as ArrayBuffer, {
     headers: { "Content-Type": "image/png" },
   });

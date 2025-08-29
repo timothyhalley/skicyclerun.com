@@ -8,13 +8,16 @@ export async function getStaticPaths() {
     p.filter(({ data }) => !data.draft && !data.ogImage)
   );
 
-  return tech.map(post => ({
-    params: { slug: slugifyStr(post.data.title) },
-    props: post,
+  return tech.map((post) => ({
+    params: { slug: slugifyStr(post.data.title).toLowerCase() },
+    props: { post },
   }));
 }
 
-export const GET: APIRoute = async ({ props }) =>
-  new Response(await generateOgImageForPost(props as CollectionEntry<"tech">), {
+export const GET: APIRoute = async ({ props }) => {
+  const post = (props as { post: CollectionEntry<"tech"> }).post;
+  const imageBuffer = await generateOgImageForPost(post as unknown as CollectionEntry<"blog">);
+  return new Response(imageBuffer as BodyInit, {
     headers: { "Content-Type": "image/png" },
   });
+};
