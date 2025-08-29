@@ -51,6 +51,7 @@ function svgBufferToPngBuffer(svg: string): Uint8Array {
 
 export async function generateOgImageForPost(post: CollectionEntry<"blog">): Promise<Uint8Array> {
   const svg = await satori(postOgImage(post), options);
+  console.log("Generated SVG for post:", post.data.title);
   return svgBufferToPngBuffer(svg);
 }
 
