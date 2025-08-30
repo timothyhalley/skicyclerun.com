@@ -16,7 +16,8 @@ export async function getStaticPaths() {
 
 export const GET: APIRoute = async ({ props }) => {
   const post = (props as { post: CollectionEntry<"tech"> }).post;
-  const imageBuffer = await generateOgImageForPost(post as unknown as CollectionEntry<"blog">);
+  const siteOrigin = import.meta.env.SITE ?? "https://skicyclerun.com";
+  const imageBuffer = await generateOgImageForPost(post as unknown as CollectionEntry<"blog">, siteOrigin);
   return new Response(imageBuffer as BodyInit, {
     headers: { "Content-Type": "image/png" },
   });
