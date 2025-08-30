@@ -16,8 +16,8 @@ export default (post: CollectionEntry<"blog" | "tech">, siteOrigin: string) => {
   }
 
   console.log("coverPath override")
-  coverPath = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80" // Works with satori/resvg
-  // coverPath = "https://skicyclerun.com/images/skicyclerun-og.jpeg"
+  // coverPath = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80" // Works with satori/resvg
+  coverPath = "https://skicyclerun.com/images/75_Banner-MtnTops-BW.png"
   console.log("util:post: cover =", coverPath);
 
   return (
