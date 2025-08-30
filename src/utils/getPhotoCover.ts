@@ -1,22 +1,22 @@
 const imageModules = import.meta.glob<{ default: any }>('/src/assets/images/*');
 
 export async function getPhotoCover(filename: string) {
-  // console.log('[getPhotoCover] Requested filename:', filename);
+  console.log('[getPhotoCover] Requested filename:', filename);
 
   const allPaths = Object.keys(imageModules);
-  // console.log('[getPhotoCover] Available image paths:', allPaths);
+  console.log('[getPhotoCover] Available image paths:', allPaths);
 
   const entry = Object.entries(imageModules).find(([path]) =>
     path.endsWith(`/${filename}`)
   );
   if (entry) {
-    console.log(':', entry[0]);
+    // console.log('Cover Found: ', entry[0], " --> Mod: ", entry[1]);
     const mod = await entry[1]();
     return mod.default;
   }
   // Fallback to a default image if not found
   const fallback = Object.entries(imageModules).find(([path]) =>
-    path.endsWith('/default-cover.svg')
+    path.endsWith('/default-cover.png')
   );
   if (fallback) {
     // console.warn('[getPhotoCover] Using fallback image for:', filename);

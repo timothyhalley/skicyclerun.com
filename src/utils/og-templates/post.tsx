@@ -2,16 +2,16 @@ import { SkiCycleRunConfig } from "skicyclerun.config";
 import type { CollectionEntry } from "astro:content";
 
 export default (post: CollectionEntry<"blog" | "tech">, siteOrigin: string) => {
-  const getAbsoluteUrl = (src: string) =>
-    src.startsWith("http")
-      ? src
-      : `${siteOrigin.replace(/\/$/, "")}/${src.replace(/^\/?/, "")}`;
+  
+  const FALLBACK_IMAGE = "/images/default-cover.png";
+  let coverPath = `${siteOrigin.replace(/\/$/, "")}/images/default-cover.png`;
 
-  const cover = post.data.cover
-    ? typeof post.data.cover === "string"
-      ? getAbsoluteUrl(post.data.cover)
-      : getAbsoluteUrl(post.data.cover.src)
-    : null;
+  // Use fallback if no cover
+  if (!coverPath) {
+    coverPath = FALLBACK_IMAGE;
+  }
+
+  console.log("util:post: cover =", coverPath);
 
   return (
     <div
@@ -22,8 +22,8 @@ export default (post: CollectionEntry<"blog" | "tech">, siteOrigin: string) => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: cover
-          ? `url(${cover}) center/cover no-repeat`
+        background: coverPath
+          ? `url(${coverPath}) center/cover no-repeat`
           : "linear-gradient(135deg, #fefbfb 60%, #ecebeb 100%)",
         overflow: "hidden",
       }}

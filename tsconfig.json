@@ -48,8 +48,8 @@
       "@utils/*": [
         "utils/*"
       ],
-      "@yukina/*": [
-        "yukina/*"
+      "@svg_imgs/*": [
+        "assets/svg_imgs/*"
       ]
     }
   }

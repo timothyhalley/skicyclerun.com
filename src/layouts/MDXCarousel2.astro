@@ -2,7 +2,7 @@
 import { getAlbumPhotos } from "@components/Library.astro";
 import CustomImage from "@components/ImageCard.astro";
 const { frontmatter } = Astro.props;
-import adventureImage from "@images/adventureoutside.svg";
+import adventureImage from "@svg_imgs/adventureoutside.svg";
 
 const photos = await getAlbumPhotos(`${frontmatter.album}`);
 if (!photos || photos.length === 0)
