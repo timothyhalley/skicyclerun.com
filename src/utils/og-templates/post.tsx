@@ -3,6 +3,10 @@ import type { CollectionEntry } from "astro:content";
 
 export default (post: CollectionEntry<"blog" | "tech">, siteOrigin: string) => {
   
+  if (!post || !post.data) {
+    throw new Error("OG image template: post or post.data is undefined!");
+  }
+
   const FALLBACK_IMAGE = "/images/default-cover.png";
   let coverPath = `${siteOrigin.replace(/\/$/, "")}/images/default-cover.png`;
 
@@ -11,6 +15,9 @@ export default (post: CollectionEntry<"blog" | "tech">, siteOrigin: string) => {
     coverPath = FALLBACK_IMAGE;
   }
 
+  console.log("coverPath override")
+  coverPath = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80" // Works with satori/resvg
+  // coverPath = "https://skicyclerun.com/images/skicyclerun-og.jpeg"
   console.log("util:post: cover =", coverPath);
 
   return (
