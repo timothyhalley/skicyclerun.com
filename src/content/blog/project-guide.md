@@ -89,7 +89,7 @@ Find the `lightAndDarkMode` value for setting adjustments.
 ```js
 // file: src/config.ts
 export const SITE: Site = {
-    website: "https://skicylerun.com/",
+    website: "https://skicyclerun.com/",
     author: "Tim H",
     desc: "In search of all things Visionary, Vivacious and Voluptuous",
     title: "SkiCycleRun",

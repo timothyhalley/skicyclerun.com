@@ -3,7 +3,7 @@ import I18nKeys from "./locales/keys";
 import { BLOG_TYPES } from "./constants/blogTypes";
 
 export const SkiCycleRunConfig = {
-    website: "https://skicylerun.com/",
+    website: "https://skicyclerun.com/",
     author: "Tim H",
     title: "SkiCycleRun",
     description: "Adventures, Technology and Interests",
