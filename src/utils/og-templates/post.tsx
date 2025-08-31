@@ -114,6 +114,9 @@ export default (post: CollectionEntry<"blog" | "tech">, siteOrigin: string) => {
           <span>
             by {post.data.author}
           </span>
+          <span style={{ textAlign: "center", fontSize: 24, color: "#888", fontWeight: 500, flex: 1 }}>
+            {siteOrigin}
+          </span>
           <span style={{ textAlign: "right", fontSize: 24, color: "#888", fontWeight: 500 }}>
             {post.data.pubDatetime &&
               new Date(post.data.pubDatetime).toLocaleDateString()}
