@@ -7,7 +7,7 @@ export default (post: CollectionEntry<"blog" | "tech">, siteOrigin: string) => {
     throw new Error("OG image template: post or post.data is undefined!");
   }
 
-  const FALLBACK_IMAGE = "/images/default-cover.png";
+  const FALLBACK_IMAGE = "/images/skicyclerun_banner_1.png";
   let coverPath = `${siteOrigin.replace(/\/$/, "")}/images/default-cover.png`;
 
   // Use fallback if no cover
@@ -17,7 +17,8 @@ export default (post: CollectionEntry<"blog" | "tech">, siteOrigin: string) => {
 
   console.log("coverPath override")
   // coverPath = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80" // Works with satori/resvg
-  coverPath = "https://skicyclerun.com/images/75_Banner-MtnTops-BW.png"
+  // coverPath = "https://skicyclerun.com/images//images/skicyclerun_banner_2.png"
+  coverPath = `${siteOrigin.replace(/\/$/, "")}/images/skicyclerun_banner_2.png`
   console.log("util:post: cover =", coverPath);
 
   return (
@@ -29,9 +30,10 @@ export default (post: CollectionEntry<"blog" | "tech">, siteOrigin: string) => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: coverPath
-          ? `url(${coverPath}) center/cover no-repeat`
-          : "linear-gradient(135deg, #fefbfb 60%, #ecebeb 100%)",
+        backgroundImage: `url(${coverPath})`,
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
         overflow: "hidden",
       }}
     >

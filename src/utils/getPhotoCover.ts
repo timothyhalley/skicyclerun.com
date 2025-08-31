@@ -1,10 +1,10 @@
 const imageModules = import.meta.glob<{ default: any }>('/src/assets/images/*');
 
 export async function getPhotoCover(filename: string) {
-  console.log('[getPhotoCover] Requested filename:', filename);
+  // console.log('[getPhotoCover] Requested filename:', filename);
 
   const allPaths = Object.keys(imageModules);
-  console.log('[getPhotoCover] Available image paths:', allPaths);
+  // console.log('[getPhotoCover] Available image paths:', allPaths);
 
   const entry = Object.entries(imageModules).find(([path]) =>
     path.endsWith(`/${filename}`)
