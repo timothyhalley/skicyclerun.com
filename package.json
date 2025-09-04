@@ -6,6 +6,7 @@
   "version": "0.5.8",
   "scripts": {
     "dev": "astro dev",
+    "devs": "astro dev --https --cert skicyclerun_cert.pem --key skicyclerun_key.pem",
     "start": "astro dev",
     "build": "astro build && jampack ./dist",
     "preview": "astro preview",
@@ -20,20 +21,23 @@
     "@astrojs/check": "latest",
     "@astrojs/mdx": "latest",
     "@astrojs/rss": "latest",
+    "@aws-amplify/ui-react": "^6.12.0",
     "@resvg/resvg-js": "latest",
     "astro-embed": "latest",
     "astro-icon": "latest",
+    "aws-amplify": "^6.15.5",
     "fuse.js": "latest",
     "overlayscrollbars": "latest",
     "remark-collapse": "latest",
     "remark-toc": "latest",
-    "satori": "latest",
-    "typescript": "latest"
+    "satori": "latest"
   },
   "devDependencies": {
     "@astrojs/react": "latest",
     "@astrojs/sitemap": "latest",
     "@astrojs/tailwind": "latest",
+    "@aws-amplify/backend": "^1.16.1",
+    "@aws-amplify/backend-cli": "^1.8.0",
     "@divriots/jampack": "latest",
     "@tailwindcss/typography": "latest",
     "@types/github-slugger": "latest",
@@ -41,8 +45,11 @@
     "@typescript-eslint/parser": "latest",
     "astro": "latest",
     "astro-eslint-parser": "latest",
+    "aws-cdk-lib": "^2.204.0",
     "commitizen": "latest",
+    "constructs": "^10.4.2",
     "cz-conventional-changelog": "latest",
+    "esbuild": "^0.25.9",
     "eslint": "latest",
     "eslint-plugin-astro": "latest",
     "lint-staged": "latest",
@@ -51,7 +58,9 @@
     "prettier-plugin-tailwindcss": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "tailwindcss": "latest"
+    "tailwindcss": "latest",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
   },
   "config": {
     "commitizen": {
