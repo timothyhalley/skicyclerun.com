@@ -1,0 +1,32 @@
+---
+// filepath: src/pages/posts/[slug].astro
+import { getCollection } from "astro:content";
+import { BLOG_TYPE_META } from "@constants/blogTypes";
+import PostDetails from "@layouts/PostDetails.astro";
+import TechDetails from "@layouts/TechDetails.astro";
+import TravelDetails from "@layouts/TravelDetails.astro";
+// Add more layouts as needed
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blog");
+  console.log(
+    "[DEBUG] Available slugs:",
+    posts.map(p => p.slug)
+  );
+  return posts.map(post => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const meta = BLOG_TYPE_META[post.data.type];
+
+// Dynamically select layout based on post type
+let Layout: any = PostDetails;
+if (post.data.type === "TECH") Layout = TechDetails;
+if (post.data.type === "TRAVEL") Layout = TravelDetails;
+// Add more as needed
+---
+
+<Layout post={post} meta={meta} />

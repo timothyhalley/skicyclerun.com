@@ -203,21 +203,29 @@ Also install the core client if not already:
 
 Create src/pages/protected.astro:
 
-  ---
+    ---
 
-  import { Authenticator } from '@aws-amplify/ui-react';
-  import '@aws-amplify/ui-react/styles.css'
-  ---
+    import { Authenticator } from "@aws-amplify/ui-react";
+    import "@aws-amplify/ui-react/styles.css";
+    import "../amplify-config"
+    ---
 
-  <Authenticator>
-    {({ signOut, user }) => (
-      <div>
-        <h1>Welcome, {user?.username}</h1>
-        <p>This is a protected page.</p>
-        <button onClick={signOut}>Sign out</button>
-      </div>
-    )}
-  </Authenticator>
+    <Authenticator client:only="react">
+      {
+        context => {
+          console.log("Authenticator context:", context);
+          if (!context) return <div>Loading context...</div>;
+          if (!context.user) return <div>Please sign in to access this page.</div>;
+          return (
+            <div>
+              <h1>Welcome, {context.user.username}</h1>
+              <p>This is a protected page.</p>
+              <button onClick={context.signOut}>Sign out</button>
+            </div>
+          );
+        }
+      }
+    </Authenticator>
 
   Astro supports React components via islands. This page will render client-side only, so make sure your project is set up for hybrid rendering.
 

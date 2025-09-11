@@ -1,0 +1,175 @@
+---
+import { getAlbumPhotos } from "@components/Library.astro";
+import CustomImage from "@components/ImageCard.astro";
+import AuthGate from "@components/AuthGate.astro"; // Import the AuthGate component
+
+const { frontmatter } = Astro.props;
+
+// Determine the wrapper. If auth is required, use AuthGate. Otherwise, use a Fragment.
+const Wrapper = frontmatter.auth_required ? AuthGate : "Fragment";
+
+let photos = await getAlbumPhotos(`${frontmatter.album}`);
+if (!photos) throw new Error(`"${photos}" is empty upon return call"`);
+---
+
+<Wrapper>
+  <!-- 
+    This entire block of content is now passed as a "slot" to the Wrapper.
+    If the Wrapper is AuthGate, it will be protected.
+    If the Wrapper is a Fragment, it will be rendered directly.
+  -->
+  <h1>{frontmatter.title}</h1>
+  <p>{frontmatter.description}</p>
+
+  <astro-photo data-photos={photos.map(p => p.src).join(",")}>
+    <div id="gallery" class="lg:px-32 lg:pt-24 container mx-auto px-5 py-2">
+      <div class="md:-m-2 -m-1 flex flex-wrap">
+        <div class="flex w-1/2 flex-wrap">
+          {
+            photos.slice(0, 3).map((photo, index) => (
+              <div class={`md:p-2 ${index === 2 ? "w-full" : "w-1/2"} p-1`}>
+                <CustomImage
+                  image={{
+                    src: photo.src,
+                    altText: photo.alt ?? `Photo ${index + 1}`,
+                    sourceType: "remote",
+                  }}
+                  twCSS="block h-full w-full rounded-lg object-cover object-center"
+                  maxWidth={480}
+                />
+              </div>
+            ))
+          }
+        </div>
+        <div class="flex w-1/2 flex-wrap">
+          {
+            photos.slice(3, 6).map((photo, index) => (
+              <div class={`md:p-2 ${index === 0 ? "w-full" : "w-1/2"} p-1`}>
+                <CustomImage
+                  image={{
+                    src: photo.src,
+                    altText: photo.alt ?? `Photo ${index + 4}`,
+                    sourceType: "remote",
+                  }}
+                  twCSS="block h-full w-full rounded-lg object-cover object-center"
+                  maxWidth={480}
+                />
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+
+    <div id="hero" class="lg:px-32 lg:pt-24 container mx-auto hidden px-5 py-2">
+      <div class="md:-m-2 -m-1 flex flex-wrap">
+        <img
+          alt={photos[0].alt ?? "gallery"}
+          class="block h-full w-full rounded-lg object-cover object-center"
+          src={photos[0].src}
+        />
+      </div>
+    </div>
+
+    <div class="container mx-auto p-4">
+      <button
+        id="toggleButton"
+        class="mt-4 rounded-md bg-gray-600 px-4 py-2 text-white"
+      >
+        Hero View
+      </button>
+    </div>
+  </astro-photo>
+
+  <!-- Markdown content is injected here -->
+  <slot />
+  <!-- Markdown content is injected here -->
+  <h2>Post author: {frontmatter.author}</h2>
+  <h3>Album: {frontmatter.album}</h3>
+</Wrapper>
+
+<script>
+  class AstroPhoto extends HTMLElement {
+    toggleInitialized = false;
+    photoCycleInitialized = false;
+
+    constructor() {
+      super();
+      // console.log("✅ AstroPhoto constructor called");
+    }
+
+    connectedCallback() {
+      // console.log("🔌 astro-photo connected to DOM");
+
+      // 🖼️ Setup photo cycling if not already done
+      if (!this.photoCycleInitialized) {
+        const photos = this.dataset.photos;
+        if (!photos) return; // console.warn("⛔ No photos found in dataset");
+
+        const albumUrls = photos.split(",");
+        const totalImages = albumUrls.length;
+        const imageElements = this.querySelectorAll("img");
+
+        // console.log("🖼️ Found", imageElements.length, "images");
+
+        let count = 0;
+        imageElements.forEach((image, index) => {
+          image.src = albumUrls[index];
+          image.addEventListener("click", () => {
+            count = (count + 1) % totalImages;
+            imageElements.forEach((img, i) => {
+              img.src = albumUrls[(count + i) % totalImages];
+              // console.log(`🔄 Updating img[${i}] to ${img.src}`);
+            });
+          });
+        });
+
+        this.photoCycleInitialized = true;
+      }
+
+      // 🧭 Setup toggle logic
+      if (!this.toggleInitialized) {
+        const gallery = this.querySelector("#gallery") as HTMLElement;
+        const hero = this.querySelector("#hero") as HTMLElement;
+        const toggleButton = this.querySelector("#toggleButton") as HTMLElement;
+
+        // console.log("📌 Gallery:", gallery);
+        // console.log("📌 Hero:", hero);
+        // console.log("📌 Toggle Button:", toggleButton);
+
+        if (!gallery || !hero || !toggleButton) {
+          // console.error("⛔ Required elements missing inside <astro-photo>");
+          return;
+        }
+
+        // 🎬 Initial state
+        gallery.style.display = "grid";
+        hero.style.display = "none";
+        toggleButton.innerHTML = "Hero View";
+        // console.log("🎯 Initial state applied");
+
+        toggleButton.addEventListener("click", () => {
+          // console.log("🧨 Toggle clicked");
+
+          const isGalleryVisible = gallery.style.display !== "none";
+          gallery.style.display = isGalleryVisible ? "none" : "grid";
+          hero.style.display = isGalleryVisible ? "grid" : "none";
+          toggleButton.innerHTML = isGalleryVisible ? "Gallery" : "Hero View";
+
+          // console.log(
+          //   "🔁 Toggled: Gallery =",
+          //   gallery.style.display,
+          //   "Hero =",
+          //   hero.style.display
+          // );
+        });
+
+        // console.log("🔗 Toggle listener attached");
+        this.toggleInitialized = true;
+      }
+    }
+  }
+
+  customElements.define("astro-photo", AstroPhoto);
+  // console.log("📦 astro-photo custom element defined");
+</script>

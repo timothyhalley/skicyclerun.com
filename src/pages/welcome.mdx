@@ -1,0 +1,30 @@
+---
+layout: "@layouts/AboutLayout.astro"
+title: "Welcome"
+---
+
+<section class="welcome-section">
+  <h1 class="text-3xl font-bold mb-4">Welcome to SkiCycleRun!</h1>
+  <p class="mb-6 text-lg">
+    We're excited to have you join our adventure community. Here you can:
+  </p>
+  <ul class="list-disc list-inside mb-6 text-base">
+    <li>Share your latest ski, cycle, and run stories</li>
+    <li>Connect with fellow outdoor enthusiasts</li>
+    <li>Track your progress and achievements</li>
+    <li>Access exclusive member content and events</li>
+  </ul>
+  <div class="mb-8">
+    <strong>Ready to get started?</strong>
+    <br />
+    Please sign in or create an account to unlock all features.
+  </div>
+  <div class="flex flex-col items-center gap-4">
+    {/* <!-- Place your login button or authentication component here -->
+    <!-- Example: -->
+    <!-- <LoginButton client:only="react" /> --> */}
+    <a href="/protected" class="px-6 py-3 bg-skin-accent text-skin-inverted rounded shadow hover:bg-skin-accent-dark transition">
+      Go to Protected Member Area
+    </a>
+  </div>
+</section>

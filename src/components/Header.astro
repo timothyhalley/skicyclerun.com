@@ -119,6 +119,58 @@ const { activeNav } = Astro.props;
               </li>
             )
           }
+          {
+            SkiCycleRunConfig.loginAndLogout && (
+              <li>
+                <button
+                  id="auth-btn"
+                  class="focus-outline login-logout-btn"
+                  title="Login/Logout"
+                  aria-label="login-logout"
+                  aria-live="polite"
+                  type="button"
+                >
+                  <svg
+                    id="login-svg"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="icon-login"
+                  >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M9 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2" />
+                    <path d="M3 12h13l-3 -3" />
+                    <path d="M13 15l3 -3" />
+                  </svg>
+                  <svg
+                    id="logout-svg"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="icon-logout"
+                    style="display:none"
+                  >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M10 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2" />
+                    <path d="M15 12h-12l3 -3" />
+                    <path d="M6 15l-3 -3" />
+                  </svg>
+                </button>
+              </li>
+            )
+          }
         </ul>
       </nav>
     </div>
@@ -170,7 +222,6 @@ const { activeNav } = Astro.props;
   nav a.active svg {
     @apply fill-skin-accent;
   }
-
   nav button {
     @apply p-1;
   }
@@ -183,7 +234,6 @@ const { activeNav } = Astro.props;
   #theme-btn svg {
     @apply scale-125 hover:rotate-12 sm:scale-100;
   }
-
   .menu-icon line {
     @apply transition-opacity duration-75 ease-in-out;
   }
@@ -196,29 +246,29 @@ const { activeNav } = Astro.props;
   .menu-icon.is-active .close {
     @apply opacity-100;
   }
+  .login-logout-btn {
+    @apply p-3 transition-transform duration-200 sm:p-1;
+  }
+  .login-logout-btn .icon-login,
+  .login-logout-btn .icon-logout {
+    @apply h-6 w-6 text-skin-base transition-colors duration-200;
+    fill: none !important;
+    stroke: currentColor;
+    transition:
+      color 0.2s,
+      transform 0.2s;
+  }
+  .login-logout-btn:hover .icon-login,
+  .login-logout-btn:hover .icon-logout {
+    @apply text-skin-accent;
+    transform: scale(1.15) rotate(-8deg);
+  }
 </style>
 
 <script>
-  function toggleNav() {
-    // Toggle menu
-    const menuBtn = document.querySelector(".hamburger-menu");
-    const menuIcon = document.querySelector(".menu-icon");
-    const menuItems = document.querySelector("#menu-items");
+  // This script's only job is to import and run the logic.
+  import { initializeAuth } from "@scripts/auth-island-clients";
 
-    menuBtn?.addEventListener("click", () => {
-      const menuExpanded = menuBtn.getAttribute("aria-expanded") === "true";
-      menuIcon?.classList.toggle("is-active");
-      menuBtn.setAttribute("aria-expanded", menuExpanded ? "false" : "true");
-      menuBtn.setAttribute(
-        "aria-label",
-        menuExpanded ? "Open Menu" : "Close Menu"
-      );
-      menuItems?.classList.toggle("display-none");
-    });
-  }
-
-  toggleNav();
-
-  // Runs on view transitions navigation
-  document.addEventListener("astro:after-swap", toggleNav);
+  // Run the initialization logic.
+  initializeAuth();
 </script>

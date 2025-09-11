@@ -26,3 +26,7 @@ pnpm-debug.log*
 .amplify
 amplify_outputs*
 amplifyconfiguration*
+amplify-backup*
+
+# project files
+.deadCode/

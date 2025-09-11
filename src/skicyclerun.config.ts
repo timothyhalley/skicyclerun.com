@@ -9,6 +9,7 @@ export const SkiCycleRunConfig = {
     description: "Adventures, Technology and Interests",
     ogImage: "/src/assets/images/hikeclimb.svg",
     lightAndDarkMode: true,
+    loginAndLogout: true,
     postPerPage: 5,
     blogType: BLOG_TYPES[3], // "GENERAL"
     scheduledPostMargin: 15 * 60 * 1000,

@@ -5,52 +5,23 @@
     "allowJs": true,
     "baseUrl": "src",
     "jsx": "react-jsx",
-    "types": [
-      "astro/client"
-    ],
+    "jsxImportSource": "react",
+    "types": ["astro/client"],
     "paths": {
-      "@assets/*": [
-        "assets/*"
-      ],
-      "@components/*": [
-        "components/*"
-      ],
-      "@config/*": [
-        "config/*"
-      ],
-      "@constants/*": [
-        "constants/*"
-      ],
-      "@content/*": [
-        "content/*"
-      ],
-      "@images/*": [
-        "assets/images/*"
-      ],
-      "@layouts/*": [
-        "layouts/*"
-      ],
-      "@locales/*": [
-        "locales/*"
-      ],
-      "@pages/*": [
-        "pages/*"
-      ],
-      "@skicyclerun.config": [
-        "skicyclerun.config.ts"
-      ],
-      "@styles/*": [
-        "styles/*"
-      ],
-      "@types/*": [
-        "types/*"
-      ],
-      "@utils/*": [
-        "utils/*"
-      ],
-      "@yukina/*": [
-        "yukina/*"
-      ]
+      "@assets/*": ["assets/*"],
+      "@components/*": ["components/*"],
+      "@config/*": ["config/*"],
+      "@constants/*": ["constants/*"],
+      "@content/*": ["content/*"],
+      "@images/*": ["assets/images/*"],
+      "@layouts/*": ["layouts/*"],
+      "@locales/*": ["locales/*"],
+      "@pages/*": ["pages/*"],
+      "@scripts/*": ["scripts/*"],
+      "@skicyclerun.config": ["skicyclerun.config.ts"],
+      "@styles/*": ["styles/*"],
+      "@types/*": ["types/*"],
+      "@utils/*": ["utils/*"]
     }
   }
 }
