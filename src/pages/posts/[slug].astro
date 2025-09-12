@@ -1,5 +1,5 @@
 ---
-// filepath: src/pages/posts/[slug].astro
+export const prerender = true; // Enable prerendering for static site generation!!!
 import { getCollection } from "astro:content";
 import { BLOG_TYPE_META } from "@constants/blogTypes";
 import PostDetails from "@layouts/PostDetails.astro";
@@ -20,12 +20,19 @@ export async function getStaticPaths() {
 }
 
 const { post } = Astro.props;
+if (!post) {
+  console.error("[ERROR] No post found for this slug:", Astro.params.slug);
+  throw new Error("Post not found for this slug.");
+}
 const meta = BLOG_TYPE_META[post.data.type];
 
 // Dynamically select layout based on post type
 let Layout: any = PostDetails;
+if (post.data.type === "BETA") Layout = PostDetails;
+if (post.data.type === "NOTES") Layout = PostDetails;
 if (post.data.type === "TECH") Layout = TechDetails;
 if (post.data.type === "TRAVEL") Layout = TravelDetails;
+if (post.data.type === "VLOG") Layout = PostDetails;
 // Add more as needed
 ---
 

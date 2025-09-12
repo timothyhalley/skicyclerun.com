@@ -1,0 +1,20 @@
+---
+import { type CollectionEntry, getCollection } from "astro:content";
+import TagPosts from "@layouts/TagPosts.astro";
+import getUniqueTags from "@utils/getUniqueTags";
+import getPostsByTag from "@utils/getPostsByTag";
+import getPageNumbers from "@utils/getPageNumbers";
+import getPagination from "@utils/getPagination";
+
+const posts = await getCollection("blog");
+const tag = Astro.params.tag;
+const filteredPosts = getPostsByTag(posts, tag);
+
+// Add this line to create the pagination object
+const pagination = getPagination({
+  posts: filteredPosts,
+  page: 1, // or use Astro.params.page if you support paginated tag pages
+});
+---
+
+<TagPosts {...pagination} {tag} />

@@ -1,21 +1,16 @@
 ---
-import { getCollection } from "astro:content";
 import Posts from "@layouts/Posts.astro";
+import { getCollection } from "astro:content";
 import getSortedPosts from "@utils/getSortedPosts";
 import getPagination from "@utils/getPagination";
 
 const posts = await getCollection("blog");
-// console.log("[DEBUG] getCollection('blog') returned:", posts);
-console.log(
-  "[DEBUG] Available slugs:",
-  posts.map(p => p.slug)
-);
 const sortedPosts = getSortedPosts(posts);
 
+const currentPage = parseInt(Astro.params.page, 10);
 const pagination = getPagination({
   posts: sortedPosts,
-  page: 1,
-  isIndex: true,
+  page: currentPage,
 });
 ---
 

@@ -12,13 +12,53 @@ import getSortedPosts from "@utils/getSortedPosts";
 const posts = await getCollection("blog", ({ data }) => !data.draft);
 const sortedPosts = getSortedPosts(posts);
 
-// List of items to search in
-const searchList = sortedPosts.map(({ data, slug }) => ({
-  title: data.title,
-  description: data.description,
-  data,
-  slug,
-}));
+// Helper to produce a lightweight, lowercased body snippet (strip most markdown / code blocks)
+const stripMarkdown = (raw: string) =>
+  raw
+    .replace(/```[\s\S]*?```/g, " ") // fenced code
+    .replace(/`[^`]*`/g, " ") // inline code
+    .replace(/!\[[^\]]*]\([^)]*\)/g, " ") // images
+    .replace(/\[[^\]]*]\([^)]*\)/g, " ") // links
+    .replace(/[#>*_~`-]+/g, " ") // md tokens
+    .replace(/\s+/g, " ")
+    .trim();
+
+// Provide ONLY serializable primitives to the island (avoid Date objects / functions)
+const searchList = sortedPosts.map(({ data, slug, body }) => {
+  const tags = data.tags ?? [];
+  const rawBody = body ? stripMarkdown(body) : "";
+  // Limit snippet length to keep payload reasonable
+  const bodySnippet = rawBody.slice(0, 4000).toLowerCase();
+
+  // Build composite searchText including body snippet
+  const searchText = [
+    data.title,
+    data.description,
+    tags.join(" "),
+    data.author,
+    data.type,
+    slug,
+    data.class || "",
+    data.album || "",
+    bodySnippet,
+  ]
+    .filter(Boolean)
+    .join(" \n ")
+    .toLowerCase();
+
+  return {
+    slug,
+    title: data.title,
+    description: data.description ?? "",
+    type: data.type,
+    author: data.author,
+    pubDatetime: data.pubDatetime?.toISOString?.() ?? null,
+    modDatetime: data.modDatetime?.toISOString?.() ?? null,
+    tags,
+    bodySnippet, // new searchable field
+    searchText,
+  };
+});
 ---
 
 <Layout title={`Search | ${SkiCycleRunConfig.title}`}>

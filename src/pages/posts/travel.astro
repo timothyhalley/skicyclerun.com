@@ -1,0 +1,24 @@
+---
+import Layout from "@layouts/Layout.astro";
+import Main from "@layouts/Main.astro";
+import Header from "@components/Header.astro";
+import Footer from "@components/Footer.astro";
+import Card from "@components/Card";
+import { getCollection } from "astro:content";
+const posts = await getCollection("blog");
+const travelPosts = posts.filter(post => post.data.type === "TRAVEL");
+---
+
+<Layout title="Travel Posts">
+  <Header activeNav="travel" />
+  <Main pageTitle="Travel Posts" pageDesc="All travel-related articles.">
+    <ul>
+      {
+        travelPosts.map(({ data, slug }) => (
+          <Card href={`/posts/${slug}`} frontmatter={data} />
+        ))
+      }
+    </ul>
+  </Main>
+  <Footer />
+</Layout>

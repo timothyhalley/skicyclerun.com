@@ -45,13 +45,6 @@ const blog = defineCollection({
   schema: sharedSchema,
 });
 
-const tech = defineCollection({
-  type: "content",
-  schema: sharedSchema,
-});
-
-export const collections = { blog, tech };
+export const collections = { blog };
 
 export type PostMeta = CollectionEntry<"blog">;
-export type TechMeta = CollectionEntry<"tech">;
-export type AnyPostMeta = PostMeta | TechMeta;
