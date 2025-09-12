@@ -40,10 +40,10 @@ export default function SearchBar({ searchList }: Props) {
       new Fuse(searchList, {
         keys: [
           { name: "title", weight: 3.5 },
-            { name: "description", weight: 2 },
-            { name: "tags", weight: 2 },
-            { name: "bodySnippet", weight: 3 },
-            { name: "searchText", weight: 1.5 }, // composite fallback
+          { name: "description", weight: 2 },
+          { name: "tags", weight: 2 },
+          { name: "bodySnippet", weight: 3 },
+          { name: "searchText", weight: 1.5 }, // composite fallback
         ],
         includeMatches: false,
         ignoreLocation: true,
@@ -61,27 +61,35 @@ export default function SearchBar({ searchList }: Props) {
       const query = raw.toLowerCase();
       const isShort = query.length <= 2;
 
-  let fuseResults = fuse.search(query);
+      let fuseResults = fuse.search(query);
 
       // For very short tokens, reduce noise by ensuring token boundary checks later
-      if (fuseResults.length === 0 && !isShort && query.split(/\s+/).length === 1) {
+      if (
+        fuseResults.length === 0 &&
+        !isShort &&
+        query.split(/\s+/).length === 1
+      ) {
         fuseResults = fuse.search(`${query} |'${query} ${query}*`);
       }
 
-  let results: SearchResult[];
+      let results: SearchResult[];
       if (fuseResults.length > 0) {
-        results = (fuseResults as any).map((r: any) => ({ item: r.item, refIndex: r.refIndex }));
+        results = (fuseResults as any).map((r: any) => ({
+          item: r.item,
+          refIndex: r.refIndex,
+        }));
       } else {
         // Manual fallback over individual fields with priority order
         const contains = (text?: string) => !!text && text.includes(query);
         const infixMode = !isShort && query.length >= 4; // allow infix capture for queries like 'real'
         results = searchList
-          .filter((p) =>
-            contains(p.title.toLowerCase()) ||
-            contains(p.description?.toLowerCase()) ||
-            p.tags.some((t) => contains(t.toLowerCase())) ||
-            contains(p.bodySnippet) ||
-            (infixMode && contains(p.searchText))
+          .filter(
+            p =>
+              contains(p.title.toLowerCase()) ||
+              contains(p.description?.toLowerCase()) ||
+              p.tags.some(t => contains(t.toLowerCase())) ||
+              contains(p.bodySnippet) ||
+              (infixMode && contains(p.searchText))
           )
           .map((item, idx) => ({ item, refIndex: idx }));
       }
@@ -93,32 +101,51 @@ export default function SearchBar({ searchList }: Props) {
           text
             .toLowerCase()
             .split(/[^a-z0-9]+/)
-            .some((tok) => tok.startsWith(query));
+            .some(tok => tok.startsWith(query));
 
         // Expand candidate pool from full list (not only previous results) for better recall.
-        const expanded = searchList.filter((p) =>
-          tokenStarts(p.title) ||
-          tokenStarts(p.description) ||
-          (p.bodySnippet && tokenStarts(p.bodySnippet)) ||
-          p.tags.some((t) => tokenStarts(t))
+        const expanded = searchList.filter(
+          p =>
+            tokenStarts(p.title) ||
+            tokenStarts(p.description) ||
+            (p.bodySnippet && tokenStarts(p.bodySnippet)) ||
+            p.tags.some(t => tokenStarts(t))
         );
-        const expandedMap = new Map(expanded.map((p) => [p.slug, p]));
+        const expandedMap = new Map(expanded.map(p => [p.slug, p]));
         for (const r of results) {
-          if (!expandedMap.has(r.item.slug)) expandedMap.set(r.item.slug, r.item);
+          if (!expandedMap.has(r.item.slug))
+            expandedMap.set(r.item.slug, r.item);
         }
-        results = Array.from(expandedMap.values()).map((item, idx) => ({ item, refIndex: idx }));
+        results = Array.from(expandedMap.values()).map((item, idx) => ({
+          item,
+          refIndex: idx,
+        }));
       }
 
       // Post-filter for medium+ length single-word queries to ensure proper token relevance (e.g. 'dark')
       const singleWord = !query.includes(" ");
       if (singleWord && query.length >= 4) {
-        const tokenize = (text: string) => text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+        const tokenize = (text: string) =>
+          text
+            .toLowerCase()
+            .split(/[^a-z0-9]+/)
+            .filter(Boolean);
         const scoreDoc = (item: FlatSearchItem) => {
-          const fields = [item.title, item.description, item.bodySnippet || "", item.tags.join(" ")];
-          let exact = false, prefix = false, infix = false;
+          const fields = [
+            item.title,
+            item.description,
+            item.bodySnippet || "",
+            item.tags.join(" "),
+          ];
+          let exact = false,
+            prefix = false,
+            infix = false;
           for (const f of fields) {
             for (const tok of tokenize(f)) {
-              if (tok === query) { exact = true; return { exact, prefix, infix }; }
+              if (tok === query) {
+                exact = true;
+                return { exact, prefix, infix };
+              }
               if (!exact && tok.startsWith(query)) prefix = true;
               if (!exact && !prefix && tok.includes(query)) infix = true;
             }
@@ -127,7 +154,10 @@ export default function SearchBar({ searchList }: Props) {
         };
 
         // Evaluate all candidate docs (not only current results) to ensure we don't miss an exact match.
-        const candidates = new Map<string, { item: FlatSearchItem; score: number; tier: number }>();
+        const candidates = new Map<
+          string,
+          { item: FlatSearchItem; score: number; tier: number }
+        >();
         const addCandidate = (item: FlatSearchItem) => {
           if (candidates.has(item.slug)) return;
           const s = scoreDoc(item);
@@ -140,7 +170,8 @@ export default function SearchBar({ searchList }: Props) {
 
         // Select best tier present
         let bestTier = 3;
-        for (const c of candidates.values()) if (c.tier < bestTier) bestTier = c.tier;
+        for (const c of candidates.values())
+          if (c.tier < bestTier) bestTier = c.tier;
         const filtered = Array.from(candidates.values())
           .filter(c => c.tier === bestTier)
           .map((c, idx) => ({ item: c.item, refIndex: idx }));
@@ -182,7 +213,8 @@ export default function SearchBar({ searchList }: Props) {
     if (searchStr) setInputVal(searchStr);
     setTimeout(() => {
       if (inputRef.current) {
-        inputRef.current.selectionStart = inputRef.current.selectionEnd = searchStr?.length || 0;
+        inputRef.current.selectionStart = inputRef.current.selectionEnd =
+          searchStr?.length || 0;
       }
     }, 0);
   }, []);
@@ -227,15 +259,21 @@ export default function SearchBar({ searchList }: Props) {
           searchResults.map(({ item, refIndex }) => (
             <Card
               href={`/posts/${item.slug}`}
-              frontmatter={{
-                title: item.title,
-                description: item.description,
-                type: item.type as any,
-                author: item.author,
-                pubDatetime: item.pubDatetime ? new Date(item.pubDatetime) : new Date(),
-                modDatetime: item.modDatetime ? new Date(item.modDatetime) : undefined,
-                tags: item.tags,
-              } as any}
+              frontmatter={
+                {
+                  title: item.title,
+                  description: item.description,
+                  type: item.type as any,
+                  author: item.author,
+                  pubDatetime: item.pubDatetime
+                    ? new Date(item.pubDatetime)
+                    : new Date(),
+                  modDatetime: item.modDatetime
+                    ? new Date(item.modDatetime)
+                    : undefined,
+                  tags: item.tags,
+                } as any
+              }
               key={`${refIndex}-${item.slug}`}
             />
           ))
