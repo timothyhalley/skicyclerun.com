@@ -132,8 +132,8 @@ const amplifyConfig = {
     oauth: {
       domain: "us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com",
       scope: ["email", "openid", "profile"],
-      redirectSignIn: "<http://localhost:4321/>",
-      redirectSignOut: "<http://localhost:4321/>",
+      redirectSignIn: "<http://localhost:4321/auth-callback/>",
+      redirectSignOut: "<http://localhost:4321/signout/>",
       responseType: "code",
     },
   },

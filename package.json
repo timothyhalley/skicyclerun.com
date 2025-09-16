@@ -3,7 +3,7 @@
   "description": "An Adventum site",
   "homepage": "https://skicyclerun.com",
   "type": "module",
-  "version": "0.5.8",
+  "version": "0.9.1",
   "scripts": {
     "dev": "astro dev",
     "devs": "astro dev --https --cert skicyclerun_cert.pem --key skicyclerun_key.pem",
@@ -30,29 +30,33 @@
     "astro-icon": "latest",
     "aws-amplify": "latest",
     "fuse.js": "latest",
-    "marked": "^16.2.1",
+    "marked": "latest",
     "overlayscrollbars": "latest",
+    "react-globe.gl": "latest",
     "remark-collapse": "latest",
     "remark-toc": "latest",
-    "satori": "latest"
+    "satori": "latest",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "@astrojs/react": "^4.3.1",
+    "@astrojs/react": "latest",
     "@astrojs/sitemap": "latest",
     "@astrojs/tailwind": "latest",
     "@aws-amplify/backend": "latest",
     "@aws-amplify/backend-cli": "latest",
-    "@divriots/jampack": "latest",
+    "@divriots/jampack": "^0.15.0",
     "@rollup/plugin-replace": "latest",
     "@tailwindcss/typography": "latest",
     "@types/github-slugger": "latest",
-    "@types/marked": "^5.0.2",
-    "@types/react": "latest",
+    "@types/marked": "latest",
+    "@types/react": "18.3.5",
+    "@types/react-dom": "18.3.0",
     "@typescript-eslint/parser": "latest",
     "astro": "latest",
     "astro-eslint-parser": "latest",
     "aws-cdk-lib": "latest",
-    "commitizen": "latest",
+    "commitizen": "^4.3.1",
     "constructs": "latest",
     "cz-conventional-changelog": "latest",
     "esbuild": "latest",
@@ -62,11 +66,9 @@
     "prettier": "latest",
     "prettier-plugin-astro": "latest",
     "prettier-plugin-tailwindcss": "latest",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "tailwindcss": "latest",
     "tsx": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "vite-tsconfig-paths": "^5.1.4"
   },
   "config": {
     "commitizen": {
@@ -74,8 +76,12 @@
     }
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,md,mdx,json}": [
+    "*.{js,jsx,ts,tsx,cjs,mjs,astro,md,mdx,json,yml,yaml,css,scss}": [
       "prettier --plugin-search-dir=. --write"
     ]
+  },
+  "overrides": {
+    "@types/react": "18.3.5",
+    "@types/react-dom": "18.3.0"
   }
 }

@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://pagespeed.web.dev/analysis/https-skicyclerun-com/9wb9dytc6d?form_factor=desktop">
-    <img width="710" alt="SkiCycleRun Lighthouse Score" src="lighthouse-score.svg">
+    <img width="710" alt="SkiCycleRun Lighthouse Score" src="@svg_imgs/lighthouse-score.svg">
   <a>
 </p>
 
@@ -255,9 +255,7 @@ But for now, the Authenticator component handles most of the heavy lifting.
 
 
 --- running dev server ---
-🔧 Root Cause
-
-Cognito Hosted UI (used internally by Amplify Authenticator) enforces redirect URI protocols. If your User Pool is configured to only allow <https://localhost:4321>, but your dev server is running on <http://localhost:4321>, Cognito will reject the redirect with a navigation error.
+🔧 
 
 
 ✅ Fix Options
@@ -267,8 +265,8 @@ Option 1: Update Cognito Redirect URIs to Allow `http`
 1. Go to the AWS Cognito Console.
 2. Select your User Pool.
 3. Navigate to "App client settings" under the "App integration" section.
-4. Add `http://localhost:4321` to the list of allowed callback URLs.
-5. Also add it to Allowed Sign Out URLs:`http://localhost:4321`
+4. Add `http://localhost:4321/auth-callback/` to the list of allowed callback URLs.
+5. Also add it to Allowed Sign Out URLs:`http://localhost:4321/signout/`
 6. Save changes.
 
 Option 2: Use HTTPS for Local Development

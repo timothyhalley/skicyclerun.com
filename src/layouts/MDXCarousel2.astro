@@ -1,21 +1,17 @@
 ---
-import { getAlbumPhotos } from "@components/Library.astro";
-import CustomImage from "@components/ImageCard.astro";
+import { getAlbumPhotos } from '@components/Library.astro';
+import CustomImage from '@components/ImageCard.astro';
 const { frontmatter } = Astro.props;
-import adventureImage from "@images/adventureoutside.svg";
+import adventureImage from '@svg_imgs/adventureoutside.svg';
 
 const photos = await getAlbumPhotos(`${frontmatter.album}`);
-if (!photos || photos.length === 0)
-  throw new Error(`"${frontmatter.album}" returned no photos`);
+if (!photos || photos.length === 0) throw new Error(`"${frontmatter.album}" returned no photos`);
 ---
 
-<html lang="en">
+<html lang='en'>
   <head>
     <title>{frontmatter.title}</title>
-    <meta
-      name="description"
-      content="Interactive photo carousel for {frontmatter.album}"
-    />
+    <meta name='description' content='Interactive photo carousel for {frontmatter.album}' />
     <style>
       .carousel-container {
         position: relative;
@@ -60,43 +56,43 @@ if (!photos || photos.length === 0)
   </head>
 
   <body>
-    <section class="carousel-container">
-      <div class="carousel-track" id="carouselTrack">
+    <section class='carousel-container'>
+      <div class='carousel-track' id='carouselTrack'>
         {
           photos.map((photo, index) => (
-            <div class="carousel-slide" data-src={photo.src}>
+            <div class='carousel-slide' data-src={photo.src}>
               <CustomImage
                 image={{
                   src: photo.src,
                   altText: photo.alt ?? `Photo ${index + 1}`,
-                  sourceType: "remote",
+                  sourceType: 'remote',
                 }}
-                twCSS="clickable-image"
+                twCSS='clickable-image'
               />
             </div>
           ))
         }
       </div>
 
-      <div class="controls">
-        <button id="prevBtn">⬅️ Prev</button>
-        <button id="toggleBtn">⏯️ Play/Pause</button>
-        <button id="nextBtn">➡️ Next</button>
+      <div class='controls'>
+        <button id='prevBtn'>⬅️ Prev</button>
+        <button id='toggleBtn'>⏯️ Play/Pause</button>
+        <button id='nextBtn'>➡️ Next</button>
       </div>
     </section>
 
-    <div id="modal" class="modal">
-      <img id="modalImage" src={adventureImage.src} alt="Large view" />
+    <div id='modal' class='modal'>
+      <img id='modalImage' src={adventureImage.src} alt='Large view' />
     </div>
 
-    <script type="module">
-      const track = document.getElementById("carouselTrack");
-      const slides = document.querySelectorAll(".carousel-slide");
-      const modal = document.getElementById("modal");
-      const modalImage = document.getElementById("modalImage");
-      const prevBtn = document.getElementById("prevBtn");
-      const nextBtn = document.getElementById("nextBtn");
-      const toggleBtn = document.getElementById("toggleBtn");
+    <script type='module'>
+      const track = document.getElementById('carouselTrack');
+      const slides = document.querySelectorAll('.carousel-slide');
+      const modal = document.getElementById('modal');
+      const modalImage = document.getElementById('modalImage');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const toggleBtn = document.getElementById('toggleBtn');
 
       let currentIndex = 0;
       let isPlaying = true;
@@ -120,32 +116,32 @@ if (!photos || photos.length === 0)
 
       function togglePlay() {
         isPlaying = !isPlaying;
-        toggleBtn.textContent = isPlaying ? "⏸️ Pause" : "▶️ Play";
+        toggleBtn.textContent = isPlaying ? '⏸️ Pause' : '▶️ Play';
       }
 
       function openModal(src) {
         if (modal && modalImage && src) {
           modalImage.src = src;
-          modal.style.display = "flex";
+          modal.style.display = 'flex';
         }
       }
 
       function closeModal() {
         if (modal) {
-          modal.style.display = "none";
-          modalImage.src = "";
+          modal.style.display = 'none';
+          modalImage.src = '';
         }
       }
 
       // Event listeners
-      prevBtn?.addEventListener("click", prevSlide);
-      nextBtn?.addEventListener("click", nextSlide);
-      toggleBtn?.addEventListener("click", togglePlay);
-      modal?.addEventListener("click", closeModal);
+      prevBtn?.addEventListener('click', prevSlide);
+      nextBtn?.addEventListener('click', nextSlide);
+      toggleBtn?.addEventListener('click', togglePlay);
+      modal?.addEventListener('click', closeModal);
 
       slides.forEach(slide => {
-        slide.addEventListener("click", () => {
-          const src = slide.getAttribute("data-src");
+        slide.addEventListener('click', () => {
+          const src = slide.getAttribute('data-src');
           openModal(src);
         });
       });

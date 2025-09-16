@@ -10,9 +10,9 @@ tags:
   - skicyclerun
   - tech
   - development
-description:
-  Help to properly add/update and manage a blog post.
+description: Help to properly add/update and manage a blog post.
 author: Halo Cyclone
+cover: "ProjectGuide.png"
 ---
 
 This is a guide to configure the site and working with its project stack.

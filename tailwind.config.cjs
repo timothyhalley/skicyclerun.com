@@ -85,8 +85,8 @@ module.exports = {
                 },
             },
             backgroundImage: theme => ({
-                'swoosh': "url('/background-swoosh.jpg')",
-                'zen-brush': "url('/zen-brush.svg')"
+                'swoosh': "url('images/background-swoosh.jpg')",
+                'zen-brush': "url('/images/zen-brush.svg')"
             }),
         },
     },

@@ -1,76 +1,65 @@
-const primaryColorScheme = ""; // "light" | "dark"
+/**
+ * Theme-only script: no imports here. Manages dark/light class and theme label.
+ */
 
-// Get theme data from local storage
-const currentTheme = localStorage.getItem("theme");
-
-function getPreferTheme() {
-  // return theme value in local storage if it is set
-  if (currentTheme) return currentTheme;
-
-  // return primary color scheme if it is set
-  if (primaryColorScheme) return primaryColorScheme;
-
-  // return user device's prefer color scheme
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+// 1) Core helpers
+function getThemePreference() {
+  try {
+    const stored = localStorage.getItem('theme');
+    if (stored === 'dark' || stored === 'light') return stored;
+  } catch {}
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
-let themeValue = getPreferTheme();
+function applyTheme(theme) {
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  document.documentElement.setAttribute('data-theme', theme);
 
-function setPreference() {
-  localStorage.setItem("theme", themeValue);
-  reflectPreference();
+  const themeBtn = document.getElementById('theme-btn');
+  if (themeBtn) themeBtn.setAttribute('aria-label', theme);
+
+  // Visible text under the icon (if present)
+  const themeBtnText = document.querySelector('.theme-btn-text');
+  if (themeBtnText) themeBtnText.textContent = theme === 'dark' ? 'Light' : 'Dark';
+
+  // Alternate id-based label under icon
+  const themeLabel = document.getElementById('theme-label');
+  if (themeLabel) themeLabel.textContent = theme === 'dark' ? 'Light' : 'Dark';
+
+  setTimeout(() => {
+    const metaThemeColor = document.querySelector("meta[name='theme-color']");
+    if (metaThemeColor) {
+      const bgColor = getComputedStyle(document.body).backgroundColor;
+      metaThemeColor.setAttribute('content', bgColor);
+    }
+  }, 1);
+
+  window.dispatchEvent(new CustomEvent('theme-change'));
 }
 
-function reflectPreference() {
-  document.firstElementChild.setAttribute("data-theme", themeValue);
-
-  document.querySelector("#theme-btn")?.setAttribute("aria-label", themeValue);
-
-  // Get a reference to the body element
-  const body = document.body;
-
-  // Check if the body element exists before using getComputedStyle
-  if (body) {
-    // Get the computed styles for the body element
-    const computedStyles = window.getComputedStyle(body);
-
-    // Get the background color property
-    const bgColor = computedStyles.backgroundColor;
-
-    // Set the background color in <meta theme-color ... />
-    document
-      .querySelector("meta[name='theme-color']")
-      ?.setAttribute("content", bgColor);
-  }
-}
-
-// set early so no page flashes / CSS is made aware
-reflectPreference();
-
-window.onload = () => {
-  function setThemeFeature() {
-    // set on load so screen readers can get the latest value on the button
-    reflectPreference();
-
-    // now this script can find and listen for clicks on the control
-    document.querySelector("#theme-btn")?.addEventListener("click", () => {
-      themeValue = themeValue === "light" ? "dark" : "light";
-      setPreference();
+function setupThemeControls() {
+  const themeBtn = document.getElementById('theme-btn');
+  if (themeBtn && !themeBtn.dataset.listenerAttached) {
+    themeBtn.addEventListener('click', () => {
+      const next = getThemePreference() === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('theme', next); } catch {}
+      applyTheme(next);
     });
+    themeBtn.dataset.listenerAttached = 'true';
   }
+}
 
-  setThemeFeature();
+// 2) Init
+function initializeTheme() {
+  applyTheme(getThemePreference());
+  setupThemeControls();
+}
 
-  // Runs on view transitions navigation
-  document.addEventListener("astro:after-swap", setThemeFeature);
-};
+document.addEventListener('DOMContentLoaded', initializeTheme);
+document.addEventListener('astro:after-swap', initializeTheme);
 
-// sync with system changes
-window
-  .matchMedia("(prefers-color-scheme: dark)")
-  .addEventListener("change", ({ matches: isDark }) => {
-    themeValue = isDark ? "dark" : "light";
-    setPreference();
-  });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+  const next = e.matches ? 'dark' : 'light';
+  try { localStorage.setItem('theme', next); } catch {}
+  applyTheme(next);
+});

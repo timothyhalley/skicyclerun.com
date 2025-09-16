@@ -1,63 +1,37 @@
-import type { APIRoute } from "astro";
-import { Amplify } from "aws-amplify";
-import { getCurrentUser } from "aws-amplify/auth/server";
-// The function is in the Next.js adapter
-import { runWithAmplifyServerContext } from "@aws-amplify/adapter-nextjs/api";
-// The *type* for the context is in the core adapter package
-import type { AmplifyServer } from "@aws-amplify/core/internals/adapter-core";
-import { promises as fs } from "fs";
-import path from "path";
+import type { APIRoute } from 'astro';
+import { getEntry, type CollectionEntry } from 'astro:content';
+import { Amplify } from 'aws-amplify';
+import outputs from '@config/amplify_outputs.json';
+import { runWithAmplifyServerContext } from '@utils/amplify-server';
+import { getCurrentUser } from 'aws-amplify/auth/server';
 
-// We need to re-configure Amplify on the server side.
-const amplifyConfig = {
-  Auth: {
-    Cognito: {
-      userPoolId: "us-west-2_UqZZY2Hbw",
-      userPoolClientId: "hsrpdhl5sellv9n3dotako1tm",
-    },
-  },
-};
+// Configure Amplify for SSR in this route (idempotent)
+Amplify.configure(outputs, { ssr: true });
 
-Amplify.configure(amplifyConfig, { ssr: true });
-
-export const GET: APIRoute = async ({ params, cookies }) => {
+export const GET: APIRoute = async ({ params, request }) => {
   const slug = params.slug;
+  if (!slug) return new Response('Missing slug', { status: 400 });
 
-  if (!slug) {
-    return new Response("Missing slug", { status: 400 });
-  }
+  const cookieHeader = request.headers.get('cookie');
 
-  try {
-    // 1. Run the auth check within the server context
-    const { user } = await runWithAmplifyServerContext({
-      nextServerContext: { cookies },
-      // The operation now receives contextSpec with the correct type
-      operation: (contextSpec: AmplifyServer.ContextSpec) => {
-        return getCurrentUser(contextSpec);
-      },
-    });
+  return runWithAmplifyServerContext({
+    cookieHeader,
+    operation: async contextSpec => {
+      try {
+        await getCurrentUser(contextSpec);
+      } catch {
+        return new Response('Unauthorized', { status: 401 });
+      }
 
-    // 2. If we get here, the user is authenticated.
-    console.log(`User ${user.userId} is authorized to view ${slug}.`);
+      type BlogEntry = CollectionEntry<'blog'>;
+      const post = await getEntry('blog', slug as BlogEntry['slug']);
+      if (!post) return new Response('Post not found', { status: 404 });
 
-    // 3. Find and read the protected .mdx file from the filesystem.
-    const filePath = path.join(
-      process.cwd(),
-      "src",
-      "content",
-      "blog",
-      `${slug}.mdx`
-    );
-    const content = await fs.readFile(filePath, "utf-8");
-
-    // 4. Send the raw MDX content back to the client.
-    return new Response(content, {
-      status: 200,
-      headers: { "Content-Type": "text/markdown" },
-    });
-  } catch (error) {
-    // 5. If getCurrentUser() throws an error, the user is not authenticated.
-    console.log("Unauthorized request for content:", slug);
-    return new Response("Unauthorized", { status: 401 });
-  }
+      // Send the raw MDX body; your client loader renders it
+      return new Response(post.body, {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    },
+  });
 };

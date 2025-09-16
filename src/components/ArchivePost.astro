@@ -1,0 +1,36 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import Datetime from './Datetime';
+
+export interface Props {
+  post: CollectionEntry<'blog'>;
+}
+
+const { post } = Astro.props;
+const { pubDatetime, modDatetime, title } = post.data;
+---
+
+<a href={`/posts/${post.slug}/`} class='archive-post-link'>
+  <Datetime
+    pubDatetime={pubDatetime}
+    modDatetime={modDatetime}
+    size='sm'
+    className='archive-date'
+  />
+  <span class='archive-title'>{title}</span>
+</a>
+
+<style>
+  .archive-post-link {
+    @apply flex items-center gap-4 text-skin-base decoration-dashed underline-offset-4 focus-visible:underline;
+  }
+  .archive-post-link:hover .archive-title {
+    @apply text-skin-accent;
+  }
+  .archive-date {
+    @apply text-sm italic;
+  }
+  .archive-title {
+    @apply text-lg;
+  }
+</style>

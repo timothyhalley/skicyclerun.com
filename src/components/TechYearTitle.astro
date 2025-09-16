@@ -1,0 +1,45 @@
+---
+import I18nKeys from '@locales/keys';
+import { i18n } from '@locales/translation';
+
+export interface Props {
+  year: number;
+  count: number;
+}
+
+const { year, count } = Astro.props;
+
+// Use the existing key and replace the placeholder
+const countText = i18n(I18nKeys.archive_year_title_count).replace('{{}}', count.toString());
+---
+
+<div class='year-container mb-2 flex w-full flex-row items-center'>
+  <div class='md:w-[10%] flex w-[15%] flex-row justify-end'>
+    <p class='year select-none text-2xl font-bold text-skin-base'>
+      {year}
+    </p>
+  </div>
+  <div class='dash-line md:w-[10%] relative flex h-full w-[15%] items-center'>
+    <div
+      class='outline-3 z-50 mx-auto h-3 w-3 rounded-full bg-skin-fill bg-none outline -outline-offset-[2px] outline-skin-accent'
+    >
+    </div>
+  </div>
+  <div>
+    <p class='count text-skin-muted select-none'>
+      {countText}
+    </p>
+  </div>
+</div>
+
+<style>
+  .year,
+  .count {
+    font-family: var(--font-mono);
+  }
+
+  .dash-line::before {
+    @apply absolute top-1/2 h-[24px] w-[10%] border-l-2 border-dashed border-l-skin-base opacity-25 content-[''];
+    left: calc(50% - 1px);
+  }
+</style>

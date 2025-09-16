@@ -1,0 +1,67 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import getSortedPosts from '@utils/getSortedPosts';
+import { SkiCycleRunConfig } from 'skicyclerun.config';
+import PostDetails from '@layouts/PostDetails.astro';
+import Posts from '@layouts/Posts.astro';
+
+// This line forces Astro to run getStaticPaths in SSR mode.
+export const prerender = true;
+
+export async function getStaticPaths() {
+  // (You can now safely remove all the console.log statements from here)
+  const posts = await getSortedPosts(await getCollection('blog'));
+  const pageSize = SkiCycleRunConfig.postPerPage;
+  const totalPages = Math.ceil(posts.length / pageSize);
+
+  const postPaths = posts.map(post => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+
+  const paginatedPaths = [];
+  if (totalPages > 1) {
+    for (let i = 2; i <= totalPages; i++) {
+      const pageNum = i;
+      const start = (pageNum - 1) * pageSize;
+      const end = start + pageSize;
+      paginatedPaths.push({
+        params: { slug: String(pageNum) },
+        props: {
+          page: {
+            data: posts.slice(start, end),
+            currentPage: pageNum,
+            totalPages: totalPages,
+            url: {
+              prev: pageNum === 2 ? '/posts' : `/posts/${pageNum - 1}`,
+              next: pageNum < totalPages ? `/posts/${pageNum + 1}` : undefined,
+            },
+          },
+        },
+      });
+    }
+  }
+
+  return [...postPaths, ...paginatedPaths];
+}
+
+const { slug } = Astro.params;
+const { post, page } = Astro.props;
+
+if (!post && !page) {
+  // This correctly triggers your src/pages/404.astro page
+  return new Response(null, { status: 404 });
+}
+---
+
+{
+  post ? (
+    <PostDetails post={post} />
+  ) : (
+    <Posts
+      paginatedPosts={page.data}
+      currentPage={page.currentPage}
+      totalPages={page.totalPages}
+    />
+  )
+}

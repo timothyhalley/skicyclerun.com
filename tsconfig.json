@@ -21,7 +21,8 @@
       "@skicyclerun.config": ["skicyclerun.config.ts"],
       "@styles/*": ["styles/*"],
       "@types/*": ["types/*"],
-      "@utils/*": ["utils/*"]
+      "@utils/*": ["utils/*"],
+      "@svg_imgs/*": ["assets/svg_imgs/*"]
     }
   }
 }

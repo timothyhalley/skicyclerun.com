@@ -1,24 +1,24 @@
 ---
-import { SkiCycleRunConfig } from "skicyclerun.config";
-import Hr from "./Hr.astro";
-import LinkButton from "./LinkButton.astro";
+import { SkiCycleRunConfig } from 'skicyclerun.config';
+import Hr from './Hr.astro';
+import LinkButton from './LinkButton.astro';
 
 export interface Props {
-  activeNav?: "posts" | "travel" | "tech" | "tags" | "about" | "search";
+  activeNav?: 'posts' | 'travel' | 'tech' | 'tags' | 'about' | 'search';
 }
 
 const { activeNav } = Astro.props;
 ---
 
 <header>
-  <a id="skip-to-content" href="#main-content">Skip to content</a>
-  <div class="nav-container">
-    <div class="top-nav-wrap">
-      <a href="/" class="logo whitespace-nowrap">
+  <a id='skip-to-content' href='#main-content'>Skip to content</a>
+  <div class='nav-container'>
+    <div class='top-nav-wrap'>
+      <a href='/' class='logo whitespace-nowrap'>
         {
           SkiCycleRunConfig.logoImage.enable ? (
             <img
-              src={`/assets/${SkiCycleRunConfig.logoImage.svg ? "logo.svg" : "logo.png"}`}
+              src={`/assets/${SkiCycleRunConfig.logoImage.svg ? 'logo.svg' : 'logo.png'}`}
               alt={SkiCycleRunConfig.title}
               width={SkiCycleRunConfig.logoImage.width}
               height={SkiCycleRunConfig.logoImage.height}
@@ -28,97 +28,165 @@ const { activeNav } = Astro.props;
           )
         }
       </a>
-      <nav id="nav-menu">
+      <nav id='nav-menu'>
         <button
-          class="hamburger-menu focus-outline"
-          aria-label="Open Menu"
-          aria-expanded="false"
-          aria-controls="menu-items"
+          class='hamburger-menu focus-outline'
+          aria-label='Open Menu'
+          aria-expanded='false'
+          aria-controls='menu-items'
         >
           <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="menu-icon"
+            xmlns='http://www.w3.org/2000/svg'
+            width='24'
+            height='24'
+            viewBox='0 0 24 24'
+            fill='none'
+            stroke='currentColor'
+            stroke-width='1.5'
+            stroke-linecap='round'
+            stroke-linejoin='round'
+            class='menu-icon'
           >
-            <line x1="7" y1="12" x2="21" y2="12" class="line"></line>
-            <line x1="3" y1="6" x2="21" y2="6" class="line"></line>
-            <line x1="12" y1="18" x2="21" y2="18" class="line"></line>
-            <line x1="18" y1="6" x2="6" y2="18" class="close"></line>
-            <line x1="6" y1="6" x2="18" y2="18" class="close"></line>
+            <line x1='7' y1='12' x2='21' y2='12' class='line'></line>
+            <line x1='3' y1='6' x2='21' y2='6' class='line'></line>
+            <line x1='12' y1='18' x2='21' y2='18' class='line'></line>
+            <line x1='18' y1='6' x2='6' y2='18' class='close'></line>
+            <line x1='6' y1='6' x2='18' y2='18' class='close'></line>
           </svg>
         </button>
-        <ul id="menu-items" class="display-none sm:flex">
+        <ul id='menu-items' class='display-none sm:flex'>
           <li>
-            <a href="/posts" class={activeNav === "posts" ? "active" : ""}>
-              All Posts
+            <a href='/posts' class:list={[activeNav === 'posts' ? 'active' : '']} title='Posts'>
+              <svg
+                class='menu-svg'
+                xmlns='http://www.w3.org/2000/svg'
+                viewBox='0 0 24 24'
+                fill='currentColor'
+              >
+                <path
+                  d='M20 5C20 3.89543 19.1046 3 18 3H6C4.89543 3 4 3.89543 4 5V19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19V5ZM18 19H6V5H18V19Z'
+                ></path>
+                <path d='M8 7H16V9H8V7Z'></path>
+                <path d='M8 11H16V13H8V11Z'></path>
+                <path d='M8 15H13V17H8V15Z'></path>
+              </svg>
+              <span class='sm:hidden'>Posts</span>
+              <span class='hidden sm:inline'> Posts </span>
             </a>
           </li>
           <li>
             <a
-              href="/posts/travel"
-              class={activeNav === "travel" ? "active" : ""}
-            >
-              Travel
-            </a>
-          </li>
-          <li>
-            <a href="/posts/tech" class={activeNav === "tech" ? "active" : ""}>
-              Tech
-            </a>
-          </li>
-          <!-- Add more topic links as needed -->
-          <li>
-            <a href="/tags" class={activeNav === "tags" ? "active" : ""}>
-              Tags
-            </a>
-          </li>
-          <li>
-            <a href="/about" class={activeNav === "about" ? "active" : ""}>
-              About
-            </a>
-          </li>
-          <li>
-            <LinkButton
-              href="/search"
-              className={`focus-outline p-3 sm:p-1 ${
-                activeNav === "search" ? "active" : ""
-              } flex`}
-              ariaLabel="search"
-              title="Search"
+              href='/travel-globe'
+              class:list={[activeNav === 'travel' ? 'active' : '']}
+              title='Travel'
             >
               <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="scale-125 sm:scale-100"
-                ><path
-                  d="M19.023 16.977a35.13 35.13 0 0 1-1.367-1.384c-.372-.378-.596-.653-.596-.653l-2.8-1.337A6.962 6.962 0 0 0 16 9c0-3.859-3.14-7-7-7S2 5.141 2 9s3.14 7 7 7c1.763 0 3.37-.66 4.603-1.739l1.337 2.8s.275.224.653.596c.387.363.896.854 1.384 1.367l1.358 1.392.604.646 2.121-2.121-.646-.604c-.379-.372-.885-.866-1.391-1.36zM9 14c-2.757 0-5-2.243-5-5s2.243-5 5-5 5 2.243 5 5-2.243 5-5 5z"
+                class='menu-svg'
+                xmlns='http://www.w3.org/2000/svg'
+                viewBox='0 0 24 24'
+                fill='currentColor'
+              >
+                <path
+                  d='M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM14.25 15.58L12.93 14.49C12.58 15.3 12.06 16.04 11.41 16.69L10.5 15.78C10.96 15.22 11.35 14.59 11.65 13.92L10.15 12.77L9.2 13.54L8.4 10.23L11.71 11.03L10.94 11.98L12.23 13.08C12.62 12.24 12.85 11.35 12.91 10.42H14.97C14.88 11.54 14.51 12.6 13.92 13.53L15.75 14.85L14.25 15.58Z'
                 ></path>
               </svg>
-              <span class="sr-only">Search</span>
-            </LinkButton>
+              <span class='sm:hidden'>Travel</span>
+              <span class='hidden sm:inline'> Travel </span>
+            </a>
           </li>
+          <li>
+            <a href='/posts/tech' class:list={[activeNav === 'tech' ? 'active' : '']} title='Tech'>
+              <svg
+                class='menu-svg'
+                xmlns='http://www.w3.org/2000/svg'
+                viewBox='0 0 24 24'
+                fill='currentColor'
+              >
+                <path
+                  d='M12 2C8.13 2 5 5.13 5 9C5 11.38 6.19 13.47 8 14.74V17C8 17.55 8.45 18 9 18H15C15.55 18 16 17.55 16 17V14.74C17.81 13.47 19 11.38 19 9C19 5.13 15.87 2 12 2ZM12 13C10.34 13 9 11.66 9 10C9 8.34 10.34 7 12 7C13.66 7 15 8.34 15 10C15 11.66 13.66 13 12 13ZM11 19H13V20C13 20.55 12.55 21 12 21C11.45 21 11 20.55 11 20V19Z'
+                ></path>
+              </svg>
+              <span class='sm:hidden'>Tech</span>
+              <span class='hidden sm:inline'> Tech </span>
+            </a>
+          </li>
+          <li>
+            <a href='/tags' class:list={[activeNav === 'tags' ? 'active' : '']} title='Tags'>
+              <svg
+                class='menu-svg'
+                xmlns='http://www.w3.org/2000/svg'
+                viewBox='0 0 24 24'
+                fill='currentColor'
+              >
+                <path
+                  d='M4 6C4 4.89543 4.89543 4 6 4H18C19.1046 4 20 4.89543 20 6V18C20 19.1046 19.1046 20 18 20H6C4.89543 20 4 19.1046 4 18V6ZM6 6V18H18V6H6Z'
+                ></path>
+                <path d='M8 9H16V11H8V9Z'></path>
+                <path d='M8 13H14V15H8V13Z'></path>
+              </svg>
+              <span class='sm:hidden'>Tags</span>
+              <span class='hidden sm:inline'> Tags </span>
+            </a>
+          </li>
+          <li>
+            <a href='/about' class:list={[activeNav === 'about' ? 'active' : '']} title='About'>
+              <svg
+                class='menu-svg'
+                xmlns='http://www.w3.org/2000/svg'
+                viewBox='0 0 24 24'
+                fill='currentColor'
+              >
+                <path
+                  d='M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 17C11.45 17 11 16.55 11 16V12C11 11.45 11.45 11 12 11C12.55 11 13 11.45 13 12V16C13 16.55 12.55 17 12 17ZM12 9C11.45 9 11 8.55 11 8C11 7.45 11.45 7 12 7C12.55 7 13 7.45 13 8C13 8.55 12.55 9 12 9Z'
+                ></path>
+              </svg>
+              <span class='sm:hidden'>About</span>
+              <span class='hidden sm:inline'> About </span>
+            </a>
+          </li>
+          <!-- Search -->
+          <li>
+            <a
+              href='/search'
+              class={`focus-outline p-3 sm:p-1 flex flex-col items-center gap-1 text-slate-900 dark:text-slate-100 ${activeNav === 'search' ? 'active' : ''}`}
+              aria-label='Search'
+              title='Search'
+            >
+              <svg
+                class='menu-svg fill-current'
+                xmlns='http://www.w3.org/2000/svg'
+                viewBox='0 0 24 24'
+                fill='currentColor'
+              >
+                <path
+                  d='M19.023 16.977a35.13 35.13 0 0 1-1.367-1.384c-.372-.378-.596-.653-.596-.653l-2.8-1.337A6.962 6.962 0 0 0 16 9c0-3.859-3.14-7-7-7S2 5.141 2 9s3.14 7 7 7c1.763 0 3.37-.66 4.603-1.739l1.337 2.8s.275.224.653.596c.387.363.896.854 1.384 1.367l1.358 1.392.604.646 2.121-2.121-.646-.604c-.379-.372-.885-.866-1.391-1.36zM9 14c-2.757 0-5-2.243-5-5s2.243-5 5-5 5 2.243 5 5-2.243 5-5 5z'
+                ></path>
+              </svg>
+              <span class='sr-only'>Search</span>
+              <span class='menu-label mt-1 block text-[10px] leading-3'>Search</span>
+            </a>
+          </li>
+          <!-- Theme -->
           {
             SkiCycleRunConfig.lightAndDarkMode && (
               <li>
                 <button
-                  id="theme-btn"
-                  class="focus-outline"
-                  title="Toggles light & dark"
-                  aria-label="auto"
-                  aria-live="polite"
+                  id='theme-btn'
+                  type='button'
+                  class='focus-outline flex flex-col items-center gap-1 p-3 text-slate-900 dark:text-slate-100 sm:p-1'
+                  aria-label='Toggle theme'
+                  title='Theme'
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" id="moon-svg">
-                    <path d="M20.742 13.045a8.088 8.088 0 0 1-2.077.271c-2.135 0-4.14-.83-5.646-2.336a8.025 8.025 0 0 1-2.064-7.723A1 1 0 0 0 9.73 2.034a10.014 10.014 0 0 0-4.489 2.582c-3.898 3.898-3.898 10.243 0 14.143a9.937 9.937 0 0 0 7.072 2.93 9.93 9.93 0 0 0 7.07-2.929 10.007 10.007 0 0 0 2.583-4.491 1.001 1.001 0 0 0-1.224-1.224zm-2.772 4.301a7.947 7.947 0 0 1-5.656 2.343 7.953 7.953 0 0 1-5.658-2.344c-3.118-3.119-3.118-8.195 0-11.314a7.923 7.923 0 0 1 2.06-1.483 10.027 10.027 0 0 0 2.89 7.848 9.972 9.972 0 0 0 7.848 2.891 8.036 8.036 0 0 1-1.484 2.059z" />
+                  <svg xmlns='http://www.w3.org/2000/svg' id='moon-svg'>
+                    <path d='M20.742 13.045a8.088 8.088 0 0 1-2.077.271c-2.135 0-4.14-.83-5.646-2.336a8.025 8.025 0 0 1-2.064-7.723A1 1 0 0 0 9.73 2.034a10.014 10.014 0 0 0-4.489 2.582c-3.898 3.898-3.898 10.243 0 14.143a9.937 9.937 0 0 0 7.072 2.93 9.93 9.93 0 0 0 7.07-2.929 10.007 10.007 0 0 0 2.583-4.491 1.001 1.001 0 0 0-1.224-1.224zm-2.772 4.301a7.947 7.947 0 0 1-5.656 2.343 7.953 7.953 0 0 1-5.658-2.344c-3.118-3.119-3.118-8.195 0-11.314a7.923 7.923 0 0 1 2.06-1.483 10.027 10.027 0 0 0 2.89 7.848 9.972 9.972 0 0 0 7.848 2.891 8.036 8.036 0 0 1-1.484 2.059z' />
                   </svg>
-                  <svg xmlns="http://www.w3.org/2000/svg" id="sun-svg">
-                    <path d="M6.993 12c0 2.761 2.246 5.007 5.007 5.007s5.007-2.246 5.007-5.007S14.761 6.993 12 6.993 6.993 9.239 6.993 12zM12 8.993c1.658 0 3.007 1.349 3.007 3.007S13.658 15.007 12 15.007 8.993 13.658 8.993 12 10.342 8.993 12 8.993zM10.998 19h2v3h-2zm0-17h2v3h-2zm-9 9h3v2h-3zm17 0h3v2h-3zM4.219 18.363l2.12-2.122 1.415 1.414-2.12 2.122zM16.24 6.344l2.122-2.122 1.414 1.414-2.122 2.122zM6.342 7.759 4.22 5.637l1.415-1.414 2.12 2.122zm13.434 10.605-1.414 1.414-2.122-2.122 1.414-1.414z" />
+                  <svg xmlns='http://www.w3.org/2000/svg' id='sun-svg'>
+                    <path d='M6.993 12c0 2.761 2.246 5.007 5.007 5.007s5.007-2.246 5.007-5.007S14.761 6.993 12 6.993 6.993 9.239 6.993 12zM12 8.993c1.658 0 3.007 1.349 3.007 3.007S13.658 15.007 12 15.007 8.993 13.658 8.993 12 10.342 8.993 12 8.993zM10.998 19h2v3h-2zm0-17h2v3h-2zm-9 9h3v2h-3zm17 0h3v2h-3zM4.219 18.363l2.12-2.122 1.415 1.414-2.12 2.122zM16.24 6.344l2.122-2.122 1.414 1.414-2.122 2.122zM6.342 7.759 4.22 5.637l1.415-1.414 2.12 2.122zm13.434 10.605-1.414 1.414-2.122-2.122 1.414-1.414z' />
                   </svg>
+                  <span class='sr-only'>Theme</span>
+                  <span id='theme-label' class='menu-label mt-1 block text-[10px] leading-3'>
+                    Theme
+                  </span>
                 </button>
               </li>
             )
@@ -127,50 +195,53 @@ const { activeNav } = Astro.props;
             SkiCycleRunConfig.loginAndLogout && (
               <li>
                 <button
-                  id="auth-btn"
-                  class="focus-outline login-logout-btn"
-                  title="Login/Logout"
-                  aria-label="login-logout"
-                  aria-live="polite"
-                  type="button"
+                  id='auth-btn'
+                  type='button'
+                  class='focus-outline flex flex-col items-center gap-1 p-3 text-slate-900 dark:text-slate-100 sm:p-1'
+                  aria-label='Account'
+                  title='Login'
                 >
                   <svg
-                    id="login-svg"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="icon-login"
+                    id='login-svg'
+                    xmlns='http://www.w3.org/2000/svg'
+                    width='24'
+                    height='24'
+                    viewBox='0 0 24 24'
+                    fill='none'
+                    stroke='currentColor'
+                    stroke-width='2'
+                    stroke-linecap='round'
+                    stroke-linejoin='round'
+                    class='icon-login'
                   >
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                    <path d="M9 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2" />
-                    <path d="M3 12h13l-3 -3" />
-                    <path d="M13 15l3 -3" />
+                    <path stroke='none' d='M0 0h24v24H0z' fill='none' />
+                    <path d='M9 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2' />
+                    <path d='M3 12h13l-3 -3' />
+                    <path d='M13 15l3 -3' />
                   </svg>
                   <svg
-                    id="logout-svg"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="icon-logout"
-                    style="display:none"
+                    id='logout-svg'
+                    xmlns='http://www.w3.org/2000/svg'
+                    width='24'
+                    height='24'
+                    viewBox='0 0 24 24'
+                    fill='none'
+                    stroke='currentColor'
+                    stroke-width='2'
+                    stroke-linecap='round'
+                    stroke-linejoin='round'
+                    class='icon-logout'
+                    style='display:none'
                   >
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                    <path d="M10 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2" />
-                    <path d="M15 12h-12l3 -3" />
-                    <path d="M6 15l-3 -3" />
+                    <path stroke='none' d='M0 0h24v24H0z' fill='none' />
+                    <path d='M10 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2' />
+                    <path d='M15 12h-12l3 -3' />
+                    <path d='M6 15l-3 -3' />
                   </svg>
+                  <span class='sr-only'>Account</span>
+                  <span id='auth-label' class='menu-label mt-1 block leading-3'>
+                    Login
+                  </span>
                 </button>
               </li>
             )
@@ -181,6 +252,31 @@ const { activeNav } = Astro.props;
   </div>
   <Hr />
 </header>
+
+<script>
+  // This function sets up the hamburger menu logic
+  function setupHamburgerMenu() {
+    const hamburger = document.querySelector('.hamburger-menu');
+    const menuItems = document.querySelector('#menu-items');
+    const menuIcon = document.querySelector('.menu-icon');
+
+    if (hamburger && menuItems && menuIcon) {
+      hamburger.addEventListener('click', () => {
+        const isExpanded = hamburger.getAttribute('aria-expanded') === 'true';
+        hamburger.setAttribute('aria-expanded', String(!isExpanded));
+        menuItems.classList.toggle('display-none');
+        menuItems.classList.toggle('mobile-menu-active'); // For styling
+        menuIcon.classList.toggle('is-active');
+      });
+    }
+  }
+
+  // Run the setup function on initial page load
+  setupHamburgerMenu();
+
+  // Run the setup function after every page transition
+  document.addEventListener('astro:after-swap', setupHamburgerMenu);
+</script>
 
 <style>
   #skip-to-content {
@@ -267,12 +363,183 @@ const { activeNav } = Astro.props;
     @apply text-skin-accent;
     transform: scale(1.15) rotate(-8deg);
   }
+  .mobile-menu-active {
+    @apply absolute left-0 top-full z-40 mt-2 flex w-full flex-row items-center justify-around bg-skin-fill px-4 py-2;
+  }
+  .mobile-menu-active li {
+    @apply w-auto;
+  }
+  .mobile-menu-active li a,
+  .mobile-menu-active li button {
+    @apply flex flex-col items-center gap-1 text-xs font-medium;
+  }
+  .mobile-menu-active li a svg,
+  .mobile-menu-active li button svg {
+    @apply h-6 w-6 scale-100 fill-skin-base;
+  }
+  .mobile-menu-active li a.active svg {
+    @apply fill-skin-accent;
+  }
+  /* === Unified header label sizing and icon behavior (replace previous overrides) === */
+
+  /* Reach into the React island and force same label size as main items (14px) */
+  :global(#auth-label),
+  :global(.auth-btn-text),
+  :global(.menu-label) {
+    font-size: 0.875rem !important; /* 14px */
+    line-height: 1rem !important;
+    font-weight: 500;
+  }
+
+  /* Keep main desktop labels the same size (already set above in-file) */
+  nav ul li a span.hidden.sm\:inline {
+    font-size: 0.875rem; /* 14px */
+    line-height: 1rem;
+    font-weight: 500;
+  }
+
+  /* Fix login/logout icon: remove outer box outline, keep door frame visible */
+  #auth-btn .icon-login path:first-of-type,
+  #auth-btn .icon-logout path:first-of-type {
+    /* This first path is the 24x24 viewBox rectangle — do not stroke it */
+    stroke: none !important;
+    fill: none !important;
+  }
+
+  /* Ensure the door frame path (second path) is shown (undo any previous hide) */
+  #auth-btn .icon-login path:nth-of-type(2),
+  #auth-btn .icon-logout path:nth-of-type(2) {
+    display: inline !important; /* restores the door frame */
+  }
+
+  /* Keep the icon itself free of any default outline/border */
+  #auth-btn svg {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Restore tilt/scale hover animation and accent color, matching Theme behavior */
+  #auth-btn .icon-login,
+  #auth-btn .icon-logout {
+    transition:
+      transform 0.2s ease,
+      color 0.2s ease;
+  }
+  #auth-btn:hover .icon-login,
+  #auth-btn:hover .icon-logout {
+    @apply text-skin-accent;
+    transform: scale(1.15) rotate(-8deg);
+  }
+
+  /* Door frame should be stroke-only (no fill) so the arrow stays visible */
+  #auth-btn #login-svg path:nth-of-type(2),
+  #auth-btn #logout-svg path:nth-of-type(2) {
+    fill: none !important;
+    stroke: currentColor; /* keep the frame visible */
+    stroke-width: 2;
+  }
 </style>
 
 <script>
-  // This script's only job is to import and run the logic.
-  import { initializeAuth } from "@scripts/auth-island-clients";
+  import { initializeAuth } from '@scripts/auth-island-clients';
+  import { fetchAuthSession, signOut, signInWithRedirect } from 'aws-amplify/auth';
+  import { Hub } from 'aws-amplify/utils';
 
-  // Run the initialization logic.
   initializeAuth();
+
+  async function getAmplifySignedIn() {
+    try {
+      const { tokens } = await fetchAuthSession();
+      return !!tokens;
+    } catch {
+      return false;
+    }
+  }
+
+  async function detectSignedIn() {
+    // Only rely on Amplify session so UI matches server-visible auth
+    return getAmplifySignedIn();
+  }
+
+  function updateHeaderUI(isSignedIn: boolean) {
+    const authLabel = document.getElementById('auth-label');
+    if (authLabel) authLabel.textContent = isSignedIn ? 'Logout' : 'Login';
+
+    const loginSvg = document.getElementById('login-svg');
+    const logoutSvg = document.getElementById('logout-svg');
+    if (loginSvg && logoutSvg) {
+      if (isSignedIn) {
+        loginSvg.style.display = 'none';
+        logoutSvg.style.display = '';
+      } else {
+        loginSvg.style.display = '';
+        logoutSvg.style.display = 'none';
+      }
+    }
+  }
+
+  async function refreshHeaderState() {
+    const signedIn = await detectSignedIn();
+    updateHeaderUI(signedIn);
+  }
+
+  function setupAuthButton() {
+    const authBtn = document.getElementById('auth-btn');
+    if (!authBtn) return;
+
+    if (!authBtn.hasAttribute('data-login-handler-attached')) {
+      // @ts-ignore — clear any stray inline handler
+      authBtn.onclick = null;
+
+      authBtn.addEventListener('click', async () => {
+        const signedIn = await detectSignedIn();
+        const returnTo = location.pathname + location.search + location.hash;
+
+        if (signedIn) {
+          sessionStorage.setItem('postLogoutRedirect', returnTo);
+          try {
+            localStorage.removeItem('access_token');
+          } catch {}
+          try {
+            await signOut({ global: true }); // hosted UI sign-out -> /signout/
+          } catch (e) {
+            console.warn('signOut failed; fallback to /signout/', e);
+            window.location.href = '/signout/';
+          }
+          return;
+        }
+
+        // Not signed in: use hosted UI so Amplify sets cookies for SSR
+        sessionStorage.setItem('postLoginRedirect', returnTo);
+        await signInWithRedirect();
+      });
+
+      authBtn.setAttribute('data-login-handler-attached', 'true');
+    }
+  }
+
+  function setupHubListener() {
+    Hub.listen('auth', ({ payload }: { payload: any }) => {
+      switch (payload.event) {
+        case 'signedIn':
+          updateHeaderUI(true);
+          break;
+        case 'signedOut':
+          updateHeaderUI(false);
+          break;
+      }
+    });
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    setupAuthButton();
+    setupHubListener();
+    refreshHeaderState();
+  });
+
+  document.addEventListener('astro:after-swap', () => {
+    setupAuthButton();
+    refreshHeaderState();
+  });
 </script>

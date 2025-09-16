@@ -1,29 +1,48 @@
 ---
-import type { CollectionEntry } from "astro:content";
-import Layout from "@layouts/Layout.astro";
-import Main from "@layouts/Main.astro";
-import Header from "@components/Header.astro";
-import Footer from "@components/Footer.astro";
-import Pagination from "@components/Pagination.astro";
-import Card from "@components/Card";
-import { SkiCycleRunConfig } from "skicyclerun.config";
+// filepath: src/layouts/Posts.astro
+import type { CollectionEntry } from 'astro:content';
+import Layout from '@layouts/Layout.astro';
+import Main from '@layouts/Main.astro';
+import Header from '@components/Header.astro';
+import Footer from '@components/Footer.astro';
+import Pagination from '@components/Pagination.astro';
+import PostCard from '@components/PostCards.astro';
+import { SkiCycleRunConfig } from 'skicyclerun.config';
+import { getPhotoCover } from '@utils/getPhotoCover';
 
 export interface Props {
   currentPage: number;
   totalPages: number;
-  paginatedPosts: CollectionEntry<"blog">[];
+  paginatedPosts: CollectionEntry<'blog'>[];
 }
 
 const { currentPage, totalPages, paginatedPosts } = Astro.props;
+
+// Fetch cover images for all posts
+const coverImages = await Promise.all(
+  paginatedPosts.map(post => getPhotoCover(post.data.cover ?? 'images/default-cover.png'))
+);
+console.log(`[Posts.astro] Loaded cover images for ${coverImages.length} posts.`);
+// paginatedPosts.forEach(post => {
+//   console.log('[Posts.astro] title:', post.data.title, 'slug:', post.slug, 'frontmatter.slug:', post.data.slug);
+// });
 ---
 
 <Layout title={`Posts | ${SkiCycleRunConfig.title}`}>
-  <Header activeNav="posts" />
-  <Main pageTitle="Posts" pageDesc="All the articles I've posted.">
+  <Header activeNav='posts' />
+  <Main pageTitle='Posts' pageDesc="All the articles I've posted.">
     <ul>
       {
-        paginatedPosts.map(({ data, slug }) => (
-          <Card href={`/posts/${slug}`} frontmatter={data} />
+        paginatedPosts.map((post, i) => (
+          <PostCard
+            title={post.data.title}
+            author={post.data.author}
+            pubDatetime={post.data.pubDatetime.toISOString()}
+            tags={post.data.tags}
+            description={post.data.description}
+            cover={coverImages[i] ?? 'images/default-cover.png'}
+            href={`/posts/${post.slug}`}
+          />
         ))
       }
     </ul>
@@ -32,8 +51,8 @@ const { currentPage, totalPages, paginatedPosts } = Astro.props;
   <Pagination
     {currentPage}
     {totalPages}
-    prevUrl={currentPage === 2 ? "/posts/" : `/posts/page/${currentPage - 1}`}
-    nextUrl={`/posts/page/${currentPage + 1}`}
+    prevUrl={`/posts${currentPage - 1 !== 1 ? '/' + (currentPage - 1) : ''}`}
+    nextUrl={`/posts/${currentPage + 1}`}
   />
 
   <Footer noMarginTop={totalPages > 1} />

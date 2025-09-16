@@ -1,0 +1,21 @@
+---
+
+---
+
+<html lang='en'>
+  <head><title>Signing out…</title></head>
+  <body>
+    <p>Signing out…</p>
+    <script>
+      try {
+        localStorage.removeItem('access_token');
+      } catch {}
+      const dest = sessionStorage.getItem('postLogoutRedirect') || '/';
+      sessionStorage.removeItem('postLogoutRedirect');
+      // Small delay ensures any hosted UI state settles
+      setTimeout(() => {
+        window.location.replace(dest);
+      }, 50);
+    </script>
+  </body>
+</html>

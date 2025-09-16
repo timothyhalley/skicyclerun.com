@@ -1,0 +1,28 @@
+---
+import AuthGate from '@components/AuthGate.astro';
+import ProtectedContentLoader from '@components/ProtectedContentLoader.tsx';
+
+const { frontmatter } = Astro.props;
+const { auth_required = false } = frontmatter;
+---
+
+<div id='content-wrapper' class='mx-auto max-w-3xl px-4 sm:px-6'>
+  <main id='main-content'>
+    {
+      auth_required ? (
+        // If auth is required, show the loading gate
+        <AuthGate auth_required={true}>
+          <div id='protected-content-container' class='prose max-w-none dark:prose-invert'>
+            <p>Loading protected content...</p>
+          </div>
+          <ProtectedContentLoader client:load />
+        </AuthGate>
+      ) : (
+        // If auth is NOT required, show the content directly
+        <article class='prose max-w-none dark:prose-invert'>
+          <slot />
+        </article>
+      )
+    }
+  </main>
+</div>

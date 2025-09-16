@@ -1,0 +1,56 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '@layouts/Layout.astro';
+import Header from '@components/Header.astro';
+import Footer from '@components/Footer.astro';
+import Main from '@layouts/Main.astro';
+import TravelGlobeComponent from '@components/TravelGlobe.tsx';
+import travelFilter from '@utils/travelFilter';
+import { getPhotoCover } from '@utils/getPhotoCover';
+
+// 1. Fetch all blog posts
+const posts = await getCollection('blog');
+
+// 2. Filter for travel posts that have lat/lon coordinates
+const travelPoints = await Promise.all(
+  posts
+    .filter(travelFilter)
+    .filter(post => post.data.lat && post.data.lon)
+    .map(async post => {
+      // --- FIX: Extract the 'src' property from the cover image object ---
+      const coverImageObject = await getPhotoCover(post.id);
+      const coverImagePath = coverImageObject?.src ?? '/images/default-cover.png';
+
+      return {
+        lat: post.data.lat!,
+        lng: post.data.lon!,
+        name: post.data.title,
+        slug: post.slug,
+        author: post.data.author,
+        pubDatetime: post.data.pubDatetime,
+        tags: post.data.tags,
+        description: post.data.description,
+        cover: coverImagePath, // This is now guaranteed to be a string
+        type: post.data.type,
+      };
+    })
+);
+---
+
+<Layout title='Travel Globe'>
+  <Header activeNav='travel' />
+  <Main
+    pageTitle='Travel Globe'
+    pageDesc='An interactive 3D globe showcasing actual travel locations. Click and drag to explore!'
+  >
+    <TravelGlobeComponent client:only='react' pointsData={travelPoints} />
+
+    <div class='mt-8 text-center'>
+      <p>
+        Each pin represents a travel post. Select a location from the list or click a pin on the
+        globe.
+      </p>
+    </div>
+  </Main>
+  <Footer />
+</Layout>

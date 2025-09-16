@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import replace from '@rollup/plugin-replace';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
   resolve: {
@@ -9,20 +9,12 @@ export default defineConfig({
       path: 'path-browserify',
       util: 'util/',
       assert: 'assert/',
-      fs: 'fs-extra',           // or fs: '?empty'
+      fs: 'fs-extra',
     },
-  },
-  define: {
-    global: 'globalThis',
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+    dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
-    include: ['aws-amplify','@aws-amplify/auth'],
+    include: ['react', 'react-dom'],
   },
-  plugins: [
-    replace({
-      preventAssignment: true,
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-    }),
-  ],
+  plugins: [tsconfigPaths()],
 });

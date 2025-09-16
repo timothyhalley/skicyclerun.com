@@ -1,24 +1,57 @@
 ---
-import Layout from "@layouts/Layout.astro";
-import Main from "@layouts/Main.astro";
-import Header from "@components/Header.astro";
-import Footer from "@components/Footer.astro";
-import Card from "@components/Card";
-import { getCollection } from "astro:content";
-const posts = await getCollection("blog");
-const techPosts = posts.filter(post => post.data.type === "TECH");
+import Layout from '@layouts/Layout.astro';
+import Main from '@layouts/Main.astro';
+import Header from '@components/Header.astro';
+import Footer from '@components/Footer.astro';
+import TechYearTitle from '@components/TechYearTitle.astro';
+import ArchivePost from '@components/ArchivePost.astro';
+import { getCollection, type CollectionEntry } from 'astro:content';
+import getSortedPosts from '@utils/getSortedPosts';
+
+const posts = await getCollection('blog');
+
+const techPosts = getSortedPosts(posts.filter(post => post.data.type === 'TECH'));
+
+// Group posts by year
+const archiveMap = new Map<number, CollectionEntry<'blog'>[]>();
+
+techPosts.forEach(post => {
+  const year = post.data.pubDatetime.getFullYear();
+  if (!archiveMap.has(year)) {
+    archiveMap.set(year, []);
+  }
+  archiveMap.get(year)!.push(post);
+});
+
+// Convert map to an array and sort by year descending
+const sortedArchives = [...archiveMap.entries()].sort((a, b) => b[0] - a[0]);
 ---
 
-<Layout title="Tech Posts">
-  <Header activeNav="tech" />
-  <Main pageTitle="Tech Posts" pageDesc="All tech-related articles.">
-    <ul>
+<Layout title='Tech Posts'>
+  <Header activeNav='tech' />
+  <Main pageTitle='Tech Posts' pageDesc='All tech-related articles.'>
+    <div class='archives-container'>
       {
-        techPosts.map(({ data, slug }) => (
-          <Card href={`/posts/${slug}`} frontmatter={data} />
+        sortedArchives.map(([year, posts]) => (
+          <div class='mb-8'>
+            <TechYearTitle year={year} count={posts.length} />
+            <ul class='md:ml-[10%] ml-[15%] flex flex-col gap-4 border-l-2 border-dashed border-skin-line pl-12'>
+              {posts.map(post => (
+                <li>
+                  <ArchivePost {post} />
+                </li>
+              ))}
+            </ul>
+          </div>
         ))
       }
-    </ul>
+    </div>
   </Main>
   <Footer />
 </Layout>
+
+<style>
+  .archives-container {
+    @apply mx-auto max-w-3xl;
+  }
+</style>
