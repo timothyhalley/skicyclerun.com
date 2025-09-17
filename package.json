@@ -22,18 +22,16 @@
     "@astrojs/mdx": "latest",
     "@astrojs/node": "latest",
     "@astrojs/rss": "latest",
-    
     "aws-jwt-verify": "^5.1.0",
     "fuse.js": "latest",
-    "react-globe.gl": "latest",
     "marked": "latest",
     "overlayscrollbars": "latest",
-  "react": "18.3.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-globe.gl": "latest",
     "remark-toc": "latest",
     "satori": "latest"
   },
-    "react-dom": "18.3.1",
-    "remark-collapse": "latest",
   "devDependencies": {
     "@astrojs/react": "latest",
     "@astrojs/sitemap": "latest",
@@ -46,14 +44,15 @@
     "@typescript-eslint/parser": "latest",
     "astro": "latest",
     "astro-eslint-parser": "latest",
-    
-  "esbuild": "latest",
+    "astro-icon": "^1.1.5",
+    "esbuild": "latest",
     "eslint": "latest",
     "eslint-plugin-astro": "latest",
     "lint-staged": "latest",
     "prettier": "latest",
     "prettier-plugin-astro": "latest",
     "prettier-plugin-tailwindcss": "latest",
+    "remark-collapse": "^0.1.2",
     "tsx": "latest",
     "typescript": "latest",
     "vite-tsconfig-paths": "^5.1.4"
@@ -69,6 +68,8 @@
     ]
   },
   "overrides": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "@types/react": "18.3.5",
     "@types/react-dom": "18.3.0"
   }
