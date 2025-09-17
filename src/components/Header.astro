@@ -442,24 +442,15 @@ const { activeNav } = Astro.props;
 </style>
 
 <script>
-  import { initializeAuth } from '@scripts/auth-island-clients';
-  import { fetchAuthSession, signOut, signInWithRedirect } from 'aws-amplify/auth';
-  import { Hub } from 'aws-amplify/utils';
-
-  initializeAuth();
-
-  async function getAmplifySignedIn() {
+  async function detectSignedIn() {
     try {
-      const { tokens } = await fetchAuthSession();
-      return !!tokens;
+      const res = await fetch('/api/auth/session', { credentials: 'include' });
+      if (!res.ok) return false;
+      const data = await res.json();
+      return !!data?.signedIn;
     } catch {
       return false;
     }
-  }
-
-  async function detectSignedIn() {
-    // Only rely on Amplify session so UI matches server-visible auth
-    return getAmplifySignedIn();
   }
 
   function updateHeaderUI(isSignedIn: boolean) {
@@ -497,44 +488,18 @@ const { activeNav } = Astro.props;
         const returnTo = location.pathname + location.search + location.hash;
 
         if (signedIn) {
-          sessionStorage.setItem('postLogoutRedirect', returnTo);
-          try {
-            localStorage.removeItem('access_token');
-          } catch {}
-          try {
-            await signOut({ global: true }); // hosted UI sign-out -> /signout/
-          } catch (e) {
-            console.warn('signOut failed; fallback to /signout/', e);
-            window.location.href = '/signout/';
-          }
-          return;
+          window.location.href = `/api/auth/logout?returnTo=${encodeURIComponent(returnTo)}`;
+        } else {
+          window.location.href = `/api/auth/login?returnTo=${encodeURIComponent(returnTo)}`;
         }
-
-        // Not signed in: use hosted UI so Amplify sets cookies for SSR
-        sessionStorage.setItem('postLoginRedirect', returnTo);
-        await signInWithRedirect();
       });
 
       authBtn.setAttribute('data-login-handler-attached', 'true');
     }
   }
 
-  function setupHubListener() {
-    Hub.listen('auth', ({ payload }: { payload: any }) => {
-      switch (payload.event) {
-        case 'signedIn':
-          updateHeaderUI(true);
-          break;
-        case 'signedOut':
-          updateHeaderUI(false);
-          break;
-      }
-    });
-  }
-
   document.addEventListener('astro:page-load', () => {
     setupAuthButton();
-    setupHubListener();
     refreshHeaderState();
   });
 

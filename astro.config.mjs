@@ -1,4 +1,5 @@
 import { defineConfig } from "astro/config";
+import fs from 'node:fs';
 import node from "@astrojs/node";
 import tailwind from "@astrojs/tailwind";
 import react from "@astrojs/react";
@@ -36,6 +37,15 @@ export default defineConfig({
         },
     },
     vite: {
+        server: {
+            https: {
+                key: fs.readFileSync('localhost+2-key.pem'),
+                cert: fs.readFileSync('localhost+2.pem'),
+            },
+            host: 'localhost',
+            port: 4321,
+            strictPort: true,
+        },
         optimizeDeps: {
             exclude: ["@resvg/resvg-js"],
         },

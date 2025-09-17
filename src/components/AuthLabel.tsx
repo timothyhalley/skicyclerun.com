@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Hub } from 'aws-amplify/utils';
-import { getCurrentUser } from 'aws-amplify/auth';
 
 export default function AuthLabel() {
   const [label, setLabel] = useState('Login');
 
   const refresh = async () => {
     try {
-      await getCurrentUser();
-      setLabel('Logout');
+      const res = await fetch('/api/auth/session', { credentials: 'include' });
+      const data = await res.json();
+      setLabel(data?.signedIn ? 'Logout' : 'Login');
     } catch {
       setLabel('Login');
     }
@@ -16,14 +15,13 @@ export default function AuthLabel() {
 
   useEffect(() => {
     refresh();
-    const sub = Hub.listen('auth', () => refresh());
-    return () => {
-      try { sub(); } catch {}
-    };
+    const onSwap = () => refresh();
+    document.addEventListener('astro:after-swap', onSwap);
+    return () => document.removeEventListener('astro:after-swap', onSwap);
   }, []);
 
   return (
-    <span id="auth-label" className="menu-label block text-[10px] leading-3 mt-1">
+    <span id='auth-label' className='menu-label mt-1 block text-[10px] leading-3'>
       {label}
     </span>
   );

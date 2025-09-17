@@ -63,3 +63,39 @@ import blockedStopSvg from '@svg_imgs/blocked-stop.svg';
     @apply opacity-100;
   }
 </style>
+
+<script>
+  async function updateAuthGate() {
+    const loading = document.getElementById('auth-loading-message');
+    const unauth = document.getElementById('auth-required-message');
+    const content = document.getElementById('protected-content');
+
+    if (!loading || !unauth || !content) return;
+
+    try {
+      const res = await fetch('/api/auth/session', { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      const signedIn = !!data?.signedIn;
+
+      // Hide loader
+      loading.style.display = 'none';
+
+      // Toggle states
+      if (signedIn) {
+        unauth.classList.remove('visible');
+        content.classList.add('visible');
+      } else {
+        content.classList.remove('visible');
+        unauth.classList.add('visible');
+      }
+    } catch {
+      // On error, default to unauthenticated state
+      loading.style.display = 'none';
+      content.classList.remove('visible');
+      unauth.classList.add('visible');
+    }
+  }
+
+  document.addEventListener('astro:page-load', updateAuthGate);
+  document.addEventListener('astro:after-swap', updateAuthGate);
+</script>

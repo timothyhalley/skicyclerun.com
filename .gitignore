@@ -30,3 +30,8 @@ amplify-backup*
 
 # project files
 .deadCode/
+
+# Certificate files
+*.crt
+*.pem
+*.key

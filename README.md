@@ -16,18 +16,21 @@
 </p>
 
 
-----------------------
-# AWS CLI Commands
+---
 
-## Clear cloudfront commands
-### aws cloudfront list-distributions --output table --query 'DistributionList.Items[*].[Id,Origins.Items[0].DomainName]'
-### 
+## AWS CLI Commands
+
+### Clear cloudfront commands
+
+```bash
+aws cloudfront list-distributions --output table --query 'DistributionList.Items[*].[Id,Origins.Items[0].DomainName]'
+```
 
 
-----------------------
+---
 
 
-# Astro Starter Kit: Minimal
+## Astro Starter Kit: Minimal
 
 ```sh
 npm create astro@latest -- --template minimal
@@ -77,244 +80,78 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
 
 
 ## Astro book on GitHub
-- https://github.com/understanding-astro/understanding-astro-book/blob/master/README.md
 
+- <https://github.com/understanding-astro/understanding-astro-book/blob/master/README.md>
 
-## Amplify Setup
 
-1. ✅ Prerequisites Check
+## Authentication (Cognito, no Amplify UI)
 
-Make sure you’ve got:
+This project uses AWS Cognito directly with server-only endpoints to avoid any visible callback page flash.
 
-•  Homebrew installed (brew --version)
-•  Node.js installed via n (n --version)
-•  Your preferred Node version active (node -v, npm -v)
+Environment variables (server-only; do NOT prefix with PUBLIC_)
 
-If needed:
+- COGNITO_DOMAIN: <https://your-domain.auth.region.amazoncognito.com>
+- COGNITO_USER_POOL_ID: your Cognito User Pool ID (e.g., us-east-1_XXXXXXX)
+- COGNITO_USER_POOL_CLIENT_ID: your Cognito App Client ID
+- Optional: COGNITO_CLIENT_SECRET (if your App Client has a secret)
+- Optional: COGNITO_REDIRECT_URI (defaults to /api/auth/callback for the current origin)
+- Optional: COGNITO_LOGOUT_REDIRECT_URI (defaults to /)
+- Optional: COGNITO_SCOPES (defaults to "openid email profile")
 
-brew install n
-sudo n latest
+Endpoints
 
-2. 🍺 Install AWS Amplify CLI via Homebrew
+- GET /api/auth/login?returnTo=/path
+  - Starts PKCE + redirects to Cognito. After success, tokens are set as HttpOnly cookies and you’re redirected back to returnTo.
+- GET /api/auth/callback
+  - Exchanges code for tokens, sets id_token/access_token/refresh_token cookies, clears transient cookies, and redirects to the original URL.
+- GET /api/auth/logout?returnTo=/
+  - Clears cookies and optionally performs Cognito federated logout, then redirects.
+- GET /api/auth/session
+  - Returns { signedIn: boolean, role: 'anonymous' | 'basic' | 'elevated' } based on HttpOnly cookies.
 
-This installs the legacy CLI globally, which is still useful for some tasks:
+Client usage
 
-brew install aws-amplify
+- Login: link to `/api/auth/login?returnTo=${encodeURIComponent(location.pathname + location.search + location.hash)}`
+- Logout: link to `/api/auth/logout?returnTo=${encodeURIComponent(location.pathname + location.search + location.hash)}`
+- State: fetch `/api/auth/session` to update header/UI.
 
-Note: This installs the classic CLI, not Gen 2. Gen 2 uses create-amplify and @aws-amplify/backend, which are npm-based and project-local
+Server gating
 
-3. 📦 Scaffold Amplify Gen 2 Locally (Avoid Global npm)
+- Use `verifyRequest` and `hasMinRole` from `src/utils/cognito.ts` in API routes to gate access.
+- Roles are derived from `cognito:groups` claims (e.g., group "elevated" -> role elevated; any signed-in user -> basic).
 
-Navigate to your Astro project root (e.g., skicyclerun.com) and run:
 
-npm create amplify@latest
+## Local HTTPS Development (mkcert)
 
-This scaffolds:
-amplify/
-├── auth/
-│   └── resource.ts
-├── backend.ts
-├── tsconfig.json
+Run the dev server over HTTPS so Secure cookies work and redirect URIs match exactly.
 
-4. 🔐 Add Authentication
+1. Generate a trusted localhost certificate (macOS)
 
-Inside amplify/auth/resource.ts, define your auth logic:
-import { defineAuth } from '@aws-amplify/backend';
+- Install mkcert and a local CA, then generate a cert for localhost:
 
-export const auth = defineAuth({
-  loginWith: {
-    email: true
-  }
-});
+```bash
+brew install mkcert
+mkcert -install
+mkcert localhost 127.0.0.1 ::1
+```
 
-Then wire it into amplify/backend.ts:
-import { defineBackend } from '@aws-amplify/backend';
-import { auth } from './auth/resource';
+This creates two files in the current directory, for example:
 
-defineBackend({
-  auth
-});
+- localhost+2.pem
+- localhost+2-key.pem
 
-5. 🧪 Run Sandbox Locally
+1. Configure the dev server
 
-Use npx to avoid global install conflicts:
+- Option A (recommended): keep config in astro.config.mjs (already set in this repo) to force HTTPS on port 4321.
+- Option B: drive via npm script flags:
 
-npx ampx sandbox
+```json
+"devs": "astro dev --https --host localhost --port 4321 --cert localhost+2.pem --key localhost+2-key.pem"
+```
 
-This launches a local dev backend for testing. If you hit ESM import errors, ensure your package.json includes:
+1. Start and verify
 
-"type": "module"
+- Run the dev server and confirm it prints:
+  - Local: <https://localhost:4321/>
+- Open <https://localhost:4321> (not <http://localhost:4321>). If your browser prompts, accept once (mkcert should usually avoid prompts).
 
-6. 🚀 Deploy When Ready
-
-Once tested, you can deploy with:
-
-npx ampx deploy
-
-🔍 Notes for Your Astro Site
-
-Your site at skicyclerun.com is Astro-based with modular components and SVG-heavy visuals. Amplify Gen 2 integrates cleanly with Astro, but you’ll need to:
-
-•  Add frontend auth UI manually (e.g., via Amplify UI or custom forms)
-•  Use Amplify JS client to connect to the backend
-•  Ensure SSR compatibility if needed (Astro islands or client-only components)
-
-1. 🔐 Verify AWS Credentials
-
-Run:
-aws sts get-caller-identity
-
-If this fails, your credentials are invalid. To reset:
-aws configure
-
-Use credentials from an IAM user with AmplifyBackendDeployFullAccess or equivalent. If you use named profiles, set:
-
-export AWS_PROFILE=your-profile-name
-export AWS_SDK_LOAD_CONFIG=1
-
-
----------
-
-🔌 1. Connect Astro Frontend to Amplify
-
-After running npx ampx sandbox, you should have an amplify_outputs.json file in your project root. This contains your Cognito config.
-
-Create a file: src/amplify-config.ts
-  import { Amplify } from 'aws-amplify';
-  import amplifyConfig from '../amplify_outputs.json';
-
-  Amplify.configure(amplifyConfig);
-
-Then import this early in your app entry point (e.g., src/pages/index.astro or src/layouts/Layout.astro):
-
-  import '../amplify-config';
-
-🎛️ 2. Install Amplify Auth UI
-
-Install the UI components:
-
-  npm install @aws-amplify/ui-react
-
-Also install the core client if not already:
-
-  npm install aws-amplify
-
-🧪 3. Create a Gated Test Page
-
-Create src/pages/protected.astro:
-
-    ---
-
-    import { Authenticator } from "@aws-amplify/ui-react";
-    import "@aws-amplify/ui-react/styles.css";
-    import "../amplify-config"
-    ---
-
-    <Authenticator client:only="react">
-      {
-        context => {
-          console.log("Authenticator context:", context);
-          if (!context) return <div>Loading context...</div>;
-          if (!context.user) return <div>Please sign in to access this page.</div>;
-          return (
-            <div>
-              <h1>Welcome, {context.user.username}</h1>
-              <p>This is a protected page.</p>
-              <button onClick={context.signOut}>Sign out</button>
-            </div>
-          );
-        }
-      }
-    </Authenticator>
-
-  Astro supports React components via islands. This page will render client-side only, so make sure your project is set up for hybrid rendering.
-
-🧭 4. Validate Auth Flow
-
-Run your dev server:
-
-  npm run dev
-
-Then visit /protected. You should see:
-
-•  A login form (email/password)
-•  After login, a welcome message and sign-out button
-
-If you’re not authenticated, Amplify will gate the page automatically.
-
-
-🧠 Bonus: SSR-Friendly Auth Check
-
-If you want to gate routes server-side, you’ll need to use Amplify’s Auth client manually:
-
-  import { Auth } from 'aws-amplify';
-
-  const user = await Auth.currentAuthenticatedUser();
-
-But for now, the Authenticator component handles most of the heavy lifting.
-
-
---- running dev server ---
-🔧 
-
-
-✅ Fix Options
-
-Option 1: Update Cognito Redirect URIs to Allow `http`
-
-1. Go to the AWS Cognito Console.
-2. Select your User Pool.
-3. Navigate to "App client settings" under the "App integration" section.
-4. Add `http://localhost:4321/auth-callback/` to the list of allowed callback URLs.
-5. Also add it to Allowed Sign Out URLs:`http://localhost:4321/signout/`
-6. Save changes.
-
-Option 2: Use HTTPS for Local Development
-1. Set up a self-signed SSL certificate for localhost.
-  openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
-
-  openssl req -x509 -newkey rsa:4096 -keyout skicyclerun_key.pem -out skicyclerun_cert.pem -days 365 -nodes
-
-  Country Name (2 letter code) [AU]:US
-  State or Province Name (full name) [Some-State]:WA
-  Locality Name (eg, city) []:Redmond
-  Organization Name (eg, company) [Internet Widgits Pty Ltd]:SkiCycleRun 2026
-  Organizational Unit Name (eg, section) []:DeepThink
-  Common Name (e.g. server FQDN or YOUR name) []:skicyclerun.com
-  Email Address []:skicyclerun@gmail.com
-
-2. Configure your Astro dev server to use HTTPS.
-  astro dev --https --cert cert.pem --key key.pem
-
-3. Update Cognito redirect URIs to:
-    https://localhost:4321
-
-
-🧪 Test Flow
-
-Once the redirect URI matches your dev protocol:
-
-•  Visit /protected
-•  Authenticator should render
-•  On login, Cognito redirects back to your app
-•  Authenticator picks up the token and renders the gated content
-
-
---- Test AWS ---
-
-aws cognito-idp list-users --user-pool-id us-west-2_32jPUWXJE
-
-once okay then:
-
-aws cognito-idp admin-initiate-auth \
-  --user-pool-id <your_user_pool_id> \
-  --client-id <your_app_client_id> \
-  --auth-flow ADMIN_NO_SRP_AUTH \
-  --auth-parameters USERNAME=<username>,PASSWORD=<password>
-
-
-aws cognito-idp admin-initiate-auth \
-  --user-pool-id us-west-2_32jPUWXJE \
-  --client-id 47e5hsbfm5fbcfpob4sln383o6 \
-  --auth-flow ADMIN_NO_SRP_AUTH \
-  --auth-parameters USERNAME=289183a0-00f1-7032-8235-8160bea4074c,PASSWORD=<password>
