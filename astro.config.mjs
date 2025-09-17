@@ -10,6 +10,27 @@ import { SkiCycleRunConfig } from "./src/skicyclerun.config.ts";
 import mdx from '@astrojs/mdx';
 import icon from "astro-icon";
 
+const isCI = process.env.CI === 'true';
+const isProd = process.env.NODE_ENV === 'production';
+const isDev = !isProd && !isCI;
+
+// Safely build dev HTTPS options only when running locally and files exist
+function getDevHttps() {
+  try {
+    const keyPath = 'localhost+2-key.pem';
+    const certPath = 'localhost+2.pem';
+    if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+      return {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath),
+      };
+    }
+  } catch {
+    // ignore; fall back to no https
+  }
+  return undefined;
+}
+
 // https://astro.build/config
 export default defineConfig({
     site: SkiCycleRunConfig.website,
@@ -38,10 +59,11 @@ export default defineConfig({
     },
     vite: {
         server: {
-            https: {
-                key: fs.readFileSync('localhost+2-key.pem'),
-                cert: fs.readFileSync('localhost+2.pem'),
-            },
+            ...(isDev && getDevHttps()
+    ? {
+        https: getDevHttps(),
+      }
+    : {}),
             host: 'localhost',
             port: 4321,
             strictPort: true,

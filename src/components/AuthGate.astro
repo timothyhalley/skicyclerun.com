@@ -43,7 +43,8 @@ import blockedStopSvg from '@svg_imgs/blocked-stop.svg';
 
 <style>
   .auth-gate-container {
-    min-height: 60vh; /* Ensures the container pushes the footer down */
+    min-height: 0;
+    padding-top: 0;
   }
   .message-box {
     @apply mx-auto mt-8 flex h-full min-h-[50vh] max-w-lg flex-col items-center justify-center rounded p-8 text-center;
@@ -55,12 +56,15 @@ import blockedStopSvg from '@svg_imgs/blocked-stop.svg';
     @apply rounded-lg bg-skin-card-muted/80 p-6 backdrop-blur-sm;
   }
 
-  /* Styles for smooth transitions */
+  /* Hide inactive panes so they don't occupy space */
   .auth-state {
-    @apply opacity-0 transition-opacity duration-500 ease-in-out;
+    display: none;
+    opacity: 0;
+    transition: opacity 500ms ease-in-out;
   }
   .auth-state.visible {
-    @apply opacity-100;
+    display: block;
+    opacity: 1;
   }
 </style>
 
@@ -69,7 +73,6 @@ import blockedStopSvg from '@svg_imgs/blocked-stop.svg';
     const loading = document.getElementById('auth-loading-message');
     const unauth = document.getElementById('auth-required-message');
     const content = document.getElementById('protected-content');
-
     if (!loading || !unauth || !content) return;
 
     try {
@@ -77,10 +80,8 @@ import blockedStopSvg from '@svg_imgs/blocked-stop.svg';
       const data = await res.json().catch(() => ({}));
       const signedIn = !!data?.signedIn;
 
-      // Hide loader
       loading.style.display = 'none';
 
-      // Toggle states
       if (signedIn) {
         unauth.classList.remove('visible');
         content.classList.add('visible');
@@ -89,7 +90,6 @@ import blockedStopSvg from '@svg_imgs/blocked-stop.svg';
         unauth.classList.add('visible');
       }
     } catch {
-      // On error, default to unauthenticated state
       loading.style.display = 'none';
       content.classList.remove('visible');
       unauth.classList.add('visible');

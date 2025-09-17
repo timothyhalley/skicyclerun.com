@@ -1,16 +1,61 @@
 ---
 import AuthGate from '@components/AuthGate.astro';
 import ProtectedContentLoader from '@components/ProtectedContentLoader.tsx';
+import { getPhotoCover } from '@utils/getPhotoCover';
 
 const { frontmatter } = Astro.props;
-const { auth_required = false } = frontmatter;
+const { auth_required = false, title, description, author, pubDatetime, cover } = frontmatter;
+
+const coverMeta = getPhotoCover(cover);
+const dt = pubDatetime ? new Date(pubDatetime) : undefined;
+const dateStr = dt
+  ? dt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  : undefined;
 ---
 
 <div id='content-wrapper' class='mx-auto max-w-3xl px-4 sm:px-6'>
   <main id='main-content'>
+    <!-- Single-row header: 70/30 split -->
+    <div
+      class={`grid grid-cols-1 items-start gap-4 md:gap-6 ${coverMeta ? 'md:grid-cols-[7fr_3fr]' : ''}`}
+    >
+      <div>
+        {title && <h1 class='m-0 text-3xl font-bold leading-tight'>{title}</h1>}
+
+        {
+          (dateStr || author) && (
+            <div class='text-skin-muted mt-1 flex flex-wrap items-center gap-x-2 text-sm'>
+              {dateStr && <time datetime={dt?.toISOString()}>{dateStr}</time>}
+              {dateStr && author && <span aria-hidden='true'>•</span>}
+              {author && <span>{author}</span>}
+            </div>
+          )
+        }
+
+        {
+          description && (
+            <p class='md:text-base text-skin-muted mt-2 text-sm italic'>{description}</p>
+          )
+        }
+      </div>
+
+      {
+        coverMeta && (
+          <img
+            src={coverMeta.src}
+            alt={title ?? 'cover image'}
+            class='md:justify-self-end max-h-48 w-full rounded-md object-cover shadow-sm'
+            loading='lazy'
+          />
+        )
+      }
+    </div>
+
+    <!-- Divider -->
+    <hr class='my-3 border-skin-line/60' />
+
     {
       auth_required ? (
-        // If auth is required, show the loading gate
         <AuthGate auth_required={true}>
           <div id='protected-content-container' class='prose max-w-none dark:prose-invert'>
             <p>Loading protected content...</p>
@@ -18,7 +63,6 @@ const { auth_required = false } = frontmatter;
           <ProtectedContentLoader client:load />
         </AuthGate>
       ) : (
-        // If auth is NOT required, show the content directly
         <article class='prose max-w-none dark:prose-invert'>
           <slot />
         </article>
@@ -26,3 +70,12 @@ const { auth_required = false } = frontmatter;
     }
   </main>
 </div>
+
+<style>
+  /* Normalize top margins so content starts right after the divider */
+  #protected-content-container > :first-child,
+  #protected-content-container > :is(h1, h2, h3, h4, h5, h6, p, ul, ol, figure):first-child,
+  article.prose > :first-child {
+    margin-top: 0 !important;
+  }
+</style>
