@@ -138,7 +138,6 @@ EXCLUDE_PATTERNS=(
   "node_modules"
   "dist"
   ".astro"
-  ".jampack"
   ".deadCode"
   "package-lock.json"
   "pnpm-lock.yaml"
