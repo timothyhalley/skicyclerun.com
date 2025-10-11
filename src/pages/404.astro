@@ -1,12 +1,11 @@
 ---
 import { SkiCycleRunConfig } from "skicyclerun.config";
-import Layout from "@layouts/Layout.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
 import Header from "@components/Header.astro";
-import Footer from "@components/Footer.astro";
 import LinkButton from "@components/LinkButton.astro";
 ---
 
-<Layout title={`404 Not Found | ${SkiCycleRunConfig.title}`}>
+<BaseLayout title={`404 Not Found | ${SkiCycleRunConfig.title}`}>
   <Header />
 
   <main id="main-content">
@@ -22,21 +21,15 @@ import LinkButton from "@components/LinkButton.astro";
       </LinkButton>
     </div>
   </main>
-
-  <Footer />
-</Layout>
+</BaseLayout>
 
 <style>
   #main-content {
-    @apply mx-auto flex max-w-3xl flex-1 items-center justify-center;
+    @apply mx-auto flex flex-1 items-center justify-center;
+    max-width: 48rem;
   }
   .not-found-wrapper {
-    @apply mb-14 flex flex-col items-center justify-center;
+    @apply flex flex-col items-center justify-center;
+    margin-bottom: 3.5rem;
   }
   .not-found-wrapper h1 {
-    @apply text-9xl font-bold text-skin-accent;
-  }
-  .not-found-wrapper p {
-    @apply mt-4 text-2xl sm:text-3xl;
-  }
-</style>

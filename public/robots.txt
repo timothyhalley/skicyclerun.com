@@ -1,0 +1,63 @@
+# robots.txt for skicyclerun.dev
+# Balance SEO with crawler control
+
+# Allow major search engines (good for SEO)
+User-agent: Googlebot
+User-agent: Googlebot-Image
+User-agent: Googlebot-News
+User-agent: Bingbot
+User-agent: Slurp
+User-agent: DuckDuckBot
+User-agent: Baiduspider
+User-agent: YandexBot
+User-agent: facebot
+User-agent: ia_archiver
+Allow: /
+
+# Block AI training crawlers (they ignore robots.txt, but we try)
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: CCBot
+User-agent: anthropic-ai
+User-agent: Claude-Web
+User-agent: ClaudeBot
+User-agent: Omgilibot
+User-agent: Omgili
+User-agent: Bytespider
+User-agent: PerplexityBot
+User-agent: Diffbot
+User-agent: FacebookBot
+User-agent: Google-Extended
+Disallow: /
+
+# Block aggressive scrapers and spam bots
+User-agent: SemrushBot
+User-agent: AhrefsBot
+User-agent: DotBot
+User-agent: Mediatoolkitbot
+User-agent: MJ12bot
+User-agent: BLEXBot
+User-agent: DataForSeoBot
+User-agent: PetalBot
+User-agent: AspiegelBot
+User-agent: SEOkicks
+User-agent: MegaIndex
+User-agent: SeznamBot
+User-agent: Sogou
+Disallow: /
+
+# Default rule for all other bots
+User-agent: *
+Disallow: /api/
+Disallow: /.well-known/
+Disallow: /admin/
+Disallow: /private/
+Disallow: /_astro/
+Allow: /
+
+# Sitemap location (update this URL to your production domain)
+Sitemap: https://skicyclerun.dev/sitemap-index.xml
+
+# Crawl-delay for aggressive crawlers that respect it (seconds)
+# Uncomment if you want to slow down crawling
+# Crawl-delay: 10

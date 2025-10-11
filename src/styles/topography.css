@@ -1,64 +1,79 @@
 .prose h3 {
-    @apply italic;
+  font-style: italic;
 }
 
 .prose p {
-    @apply text-skin-base;
+  color: var(--color-skin-base);
 }
 
 .prose a {
-    @apply text-skin-base decoration-dashed underline-offset-8 hover:text-skin-accent;
+  color: var(--color-skin-base);
+  text-decoration-style: dashed;
+  text-underline-offset: 2rem;
+}
+.prose a:hover {
+  color: var(--color-skin-accent);
 }
 
 .prose blockquote {
-    @apply border-l-skin-accent border-opacity-50 opacity-80;
+  border-left: 4px solid var(--color-skin-accent);
+  opacity: 0.8;
 }
 
 .prose figcaption {
-    @apply text-skin-base opacity-70;
+  color: var(--color-skin-base);
+  opacity: 0.7;
 }
 
 .prose strong {
-    @apply text-skin-base;
+  color: var(--color-skin-base);
 }
 
 .prose code {
-    @apply rounded bg-skin-card bg-opacity-75 p-1;
+  border-radius: 0.25rem;
+  background-color: var(--color-skin-card);
+  opacity: 0.75;
+  padding: 0.25rem;
 }
 
 .prose code::before,
 .prose code::after {
-    @apply content-none;
+  content: none;
 }
 
 .prose ol {
-    @apply text-skin-base;
+  color: var(--color-skin-base);
 }
 
 .prose ul {
-    @apply overflow-x-clip text-skin-base;
+  overflow-x: clip;
+  color: var(--color-skin-base);
 }
 
 .prose li::marker {
-    @apply text-skin-accent;
+  color: var(--color-skin-accent);
 }
 
 .prose table {
-    @apply text-skin-base;
+  color: var(--color-skin-base);
 }
 
 .prose th {
-    @apply border border-skin-line;
+  border: 1px solid var(--color-skin-line);
 }
 
 .prose td {
-    @apply border border-skin-line;
+  border: 1px solid var(--color-skin-line);
 }
 
 .prose img {
-    @apply my-2 mx-auto border-2 border-skin-line;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  margin-left: auto;
+  margin-right: auto;
+  border: 2px solid var(--color-skin-line);
 }
 
 .prose hr {
-    @apply border-skin-line;
+  border-color: var(--color-skin-line);
 }

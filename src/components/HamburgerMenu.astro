@@ -1,0 +1,171 @@
+---
+export interface Props {}
+
+const {} = Astro.props;
+---
+
+<button
+  class="hamburger-menu focus-outline sm:hidden ml-auto"
+  aria-label="Open Menu"
+  aria-expanded="false"
+  aria-controls="primary-links"
+>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="32"
+    height="32"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    class="menu-icon h-8 w-8"
+  >
+    <line x1="7" y1="12" x2="21" y2="12" class="line"></line>
+    <line x1="3" y1="6" x2="21" y2="6" class="line"></line>
+    <line x1="12" y1="18" x2="21" y2="18" class="line"></line>
+    <line x1="18" y1="6" x2="6" y2="18" class="close"></line>
+    <line x1="6" y1="6" x2="18" y2="18" class="close"></line>
+  </svg>
+</button>
+
+<style>
+  .hamburger-menu {
+    display: none;
+    align-self: flex-end;
+    margin-left: auto;
+  }
+
+  @media (max-width: 639px) {
+    .hamburger-menu {
+      display: inline-flex;
+    }
+  }
+
+  .hamburger-menu svg {
+    height: 1.5rem;
+    width: 1.5rem;
+    transform: scale(1.25);
+    fill: var(--color-skin-base);
+  }
+
+  .menu-icon line {
+    transition: opacity 75ms ease-in-out;
+  }
+
+  .menu-icon .close {
+    opacity: 0;
+  }
+
+  .menu-icon.is-active .line {
+    opacity: 0;
+  }
+
+  .menu-icon.is-active .close {
+    opacity: 1;
+  }
+</style>
+
+<script>
+  // Hamburger menu logic
+  function setupHamburgerMenu() {
+    const hamburger = document.querySelector(".hamburger-menu");
+    const menuItems = document.querySelector("#primary-links");
+    const menuIcon = document.querySelector(".menu-icon");
+
+    if (hamburger && menuItems && menuIcon) {
+      // Sync state with viewport width on load and resize
+      const syncMenuToViewport = () => {
+        const isDesktop = window.matchMedia("(min-width: 640px)").matches;
+        if (isDesktop) {
+          menuItems.classList.remove("mobile-menu-active");
+          menuItems.classList.remove("force-visible");
+          menuItems.setAttribute("aria-hidden", "false");
+          hamburger.setAttribute("aria-expanded", "false");
+          menuIcon.classList.remove("is-active");
+        } else {
+          const opened = menuItems.classList.contains("mobile-menu-active");
+          menuItems.setAttribute("aria-hidden", String(!opened));
+        }
+      };
+
+      syncMenuToViewport();
+      window.addEventListener("resize", syncMenuToViewport, { passive: true });
+
+      hamburger.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const isExpanded = hamburger.getAttribute("aria-expanded") === "true";
+        hamburger.setAttribute("aria-expanded", String(!isExpanded));
+
+        menuItems.classList.toggle("mobile-menu-active");
+        const nowHidden = !menuItems.classList.contains("mobile-menu-active");
+        menuItems.setAttribute("aria-hidden", String(nowHidden));
+
+        if (nowHidden) {
+          menuItems.classList.remove("force-visible");
+        } else {
+          menuItems.classList.add("force-visible");
+        }
+        menuIcon.classList.toggle("is-active");
+      });
+
+      // Close the menu when clicking any link inside (mobile)
+      const linkNodes = menuItems.querySelectorAll("a");
+      linkNodes.forEach((a) => {
+        a.addEventListener("click", () => {
+          const isDesktop = window.matchMedia("(min-width: 640px)").matches;
+          if (isDesktop) return;
+          menuItems.classList.remove("mobile-menu-active");
+          menuItems.classList.remove("force-visible");
+          menuItems.setAttribute("aria-hidden", "true");
+          hamburger.setAttribute("aria-expanded", "false");
+          menuIcon.classList.remove("is-active");
+        });
+      });
+    }
+  }
+
+  // Initial page load wiring
+  document.addEventListener("astro:page-load", () => {
+    setupHamburgerMenu();
+  });
+
+  // After page transitions
+  document.addEventListener("astro:after-swap", () => {
+    setupHamburgerMenu();
+  });
+
+  // Fallback for environments without view transitions events
+  document.addEventListener("DOMContentLoaded", () => {
+    setupHamburgerMenu();
+  });
+
+  // Delegated click handler
+  document.addEventListener("click", function (e) {
+    var target = e.target as any;
+    if (!target) return;
+    var btn = target.closest && target.closest(".hamburger-menu");
+    if (!btn) return;
+    if (e.defaultPrevented) return;
+
+    var headerEl = btn.closest && btn.closest("header");
+    var scope = headerEl || document;
+    var menuItems =
+      scope.querySelector && scope.querySelector("#primary-links");
+    var menuIcon = scope.querySelector && scope.querySelector(".menu-icon");
+    if (!menuItems || !menuIcon) return;
+
+    var isExpanded = btn.getAttribute("aria-expanded") === "true";
+    btn.setAttribute("aria-expanded", String(!isExpanded));
+    var willOpen = !menuItems.classList.contains("mobile-menu-active");
+    menuItems.classList.toggle("mobile-menu-active");
+    menuItems.setAttribute("aria-hidden", String(!willOpen));
+    if (willOpen) {
+      menuItems.classList.add("force-visible");
+    } else {
+      menuItems.classList.remove("force-visible");
+    }
+    menuIcon.classList.toggle("is-active");
+  });
+</script>

@@ -23,12 +23,14 @@ const next = currentPage < totalPages ? "" : "disabled";
         className={`mr-4 select-none ${prev}`}
         ariaLabel="Previous"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class={`${prev}-svg`}>
-          <path d="M12.707 17.293 8.414 13H18v-2H8.414l4.293-4.293-1.414-1.414L4.586 12l6.707 6.707z" />
-        </svg>
+        <span class="arrow" aria-hidden="true">
+          ←
+        </span>
         Prev
       </LinkButton>
-      {currentPage} / {totalPages}
+      <span class="page-count" aria-live="polite">
+        ({currentPage} of {totalPages})
+      </span>
       <LinkButton
         disabled={next === "disabled"}
         href={nextUrl}
@@ -36,9 +38,9 @@ const next = currentPage < totalPages ? "" : "disabled";
         ariaLabel="Next"
       >
         Next
-        <svg xmlns="http://www.w3.org/2000/svg" class={`${next}-svg`}>
-          <path d="m11.293 17.293 1.414 1.414L19.414 12l-6.707-6.707-1.414 1.414L15.586 11H6v2h9.586z" />
-        </svg>
+        <span class="arrow" aria-hidden="true">
+          →
+        </span>
       </LinkButton>
     </nav>
   )
@@ -46,12 +48,36 @@ const next = currentPage < totalPages ? "" : "disabled";
 
 <style>
   .pagination-wrapper {
-    @apply mb-8 mt-auto flex justify-center;
+    margin-bottom: 2rem;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+  .pagination-wrapper a,
+  .pagination-wrapper button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+  }
+  .arrow {
+    font-size: 1.05em;
+    line-height: 1;
+  }
+  .page-count {
+    opacity: 0.8;
+    font-variant-numeric: tabular-nums;
   }
   .disabled {
-    @apply pointer-events-none select-none opacity-50 hover:text-skin-base group-hover:fill-skin-base;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.5;
   }
   .disabled-svg {
-    @apply group-hover:!fill-skin-base;
+    /* Removed group-hover utility that cannot be directly converted to CSS */
   }
 </style>

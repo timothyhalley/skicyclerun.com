@@ -1,76 +1,47 @@
 {
-  "name": "skicyclerun",
-  "description": "An Adventum site",
-  "homepage": "https://skicyclerun.com",
+  "name": "skicyclerun.dev",
   "type": "module",
-  "version": "0.9.1",
+  "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "devs": "astro dev --https --cert localhost+2.pem --key localhost+2-key.pem",
-    "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
     "sync": "astro sync",
-    "astro": "astro",
     "format:check": "prettier --plugin-search-dir=. --check .",
     "format": "prettier --plugin-search-dir=. --write .",
-    "cz": "cz",
     "lint": "eslint ."
   },
   "dependencies": {
-    "@astrojs/check": "latest",
-    "@astrojs/mdx": "latest",
-    "@astrojs/node": "latest",
-    "@astrojs/rss": "latest",
+    "@astrojs/check": "0.9.4",
+    "@astrojs/mdx": "^4.3.7",
+    "@astrojs/react": "^4.4.0",
+    "@astrojs/rss": "^4.0.12",
+    "@astrojs/sitemap": "^3.6.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.908.0",
+    "@tailwindcss/vite": "^4.1.14",
+    "astro": "^5.14.4",
     "astro-embed": "^0.9.1",
-    "aws-jwt-verify": "^5.1.0",
-    "fuse.js": "latest",
-    "marked": "latest",
-    "overlayscrollbars": "latest",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "react-globe.gl": "latest",
-    "remark-toc": "latest",
-    "satori": "latest"
+    "fuse.js": "^7.1.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-globe.gl": "^2.36.0",
+    "tailwindcss": "^4.1.14",
+    "three": "^0.180.0"
   },
   "devDependencies": {
-    "@astrojs/react": "latest",
-    "@astrojs/sitemap": "latest",
-    "@astrojs/tailwind": "latest",
-    "@rollup/plugin-replace": "latest",
-    "@tailwindcss/typography": "latest",
-    "@types/react": "18.3.5",
-    "@types/react-dom": "18.3.0",
-    "@typescript-eslint/parser": "latest",
-    "astro": "latest",
-    "astro-eslint-parser": "latest",
-    "astro-icon": "^1.1.5",
-    "esbuild": "latest",
-    "eslint": "latest",
-    "eslint-plugin-astro": "latest",
-    "lint-staged": "latest",
-    "prettier": "latest",
-    "prettier-plugin-astro": "latest",
-    "prettier-plugin-tailwindcss": "latest",
-    "remark-collapse": "^0.1.2",
-    "tsx": "latest",
-    "typescript": "latest",
-    "vite-tsconfig-paths": "^5.1.4"
-  },
-  "config": {
-    "commitizen": {
-      "path": "./node_modules/cz-conventional-changelog"
-    }
-  },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx,cjs,mjs,astro,md,mdx,json,yml,yaml,css,scss}": [
-      "prettier --plugin-search-dir=. --write"
-    ]
-  },
-  "overrides": {
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "@types/react": "18.3.5",
-    "@types/react-dom": "18.3.0"
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/lodash": "4.17.20",
+    "@types/node": "^24.7.1",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.1",
+    "esbuild": "^0.25.10",
+    "patch-package": "^8.0.1",
+    "postinstall-postinstall": "^2.1.0",
+    "prettier": "3.6.2",
+    "prettier-plugin-astro": "0.14.1",
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "serve": "14.2.5",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
   }
 }

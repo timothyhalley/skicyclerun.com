@@ -1,0 +1,801 @@
+---
+// ProtectedContentWrapper.astro - Client-side auth wrapper for static builds
+export interface Props {
+  // When omitted, treat as protected by default (per site policy)
+  authRequired?: boolean;
+  requiredGroups?: string[];
+}
+
+// Default to protected when missing
+const { authRequired = true, requiredGroups = [] } = Astro.props;
+---
+
+<!-- Client-side auth checking for static builds -->
+<div
+  class="protected-content-wrapper"
+  data-auth-required={authRequired}
+  data-required-groups={JSON.stringify(requiredGroups)}
+>
+  <div class="protected-content-loading hidden" aria-hidden="true">
+    <p>Checking authentication...</p>
+  </div>
+
+  <div class="protected-content-message hidden" aria-hidden="true">
+    <h2>Protected Content</h2>
+    <div class="auth-required-message hidden">
+      <p>This content requires authentication. Please log in to access it.</p>
+      <button class="login-btn auth-button">Login</button>
+    </div>
+
+    <div class="insufficient-permissions hidden">
+      <p>You don't have permission to view this content.</p>
+      <p class="required-groups"></p>
+      <p class="user-groups"></p>
+    </div>
+  </div>
+
+  <div
+    class={authRequired
+      ? "protected-content-content hidden"
+      : "protected-content-content"}
+    aria-hidden={authRequired ? "true" : "false"}
+  >
+    <slot />
+  </div>
+</div>
+
+<script is:inline>
+  (function () {
+    const MAX_ATTEMPTS = 3; // Reduced for faster auth decision (was 6)
+
+    function decodeIdTokenGroups() {
+      try {
+        const token = localStorage.getItem("cognito_id_token");
+        if (!token) return null;
+        const parts = token.split(".");
+        if (parts.length < 2) return null;
+        const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const json = decodeURIComponent(
+          atob(payload)
+            .split("")
+            .map(function (c) {
+              return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join("")
+        );
+        const data = JSON.parse(json);
+        // Try common claim names
+        return data["cognito:groups"] || data["groups"] || null;
+      } catch (e) {
+        console.debug("PCW: decodeIdTokenGroups failed:", e);
+        return null;
+      }
+    }
+
+    async function detectAuthOnce() {
+      // Returns { signedIn: bool, groups: Array, source: string, raw: any }
+      try {
+        if (
+          window.__authBridge &&
+          typeof window.__authBridge.getState === "function"
+        ) {
+          try {
+            const s = await window.__authBridge.getState();
+            return {
+              signedIn: !!(s && s.signedIn),
+              groups: s && s.groups ? s.groups : [],
+              source: "bridge",
+              raw: s,
+            };
+          } catch (e) {
+            console.debug("PCW: bridge getState threw", e);
+          }
+        }
+
+        if (window.__userSession) {
+          const s = window.__userSession;
+          return {
+            signedIn: !!(s && s.signedIn),
+            groups: s && s.groups ? s.groups : [],
+            source: "window.__userSession",
+            raw: s,
+          };
+        }
+
+        // cookie/localStorage quick checks
+        try {
+          const cookies = (document.cookie || "").split(";");
+          const names = [
+            "cognito_id_token",
+            "cognito_access_token",
+            "CognitoIdentityServiceProvider",
+          ];
+          const hasAny = cookies.some((c) => {
+            const t = c.trim();
+            return names.some((n) => t.startsWith(n + "="));
+          });
+          if (hasAny)
+            return { signedIn: true, groups: [], source: "cookie", raw: null };
+        } catch (e) {
+          /* ignore */
+        }
+
+        try {
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i) || "";
+            if (
+              k.includes("CognitoIdentityServiceProvider") ||
+              k === "cognito_id_token"
+            ) {
+              // decode groups if possible
+              const groups = decodeIdTokenGroups();
+              return {
+                signedIn: true,
+                groups: groups || [],
+                source: "localStorage",
+                raw: null,
+              };
+            }
+          }
+        } catch (e) {
+          /* ignore */
+        }
+
+        // last resort: decode id token directly
+        const tokenGroups = decodeIdTokenGroups();
+        if (tokenGroups)
+          return {
+            signedIn: true,
+            groups: tokenGroups,
+            source: "token-claim",
+            raw: null,
+          };
+
+        return { signedIn: false, groups: [], source: "none", raw: null };
+      } catch (e) {
+        console.error("PCW: detectAuthOnce error", e);
+        return { signedIn: false, groups: [], source: "error", raw: e };
+      }
+    }
+
+    function hideDuplicateInnerH1(content) {
+      // Prefer keeping any H1 with the special profile-title class (layout title)
+      try {
+        // Prefer any profile-title inside the protected content first,
+        // otherwise fall back to a global profile-title (rare).
+        const profileH1 =
+          content.querySelector(".profile-title") ||
+          document.querySelector(".profile-title");
+        const innerH1s = Array.from(content.querySelectorAll("h1"));
+        innerH1s.forEach((h1) => {
+          // If this is the profile title element, keep it
+          if (profileH1 && (profileH1 === h1 || profileH1.isSameNode(h1))) {
+            return;
+          }
+          // Otherwise, hide it via inline style so we don't mutate DOM structure
+          console.debug(
+            "PCW: hiding inner H1 in protected content",
+            h1.textContent
+          );
+          h1.style.display = "none";
+          h1.style.margin = "0";
+          h1.style.padding = "0";
+        });
+      } catch (e) {
+        console.debug("PCW: hideDuplicateInnerH1 failed", e);
+      }
+    }
+
+    // Track per-wrapper state to avoid re-entrant checks and timer storms
+    const wrapperState = new WeakMap();
+    let lastGlobalCheckAt = 0;
+    const MAX_AUTH_CHECK_TIME = 3000; // Maximum 3 seconds to decide auth state
+
+    // Debounce global checks to avoid rapid re-processing across navigation/events
+    // Default to 1000ms to reduce noisy repeats while staying reasonably responsive.
+    // Debounce global checks; pass force=true to bypass per-wrapper throttles
+    function debounceGlobalCheck(minMs = 1000, force = false) {
+      const now = Date.now();
+      if (now - lastGlobalCheckAt < minMs && !force) return;
+      lastGlobalCheckAt = now;
+      checkAuth(1, force);
+    }
+
+    async function checkAuth(attempt = 1, force = false) {
+      const wrappers = Array.from(
+        document.querySelectorAll(".protected-content-wrapper")
+      );
+      if (!wrappers.length) return;
+
+      // Process each wrapper independently (so multiple protected areas work)
+      wrappers.forEach((wrapper) => {
+        processWrapper(wrapper, attempt, force);
+      });
+    }
+
+    async function processWrapper(container, attempt = 1, force = false) {
+      // Read auth configuration from DOM data attributes
+      const authRequired =
+        container.getAttribute("data-auth-required") === "true";
+      const requiredGroupsStr =
+        container.getAttribute("data-required-groups") || "[]";
+      let requiredGroups = [];
+      try {
+        requiredGroups = JSON.parse(requiredGroupsStr);
+      } catch (e) {
+        console.warn("PCW: failed to parse requiredGroups", requiredGroupsStr);
+      }
+
+      console.log(
+        `PCW: processWrapper attempt=${attempt} authRequired=${authRequired}`
+      );
+
+      // Get wrapper-specific DOM elements
+      const wrapper = container;
+      const loading = wrapper.querySelector(".protected-content-loading");
+      const message = wrapper.querySelector(".protected-content-message");
+      const content = wrapper.querySelector(".protected-content-content");
+
+      // Initialize or retrieve state for this wrapper
+      let state = wrapperState.get(wrapper);
+      if (!state) {
+        state = {
+          visible: !authRequired,
+          inFlight: false,
+          lastChecked: 0,
+          firstAttemptTime: Date.now(),
+        };
+        wrapperState.set(wrapper, state);
+      }
+
+      // Hide datetime-wrapper to prevent duplicate date display
+      const datetimeWrapper = container.querySelector(".datetime-wrapper");
+      if (datetimeWrapper && authRequired) {
+        datetimeWrapper.style.display = "none";
+      }
+
+      if (!authRequired) {
+        // If already visible, skip DOM updates
+        const prevVisible = state.visible;
+        if (prevVisible === true) {
+          state.inFlight = false;
+          state.lastChecked = Date.now();
+          wrapperState.set(wrapper, state);
+          return;
+        }
+
+        // Reveal content and hide messages
+        content.classList.remove("hidden");
+        content.setAttribute("aria-hidden", "false");
+        try {
+          content.style.display = "block";
+        } catch (e) {}
+
+        loading.classList.add("hidden");
+        loading.setAttribute("aria-hidden", "true");
+        try {
+          loading.style.display = "none";
+        } catch (e) {}
+
+        message.classList.add("hidden");
+        message.setAttribute("aria-hidden", "true");
+        try {
+          message.style.display = "none";
+        } catch (e) {}
+        // safe duplicate H1 hide (non-destructive)
+        try {
+          hideDuplicateInnerH1(content);
+        } catch (e) {
+          console.debug("PCW: hideDuplicateInnerH1 error", e);
+        }
+        state.visible = true;
+        state.inFlight = false;
+        state.lastChecked = Date.now();
+        wrapperState.set(wrapper, state);
+        return;
+      }
+
+      // Set up a delayed loading spinner (only show if auth check takes > 200ms)
+      let loadingTimeout;
+      if (attempt === 1) {
+        loadingTimeout = setTimeout(() => {
+          if (!state.visible) {
+            loading.classList.remove("hidden");
+            loading.setAttribute("aria-hidden", "false");
+            try {
+              loading.style.display = "block";
+            } catch (e) {}
+          }
+        }, 200);
+      }
+
+      try {
+        const detected = await detectAuthOnce();
+        console.debug("PCW: detected auth state ->", detected);
+
+        // Clear loading timeout if auth resolved quickly
+        if (loadingTimeout) clearTimeout(loadingTimeout);
+
+        if (!detected.signedIn) {
+          // Only retry if we're still waiting for the auth bridge to initialize
+          // AND we haven't checked localStorage/cookies yet
+          const shouldRetry =
+            attempt < MAX_ATTEMPTS &&
+            detected.source === "none" &&
+            typeof window.__authBridge === "undefined";
+
+          if (shouldRetry) {
+            const delay = Math.min(1000, 50 * Math.pow(2, attempt));
+            console.debug(
+              `PCW: auth bridge not ready, scheduling retry #${attempt + 1} after ${delay}ms`
+            );
+            setTimeout(() => processWrapper(wrapper, attempt + 1), delay);
+            return;
+          }
+
+          // User is definitively not signed in - show login prompt
+          console.debug("PCW: user not authenticated, showing login prompt");
+
+          // Hide loading spinner
+          loading.classList.add("hidden");
+          loading.setAttribute("aria-hidden", "true");
+          try {
+            loading.style.display = "none";
+          } catch (e) {}
+
+          // Hide content
+          content.classList.add("hidden");
+          content.setAttribute("aria-hidden", "true");
+          try {
+            content.style.display = "none";
+          } catch (e) {}
+
+          // Show login message
+          message.classList.remove("hidden");
+          message.setAttribute("aria-hidden", "false");
+          try {
+            message.style.display = "block";
+          } catch (e) {}
+
+          const authRequiredEl = message.querySelector(
+            ".auth-required-message"
+          );
+          if (authRequiredEl) {
+            authRequiredEl.classList.remove("hidden");
+            authRequiredEl.setAttribute("aria-hidden", "false");
+            try {
+              authRequiredEl.style.display = "block";
+            } catch (e) {}
+          }
+
+          // Update state
+          state.visible = false;
+          state.inFlight = false;
+          state.lastChecked = Date.now();
+          wrapperState.set(wrapper, state);
+          return;
+        }
+
+        // Normalize groups into an array
+        let userGroups = [];
+        if (Array.isArray(detected.groups)) userGroups = detected.groups;
+        else if (typeof detected.groups === "string")
+          userGroups = detected.groups
+            .split(/[,\s]+/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+        else userGroups = [];
+        console.debug("PCW: userGroups ->", userGroups);
+
+        // If groups are required but not yet populated, retry a few times (bridge may be async)
+        if (
+          requiredGroups.length > 0 &&
+          userGroups.length === 0 &&
+          attempt < MAX_ATTEMPTS
+        ) {
+          const delay = Math.min(1000, 50 * Math.pow(2, attempt));
+          console.debug(
+            `PCW: signed in but groups empty; retrying #${attempt + 1} after ${delay}ms`
+          );
+          setTimeout(() => processWrapper(wrapper, attempt + 1), delay);
+          return;
+        }
+
+        // If no requiredGroups, grant access
+        if (requiredGroups.length === 0) {
+          const prevVisible = state.visible;
+          if (prevVisible === true) {
+            state.inFlight = false;
+            state.lastChecked = Date.now();
+            wrapperState.set(wrapper, state);
+            return;
+          }
+
+          loading.classList.add("hidden");
+          loading.setAttribute("aria-hidden", "true");
+          content.classList.remove("hidden");
+          content.setAttribute("aria-hidden", "false");
+          try {
+            content.style.display = "block";
+          } catch (e) {}
+          if (message) {
+            message.classList.add("hidden");
+            try {
+              message.style.display = "none";
+            } catch (e) {}
+          }
+          try {
+            hideDuplicateInnerH1(content);
+          } catch (e) {
+            console.debug("PCW: hideDuplicateInnerH1 error", e);
+          }
+          state.visible = true;
+          state.inFlight = false;
+          state.lastChecked = Date.now();
+          wrapperState.set(wrapper, state);
+          return;
+        }
+
+        // Evaluate group ranks
+        const rank = { GeneralUsers: 1, PowerUsers: 2, SuperUsers: 3 };
+        const userRank = Math.max(0, ...userGroups.map((g) => rank[g] || 0));
+        const requiredRank = Math.max(
+          0,
+          ...requiredGroups.map((g) => rank[g] || 0)
+        );
+        const hasAccess = userRank >= requiredRank && requiredRank > 0;
+        if (!hasAccess) {
+          console.debug("PCW: user lacks required groups", {
+            userGroups,
+            requiredGroups,
+          });
+
+          // Hide loading and content
+          loading.classList.add("hidden");
+          loading.setAttribute("aria-hidden", "true");
+          try {
+            loading.style.display = "none";
+          } catch (e) {}
+
+          content.classList.add("hidden");
+          content.setAttribute("aria-hidden", "true");
+          try {
+            content.style.display = "none";
+          } catch (e) {}
+
+          // Show insufficient permissions message
+          message.classList.remove("hidden");
+          message.setAttribute("aria-hidden", "false");
+          try {
+            message.style.display = "block";
+          } catch (e) {}
+
+          const insufficient = message.querySelector(
+            ".insufficient-permissions"
+          );
+          if (insufficient) {
+            insufficient.classList.remove("hidden");
+            const reqGroupsEl = insufficient.querySelector(".required-groups");
+            const userGroupsEl = insufficient.querySelector(".user-groups");
+            if (reqGroupsEl)
+              reqGroupsEl.textContent =
+                "Required groups: " + requiredGroups.join(", ");
+            if (userGroupsEl)
+              userGroupsEl.textContent =
+                "Your groups: " +
+                (userGroups.length > 0
+                  ? userGroups.join(", ")
+                  : "No groups assigned");
+          }
+
+          // Update state
+          state.visible = false;
+          state.inFlight = false;
+          state.lastChecked = Date.now();
+          wrapperState.set(wrapper, state);
+          return;
+        }
+
+        // Access granted
+        const prevVisible = state.visible;
+        if (prevVisible === true) {
+          state.inFlight = false;
+          state.lastChecked = Date.now();
+          wrapperState.set(wrapper, state);
+          return;
+        }
+        console.debug(
+          "PCW: access granted — revealing content for wrapper",
+          wrapper
+        );
+        // Hide loading
+        loading.classList.add("hidden");
+        loading.setAttribute("aria-hidden", "true");
+        try {
+          loading.style.display = "none";
+        } catch (e) {}
+
+        // Show content
+        content.classList.remove("hidden");
+        content.setAttribute("aria-hidden", "false");
+        try {
+          content.style.display = "block";
+        } catch (e) {}
+
+        // Hide any message UI
+        if (message) {
+          message.classList.add("hidden");
+          try {
+            message.style.display = "none";
+          } catch (e) {}
+        }
+
+        // Hide duplicate inner H1s non-destructively
+        try {
+          hideDuplicateInnerH1(content);
+        } catch (e) {
+          console.debug("PCW: hideDuplicateInnerH1 error", e);
+        }
+
+        // update per-wrapper state
+        state.visible = true;
+        state.inFlight = false;
+        state.lastChecked = Date.now();
+        wrapperState.set(wrapper, state);
+      } catch (error) {
+        console.error("PCW: processWrapper error", error);
+        // Clear any pending loading timeout
+        if (loadingTimeout) clearTimeout(loadingTimeout);
+        try {
+          loading.classList.add("hidden");
+          loading.setAttribute("aria-hidden", "true");
+          loading.style.display = "none";
+        } catch (e) {}
+        try {
+          content.classList.add("hidden");
+          content.setAttribute("aria-hidden", "true");
+          content.style.display = "none";
+        } catch (e) {}
+        if (message) {
+          try {
+            message.classList.remove("hidden");
+            message.setAttribute("aria-hidden", "false");
+            message.style.display = "block";
+          } catch (e) {}
+        }
+        state.inFlight = false;
+        state.lastChecked = Date.now();
+        wrapperState.set(wrapper, state);
+      }
+    }
+
+    function setupLoginButton() {
+      // Expose a small debug helper to the page so you can quickly inspect wrapper
+      // state from the console: PCW_dumpWrappers()
+      window.PCW_dumpWrappers = function () {
+        return Array.from(
+          document.querySelectorAll(".protected-content-wrapper")
+        ).map((w) => {
+          const loading = w.querySelector(".protected-content-loading");
+          const message = w.querySelector(".protected-content-message");
+          const content = w.querySelector(".protected-content-content");
+          return {
+            el: w,
+            authRequired: w.getAttribute("data-auth-required"),
+            requiredGroups: w.getAttribute("data-required-groups"),
+            loading: loading
+              ? {
+                  class: loading.className,
+                  aria: loading.getAttribute("aria-hidden"),
+                  styleDisplay: loading.style.display,
+                  text: loading.textContent.trim(),
+                }
+              : null,
+            message: message
+              ? {
+                  class: message.className,
+                  aria: message.getAttribute("aria-hidden"),
+                  styleDisplay: message.style.display,
+                }
+              : null,
+            content: content
+              ? {
+                  class: content.className,
+                  aria: content.getAttribute("aria-hidden"),
+                  styleDisplay: content.style.display,
+                }
+              : null,
+          };
+        });
+      };
+      const loginBtns = document.querySelectorAll(".login-btn");
+      loginBtns.forEach((loginBtn) => {
+        if (loginBtn) {
+          loginBtn.addEventListener("click", async () => {
+            try {
+              if (
+                window.__authBridge &&
+                typeof window.__authBridge.login === "function"
+              ) {
+                await window.__authBridge.login();
+              } else {
+                const authBtn = document.querySelector("[data-auth-btn]");
+                if (authBtn) authBtn.click();
+              }
+            } catch (error) {
+              console.error("PCW: Login error:", error);
+            }
+          });
+        }
+      });
+    }
+
+    function init() {
+      console.debug("PCW: init called");
+      // Initial check and two short follow-ups to catch async bridge/localStorage updates
+      checkAuth(1);
+      // Many auth flows populate tokens very shortly after page load (bridge/localStorage);
+      // schedule short re-checks so group claims are picked up without user action.
+      setTimeout(() => checkAuth(1, true), 200);
+      setTimeout(() => checkAuth(1, true), 1500);
+      setupLoginButton();
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
+
+    document.addEventListener("astro:page-load", () => {
+      console.debug("PCW: astro:page-load");
+      init();
+    });
+    document.addEventListener("astro:after-swap", () => {
+      console.debug("PCW: astro:after-swap");
+      init();
+    });
+    // Re-check auth when other parts of the app (auth icon) dispatch auth changes
+    document.addEventListener("auth-changed", (ev) => {
+      console.debug("PCW: auth-changed event", ev && ev.detail);
+      // Force re-check on auth-changed so UI responds immediately to user actions
+      setTimeout(() => debounceGlobalCheck(1000, true), 10);
+    });
+    window.addEventListener("focus", () => {
+      console.debug("PCW: window focus — rechecking auth");
+      // Focus likely indicates the user completed an external auth flow — force
+      setTimeout(() => debounceGlobalCheck(1000, true), 100);
+    });
+
+    // Listen for storage changes (other windows or bridge writes)
+    window.addEventListener("storage", (ev) => {
+      // React more broadly to storage changes that look like auth tokens.
+      try {
+        if (!ev.key) return;
+        const exactKeys = new Set(["cognito_id_token", "cognito_access_token"]);
+        if (exactKeys.has(ev.key)) {
+          console.debug("PCW: storage event (exact key)=", ev.key);
+          debounceGlobalCheck(100, true);
+          return;
+        }
+
+        // If key looks like a Cognito provider key or contains 'Cognito' substring
+        if (ev.key.includes("Cognito") || ev.key.includes("cognito")) {
+          const val = ev.newValue || "";
+          const looksLikeJwt =
+            typeof val === "string" && val.split(".").length === 3;
+          const longString = typeof val === "string" && val.length >= 100;
+          if (looksLikeJwt || longString) {
+            console.debug("PCW: storage event (cognito-ish key)=", ev.key);
+            debounceGlobalCheck(100, true);
+            return;
+          }
+        }
+
+        // Fallback: if the new value looks like a JWT (three segments) or long token-ish
+        const nv = ev.newValue || "";
+        if (
+          typeof nv === "string" &&
+          (nv.split(".").length === 3 || nv.length >= 100)
+        ) {
+          console.debug("PCW: storage event (token-like newValue)");
+          debounceGlobalCheck(100, true);
+        }
+      } catch (e) {
+        /* ignore */
+      }
+    });
+
+    // Observe top-level attribute changes (some auth libs set attributes on <html> or <body>)
+    try {
+      const attrObserver = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          if (m.type === "attributes") {
+            const name = m.attributeName || "";
+            if (/auth|user|session/i.test(name)) {
+              console.debug("PCW: attribute mutation detected ->", name);
+              debounceGlobalCheck(200);
+              break;
+            }
+          }
+        }
+      });
+      attrObserver.observe(document.documentElement || document.body, {
+        attributes: true,
+        attributeFilter: ["data-auth", "data-user", "data-session"],
+        subtree: false,
+      });
+      // Disconnect on navigation to avoid accumulating observers
+      document.addEventListener("astro:after-swap", () =>
+        attrObserver.disconnect()
+      );
+    } catch (e) {
+      /* ignore */
+    }
+
+    // No polling — rely on storage events, auth-changed, and focus to trigger checks.
+  })();
+</script>
+
+<style>
+  .protected-content-wrapper {
+    position: relative;
+  }
+
+  .protected-content-message {
+    max-width: 600px;
+    margin: 3rem auto;
+    padding: 2rem;
+    text-align: center;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    background-color: var(--color-bg);
+  }
+
+  .protected-content-message h2 {
+    margin-top: 0;
+    color: var(--color-text);
+  }
+
+  .auth-button {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: 0.5rem 1.5rem;
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  .auth-button:hover {
+    background-color: var(--color-primary-dark);
+  }
+
+  .protected-content-loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--color-text);
+  }
+
+  /* Ensure slotted protected content is hidden by default until JS reveals it */
+  .protected-content-content[aria-hidden="true"] {
+    display: none !important;
+  }
+
+  .protected-content-content[aria-hidden="false"] {
+    display: block !important;
+  }
+
+  /* Hide inner H1s inside slotted protected content to avoid duplicate page titles.
+     We scope this to the wrapper so it won't affect other pages. */
+  .protected-content-content .prose h1,
+  .protected-content-content > h1 {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+</style>

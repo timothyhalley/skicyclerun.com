@@ -1,0 +1,519 @@
+[0;36m═══════════════════════════════════════════════════════════════[0m
+[0;36m  DEV → PROD Migration Tool[0m
+[0;36m═══════════════════════════════════════════════════════════════[0m
+
+[0;32m✓ DEV repository found: /Users/timothyhalley/Projects/skicyclerun.dev[0m
+[0;32m✓ PROD repository found: /Users/timothyhalley/Projects/skicyclerun.com[0m
+
+[0;35m📊 Analyzing differences between DEV and PROD...[0m
+
+[0;34mDEV Files:  274[0m
+[0;34mPROD Files: 262[0m
+
+[0;35m🔍 Detailed File Comparison:[0m
+
+[0;32m📝 New files (will be added):     109[0m
+[1;33m📝 Modified files (will update):  68[0m
+[0;31m📝 Removed files (will be deleted): 97[0m
+
+[0;32m➕ New files to be added:[0m
+_cleanBuild.sh
+_diagnose-react19.sh
+_upgrade-packages.sh
+!AUTH-BUTTON-DEBUG.md
+!AWS-DEPLOYMENT-FIXES.md
+!CRAWLER-MANAGEMENT.md
+!env.example
+!LLMDirectives.md
+!MDXVIDEO-LAYOUT-GUIDE.md
+!MIGRATION-COMPLETE.md
+!PCW-AUTH-FIX.md
+!PRODUCTION-CLEANUP.md
+!README.md
+!SETUP.md
+!TAILWIND-V4-GUIDE.md
+!THEME-SYSTEM-GUIDE.md
+!TODO-BEFORE-PRODUCTION.md
+!UPGRADE-NOTES.md
+!VIDEO_MANAGEMENT.md
+.DS_Store
+[1;33m   ... and 89 more[0m
+
+[1;33m📝 Modified files to be updated:[0m
+.eslintignore
+.gitignore
+.prettierignore
+.vscode/extensions.json
+.vscode/launch.json
+.vscode/tasks.json
+astro.config.mjs
+package.json
+public/favicon.svg
+src/components/Footer.astro
+src/components/Header.astro
+src/components/Hr.astro
+src/components/ImageCard.astro
+src/components/Library.astro
+src/components/Pagination.astro
+src/components/PostCards.astro
+src/components/ShareLinks.astro
+src/components/Socials.astro
+src/components/Tag.astro
+src/components/TechYearTitle.astro
+[1;33m   ... and 48 more[0m
+
+[0;31m🗑️  Files to be removed from PROD:[0m
+.eslintrc.js
+.github/workflows/astro.yml
+.jampack/cache/img/v1/0143b07e6a47c6e5122a9ec329aed81d043182d56238ba4f9f8e1de823daba3c/99914b932bd37a50b983c5e7c90ae93b/data
+.jampack/cache/img/v1/0143b07e6a47c6e5122a9ec329aed81d043182d56238ba4f9f8e1de823daba3c/99914b932bd37a50b983c5e7c90ae93b/meta
+.jampack/cache/img/v1/0143b07e6a47c6e5122a9ec329aed81d043182d56238ba4f9f8e1de823daba3c/f60b611a458528a32b49a8aa0aba1659/data
+.jampack/cache/img/v1/0143b07e6a47c6e5122a9ec329aed81d043182d56238ba4f9f8e1de823daba3c/f60b611a458528a32b49a8aa0aba1659/meta
+.jampack/cache/img/v1/11b5cfa262dead340838200d352d48216c8e983c8c20e82abe0512ad3034fb99/99914b932bd37a50b983c5e7c90ae93b/data
+.jampack/cache/img/v1/11b5cfa262dead340838200d352d48216c8e983c8c20e82abe0512ad3034fb99/99914b932bd37a50b983c5e7c90ae93b/meta
+.jampack/cache/img/v1/326cc3b8fedf42fe150052a3662b07862c6e2cc5600ac1dfe2ea35060164cbc9/99914b932bd37a50b983c5e7c90ae93b/data
+.jampack/cache/img/v1/326cc3b8fedf42fe150052a3662b07862c6e2cc5600ac1dfe2ea35060164cbc9/99914b932bd37a50b983c5e7c90ae93b/meta
+.jampack/cache/img/v1/4860a95e965f0e4cc38d99113c1bacc07136a948716709c2e664727f856c5f62/99914b932bd37a50b983c5e7c90ae93b/data
+.jampack/cache/img/v1/4860a95e965f0e4cc38d99113c1bacc07136a948716709c2e664727f856c5f62/99914b932bd37a50b983c5e7c90ae93b/meta
+.jampack/cache/img/v1/6d179deffb6a53e4b14056a35b2e80a25da1ea89a53d0bf175f0bd9b8d92510e/99914b932bd37a50b983c5e7c90ae93b/data
+.jampack/cache/img/v1/6d179deffb6a53e4b14056a35b2e80a25da1ea89a53d0bf175f0bd9b8d92510e/99914b932bd37a50b983c5e7c90ae93b/meta
+.jampack/cache/img/v1/6dfce802aac94814817545794a5d0dcf96e0f1862cb2eb612e46aecd4cf4fe06/99914b932bd37a50b983c5e7c90ae93b/data
+.jampack/cache/img/v1/6dfce802aac94814817545794a5d0dcf96e0f1862cb2eb612e46aecd4cf4fe06/99914b932bd37a50b983c5e7c90ae93b/meta
+.jampack/cache/img/v1/71537b4b1bfa8e86c521b0c4e3ff9cf9f1c84be59e93e955ce5647394ebb22f3/99914b932bd37a50b983c5e7c90ae93b/data
+.jampack/cache/img/v1/71537b4b1bfa8e86c521b0c4e3ff9cf9f1c84be59e93e955ce5647394ebb22f3/99914b932bd37a50b983c5e7c90ae93b/meta
+.jampack/cache/img/v1/71b9bbb203188310816f3134ceea2e6299a079b6b9d1b70c87a6cd91249b6451/99914b932bd37a50b983c5e7c90ae93b/data
+.jampack/cache/img/v1/71b9bbb203188310816f3134ceea2e6299a079b6b9d1b70c87a6cd91249b6451/99914b932bd37a50b983c5e7c90ae93b/meta
+[1;33m   ... and 77 more[0m
+
+[0;36m═══════════════════════════════════════════════════════════════[0m
+[1;33m  Dry-Run Mode: Showing what rsync would do[0m
+[0;36m═══════════════════════════════════════════════════════════════[0m
+
+[0;35m🔍 Running rsync with --dry-run flag...[0m
+
+Transfer starting: 302 files
+src/utils/generateOgImages.tsx: deleting
+src/utils/cognito.ts: deleting
+src/utils/amplify-server.ts: deleting
+src/scripts/auth-island-clients.ts: deleting
+src/pages/posts/travel.astro: deleting
+src/pages/posts/tech.astro: deleting
+src/pages/api/content/[slug].ts: deleting
+src/pages/api/content: deleting
+src/pages/api/auth/session.ts: deleting
+src/pages/api/auth/logout.ts: deleting
+src/pages/api/auth/login.ts: deleting
+src/pages/api/auth/callback.ts: deleting
+src/pages/api/auth: deleting
+src/pages/api/secure-test.ts: deleting
+src/pages/api/content.ts: deleting
+src/pages/api: deleting
+src/pages/welcome.mdx: deleting
+src/pages/test.mdx: deleting
+src/pages/hook-debug.astro: deleting
+src/pages/goodbye.mdx: deleting
+src/pages/authLogin.astro: deleting
+src/pages/auth-debug.astro: deleting
+src/layouts/Main.astro: deleting
+src/layouts/MDXLayout3.astro: deleting
+src/layouts/MDXLayout2.astro: deleting
+src/layouts/MDXCarousel2.astro: deleting
+src/layouts/MDXCarousel.astro: deleting
+src/layouts/Layout.astro: deleting
+src/content/blog/notes/project-guide.md: deleting
+src/content/blog/beta/2025-08-07-Test Carousel.mdx: deleting
+src/components/SignOutHandler.jsx: deleting
+src/components/SecureFetch.jsx: deleting
+src/components/Search.tsx: deleting
+src/components/ProtectedContentLoader.tsx: deleting
+src/components/LoginRedirect.jsx: deleting
+src/components/HookDebug.jsx: deleting
+src/components/Datetime.tsx: deleting
+src/components/Card.tsx: deleting
+src/components/Breadcrumbs.astro: deleting
+src/components/AuthLabel.tsx: deleting
+src/components/AuthGate.astro: deleting
+src/components/AuthCallback.jsx: deleting
+src/components/ArchivePost.astro: deleting
+src/assets/images/JamacaWestmoreland.png: deleting
+src/assets/logo.svg: deleting
+./src/utils/generateOgImages.tsx: deleting
+./src/utils/cognito.ts: deleting
+./src/utils/amplify-server.ts: deleting
+./src/scripts/auth-island-clients.ts: deleting
+./src/pages/posts/travel.astro: deleting
+./src/pages/posts/tech.astro: deleting
+./src/pages/api/content/[slug].ts: deleting
+./src/pages/api/content: deleting
+./src/pages/api/auth/session.ts: deleting
+./src/pages/api/auth/logout.ts: deleting
+./src/pages/api/auth/login.ts: deleting
+./src/pages/api/auth/callback.ts: deleting
+./src/pages/api/auth: deleting
+./src/pages/api/secure-test.ts: deleting
+./src/pages/api/content.ts: deleting
+./src/pages/api: deleting
+./src/pages/welcome.mdx: deleting
+./src/pages/test.mdx: deleting
+./src/pages/hook-debug.astro: deleting
+./src/pages/goodbye.mdx: deleting
+./src/pages/authLogin.astro: deleting
+./src/pages/auth-debug.astro: deleting
+./src/layouts/Main.astro: deleting
+./src/layouts/MDXLayout3.astro: deleting
+./src/layouts/MDXLayout2.astro: deleting
+./src/layouts/MDXCarousel2.astro: deleting
+./src/layouts/MDXCarousel.astro: deleting
+./src/layouts/Layout.astro: deleting
+./src/content/blog/notes/project-guide.md: deleting
+./src/content/blog/beta/2025-08-07-Test Carousel.mdx: deleting
+./src/components/SignOutHandler.jsx: deleting
+./src/components/SecureFetch.jsx: deleting
+./src/components/Search.tsx: deleting
+./src/components/ProtectedContentLoader.tsx: deleting
+./src/components/LoginRedirect.jsx: deleting
+./src/components/HookDebug.jsx: deleting
+./src/components/Datetime.tsx: deleting
+./src/components/Card.tsx: deleting
+./src/components/Breadcrumbs.astro: deleting
+./src/components/AuthLabel.tsx: deleting
+./src/components/AuthGate.astro: deleting
+./src/components/AuthCallback.jsx: deleting
+./src/components/ArchivePost.astro: deleting
+./src/assets/images/JamacaWestmoreland.png: deleting
+./src/assets/logo.svg: deleting
+./amplify/data/resource.ts: deleting
+./amplify/data: deleting
+./amplify/auth/resource.ts: deleting
+./amplify/auth: deleting
+./amplify/tsconfig.json: deleting
+./amplify/package.json: deleting
+./amplify/backend.ts: deleting
+./amplify: deleting
+./vite.config.ts: deleting
+./remark-collapse.d.ts: deleting
+./purgededuperebuildrun.sh: deleting
+./lighthouse-score.svg: deleting
+./READ_CODE.md: deleting
+./README.md: deleting
+./.prettierrc: deleting
+./.markdownlint.json: deleting
+./.eslintrc.js: deleting
+./
+!AUTH-BUTTON-DEBUG.md
+!AWS-DEPLOYMENT-FIXES.md
+!CRAWLER-MANAGEMENT.md
+!LLMDirectives.md
+!MDXVIDEO-LAYOUT-GUIDE.md
+!MIGRATION-COMPLETE.md
+!PCW-AUTH-FIX.md
+!PRODUCTION-CLEANUP.md
+!README.md
+!SETUP.md
+!TAILWIND-V4-GUIDE.md
+!THEME-SYSTEM-GUIDE.md
+!TODO-BEFORE-PRODUCTION.md
+!UPGRADE-NOTES.md
+!VIDEO_MANAGEMENT.md
+!env.example
+.eslintignore
+.gitignore
+.npmrc
+.prettierignore
+.prettierrc.mjs
+MIGRATION-GUIDE.md
+MIGRATION-MODES.md
+MIGRATION-SCRIPT-README.md
+_cleanBuild.sh
+_diagnose-react19.sh
+_upgrade-packages.sh
+astro.config.mjs
+migrate-to-prod.sh
+package.json
+package.json.backup
+rsync-preview.txt
+tailwind.config.cjs
+test-slugs.mjs
+tsconfig.json
+public/
+public/SkiCycleRun.png
+public/SkiCycleRun.svg
+public/favicon.svg
+public/robots.txt
+public/toggle-theme.js
+public/.well-known/
+public/.well-known/security.txt
+public/fonts/
+public/fonts/asimovian/
+public/fonts/asimovian/Asimovian-Regular.otf
+public/fonts/asimovian/Asimovian-Regular.ttf
+public/fonts/asimovian/Asimovian-Regular.woff2
+public/globe/
+public/globe/earth-blue-marble.jpg
+public/globe/earth-night.jpg
+public/globe/ne_110m_admin_0_countries_lakes.json
+public/images/
+public/images/100_Banner-MtnTops-BW.jpeg
+public/images/75_Banner-MtnTops-BW.jpeg
+public/images/75_Banner-MtnTops-BW.png
+public/images/adventureoutside.svg
+public/images/background-swoosh.jpg
+public/images/default-cover.png
+public/images/favicon.ico
+public/images/favicon.png
+public/images/skicyclerun-og.jpeg
+public/images/skicyclerun-og.png
+public/images/skicyclerun_banner_1.png
+public/images/skicyclerun_banner_2.png
+public/images/zen-brush.svg
+public/scripts/
+public/scripts/simple-auth-icon.js
+public/videos/
+public/videos/2024-03-12_NewZealand.jpg
+public/videos/2024-03-12_NewZealand.mp4
+public/videos/montreal-architecture.jpg
+public/videos/montreal-architecture.mp4
+scripts/
+scripts/copy-scripts.js
+scripts/download-video.sh
+src/
+src/env.d.ts
+src/skicyclerun.config.ts
+src/assets/
+src/assets/socialIcons.ts
+src/assets/images/
+src/assets/images/AstroTestPage.png
+src/assets/images/Chiyoda_Sotokanda-60.png
+src/assets/images/JamaicaWestmoreland.png
+src/assets/images/JungleCarousel.png
+src/assets/images/ProjectGuide.png
+src/assets/images/SVGPhotoCollage.png
+src/assets/images/Tech_GenAITech.png
+src/assets/images/Travel_Barcelona_Ink.png
+src/assets/images/Travel_ChurchoftheGoodShepherd.png
+src/assets/images/Travel_CintraBeachHouses.png
+src/assets/images/Travel_CintraCastle.png
+src/assets/images/Travel_CochellaValleyLoneRider.png
+src/assets/images/Travel_GroovyGenAI.png
+src/assets/images/Travel_MontrealOldTown.png
+src/assets/images/default-cover.png
+src/assets/images/skicyclerun-og.jpeg
+src/assets/svg_imgs/
+src/assets/svg_imgs/adventureoutside.svg
+src/assets/svg_imgs/bikesymbol.svg
+src/assets/svg_imgs/blocked-stop.svg
+src/assets/svg_imgs/buddhist-rice-bowl.svg
+src/assets/svg_imgs/buffaloall.svg
+src/assets/svg_imgs/buffalohead.svg
+src/assets/svg_imgs/deeralert.svg
+src/assets/svg_imgs/dharma.svg
+src/assets/svg_imgs/error-error.svg
+src/assets/svg_imgs/globe-2.svg
+src/assets/svg_imgs/globe.svg
+src/assets/svg_imgs/hikeclimb.svg
+src/assets/svg_imgs/login.svg
+src/assets/svg_imgs/logo.svg
+src/assets/svg_imgs/logout.svg
+src/assets/svg_imgs/loveforever.svg
+src/assets/svg_imgs/menu-about.svg
+src/assets/svg_imgs/menu-airplane.svg
+src/assets/svg_imgs/menu-books.svg
+src/assets/svg_imgs/menu-home.svg
+src/assets/svg_imgs/menu-lightbulb.svg
+src/assets/svg_imgs/menu-lists.svg
+src/assets/svg_imgs/menu-posts.svg
+src/assets/svg_imgs/mountainchalet.svg
+src/assets/svg_imgs/mountains-altitude.svg
+src/assets/svg_imgs/mountains-lagoon.svg
+src/assets/svg_imgs/mountains-landscape-on-sunny-day.svg
+src/assets/svg_imgs/mountains.svg
+src/assets/svg_imgs/mountainsandmoon.svg
+src/assets/svg_imgs/mtntops.svg
+src/assets/svg_imgs/mtntopview.svg
+src/assets/svg_imgs/openbook.svg
+src/assets/svg_imgs/partners4life.svg
+src/assets/svg_imgs/plaguedoctor.svg
+src/assets/svg_imgs/profile_face1.svg
+src/assets/svg_imgs/profile_face2.svg
+src/assets/svg_imgs/profile_outline.svg
+src/assets/svg_imgs/sagitariuszodiac.svg
+src/assets/svg_imgs/sagittariussymbol.svg
+src/assets/svg_imgs/sagittariusthearcher.svg
+src/assets/svg_imgs/skicyclerun-og.jpeg
+src/assets/svg_imgs/skisymbol.svg
+src/assets/svg_imgs/taurusbullhead.svg
+src/assets/svg_imgs/taurusone.svg
+src/assets/svg_imgs/taurussymbol.svg
+src/assets/svg_imgs/traveltogether.svg
+src/assets/svg_imgs/zen-brush.svg
+src/assets/svg_imgs/zenyinyang.svg
+src/components/
+src/components/AuthButton.astro
+src/components/AuthStateManager.astro
+src/components/BreadcrumbNav.astro
+src/components/Card.astro
+src/components/Datetime.astro
+src/components/Footer.astro
+src/components/HamburgerMenu.astro
+src/components/Header.astro
+src/components/Hr.astro
+src/components/ImageCard.astro
+src/components/Library.astro
+src/components/LinkButton.astro
+src/components/LoginButton.astro
+src/components/LoginIcon.astro
+src/components/NavigationLinks.astro
+src/components/Pagination.astro
+src/components/PostCards.astro
+src/components/ProtectedContentWrapper.astro
+src/components/RemotePhotoGallery.tsx
+src/components/Search.astro
+src/components/SearchButton.astro
+src/components/ShareLinks.astro
+src/components/Socials.astro
+src/components/Tag.astro
+src/components/TechYearTitle.astro
+src/components/ThemeToggle.astro
+src/components/TravelGlobe.tsx
+src/components/UserAuthCard.astro
+src/components/UserCard.astro
+src/config/
+src/config/cognito.ts
+src/config/types.ts
+src/constants/
+src/constants/blogTypes.ts
+src/content/
+src/content/config.ts
+src/content/blog/
+src/content/blog/beta/
+src/content/blog/beta/2024-01-01-Test.mdx
+src/content/blog/beta/2024-04-15-SVGAlbum.mdx
+src/content/blog/beta/2025-08-07-TestCarousel.mdx
+src/content/blog/notes/
+src/content/blog/notes/2024-05-05-GenAITravelTips.mdx
+src/content/blog/notes/project-guide.mdx
+src/content/blog/tech/
+src/content/blog/tech/1983-01-14-FlexGen_Language.mdx
+src/content/blog/tech/1983-01-14-RatFor_Language.mdx
+src/content/blog/tech/2025-08-04-GroundZero.mdx
+src/content/blog/tech/2025-09-14-AGI Paper.mdx
+src/content/blog/travel/
+src/content/blog/travel/2022-06-01-Portugal.mdx
+src/content/blog/travel/2022-06-11-Barcelona.mdx
+src/content/blog/travel/2022-12-12-Jamacia.mdx
+src/content/blog/travel/2023-01-15-Tokyo.mdx
+src/content/blog/travel/2023-11-24-Coachella.mdx
+src/content/blog/vlog/
+src/content/blog/vlog/2024-03-15-NewZealand.mdx
+src/content/blog/vlog/2024-07-31-Montreal.mdx
+src/layouts/
+src/layouts/AboutLayout.astro
+src/layouts/BaseLayout.astro
+src/layouts/Breadcrumbs.astro
+src/layouts/MDXCarousel3.astro
+src/layouts/MDXGalleryView.astro
+src/layouts/MDXHeroView.astro
+src/layouts/MDXLayout.astro
+src/layouts/MDXLayout8.astro
+src/layouts/MDXVideo.astro
+src/layouts/PageLayout.astro
+src/layouts/PhotoLayout.astro
+src/layouts/PostDetails.astro
+src/layouts/Posts.astro
+src/layouts/ProfileLayout.astro
+src/layouts/TagPosts.astro
+src/layouts/TechPostLayout.astro
+src/layouts/config.ts
+src/lib/
+src/lib/search.ts
+src/lib/userDisplay.ts
+src/locales/
+src/locales/keys.ts
+src/locales/translation.ts
+src/locales/languages/
+src/locales/languages/en.ts
+src/locales/languages/fr_CA.ts
+src/pages/
+src/pages/404.astro
+src/pages/about.mdx
+src/pages/debug.astro
+src/pages/index.astro
+src/pages/profile.astro
+src/pages/rss-fixed.xml.js
+src/pages/rss.xml.ts
+src/pages/search.astro
+src/pages/slug-debug.astro
+src/pages/travel-globe.astro
+src/pages/posts/
+src/pages/posts/[...slug].astro
+src/pages/posts/index.astro
+src/pages/search/
+src/pages/search/partial.astro
+src/pages/search/posts.json.ts
+src/pages/tags/
+src/pages/tags/[tag].astro
+src/pages/tags/index.astro
+src/pages/tags/[tag]/
+src/pages/tags/[tag]/[...page].astro
+src/pages/tech/
+src/pages/tech/[...slug].astro
+src/pages/tech/index.astro
+src/scripts/
+src/scripts/simple-auth-icon.js
+src/styles/
+src/styles/animations.css
+src/styles/auth-styles.css
+src/styles/base.css
+src/styles/header.css
+src/styles/markdown.css
+src/styles/overrides.css
+src/styles/prose-fix.css
+src/styles/scrollbar.css
+src/styles/searchbar.css
+src/styles/topography.css
+src/styles/transitions.css
+src/types/
+src/types/astro.d.ts
+src/types/global.d.ts
+src/types/import-meta.d.ts
+src/types/imports.d.ts
+src/utils/
+src/utils/apiClient.ts
+src/utils/auth.ts
+src/utils/clientAuth.ts
+src/utils/generatePostStaticPaths.ts
+src/utils/getFilteredPosts.ts
+src/utils/getPageNumbers.ts
+src/utils/getPagination.ts
+src/utils/getPhotoCover.ts
+src/utils/getPostsByTag.ts
+src/utils/getSortedPosts.ts
+src/utils/getSortedTech.ts
+src/utils/getSortedTravels.ts
+src/utils/getUniqueTags.ts
+src/utils/imageModules.ts
+src/utils/postFilter.ts
+src/utils/protectedApi.ts
+src/utils/slugify.ts
+src/utils/techFilter.ts
+src/utils/travelFilter.ts
+src/utils/validateStaticSlugs.ts
+src/utils/og-templates/
+src/utils/og-templates/post.tsx
+src/utils/og-templates/site.tsx
+
+sent 18131 bytes  received 1832 bytes  1102928 bytes/sec
+total size is 187696160  speedup is 9402.20
+
+[0;36m═══════════════════════════════════════════════════════════════[0m
+[0;32m✓ Dry-run complete (no files were actually copied)[0m
+[0;36m═══════════════════════════════════════════════════════════════[0m
+
+[1;33mExplanation of rsync output:[0m
+  • Lines starting with '>' show files that would be transferred
+  • 'deleting' shows files that would be removed from PROD
+  • 'sent X bytes' shows data transfer size (but nothing was sent)
+
+[1;33mTo perform the actual migration, run:[0m
+  ./migrate-to-prod.sh
+

@@ -1,0 +1,59 @@
+---
+import { getCollection } from "astro:content";
+import PageLayout from "@layouts/PageLayout.astro";
+import getFilteredPosts from "@utils/getFilteredPosts";
+import getPagination from "@utils/getPagination";
+import Pagination from "@components/Pagination.astro";
+import PostCard from "@components/PostCards.astro";
+import { getPhotoCover } from "@utils/getPhotoCover";
+import { TECH_TYPES } from "@constants/blogTypes";
+
+const posts = await getCollection("blog");
+const sortedPosts = getFilteredPosts(posts, TECH_TYPES);
+
+// This now correctly calculates the URLs for the first page
+const pagination = getPagination({
+  posts: sortedPosts,
+  page: 1,
+  isIndex: true,
+});
+
+// Fetch cover images for all posts
+const coverImages = await Promise.all(
+  pagination.paginatedPosts.map((post) =>
+    getPhotoCover(post.data.cover ?? "images/default-cover.png")
+  )
+);
+---
+
+<PageLayout
+  title="Tech"
+  pageTitle="Tech"
+  pageDesc="Technical articles, tutorials, and insights"
+  activeNav="tech"
+>
+  <div class="posts-gutter">
+    <div class="flex flex-col gap-6">
+      {
+        pagination.paginatedPosts.map((post, index) => (
+          <PostCard
+            title={post.data.title}
+            author={post.data.author}
+            pubDatetime={post.data.pubDatetime.toISOString()}
+            tags={post.data.tags}
+            description={post.data.description}
+            cover={coverImages[index]?.src ?? "images/default-cover.png"}
+            href={`/tech/${post.slug}`}
+          />
+        ))
+      }
+    </div>
+  </div>
+
+  <Pagination
+    currentPage={pagination.currentPage}
+    totalPages={pagination.totalPages}
+    prevUrl={`/tech${pagination.currentPage - 1 !== 1 ? "/" + (pagination.currentPage - 1) : ""}`}
+    nextUrl={`/tech/${pagination.currentPage + 1}`}
+  />
+</PageLayout>

@@ -1,0 +1,318 @@
+---
+// UserAuthCard.astro - Two-column profile card, PostCards style
+import ProfileFace from "@svg_imgs/profile_face1.svg";
+---
+
+<article class="not-prose mb-8">
+  <div
+    class="flex flex-col md:flex-row items-stretch bg-skin-card rounded-lg shadow-lg overflow-hidden border border-skin-line"
+    style="transform: translateY(3px);"
+  >
+    <div
+      class="w-full md:w-auto md:min-w-[140px] md:max-w-[220px] aspect-square bg-skin-card-muted flex items-center justify-center border-b md:border-b-0 md:border-r border-skin-line"
+    >
+      <div class="w-full h-full flex items-center justify-center">
+        <ProfileFace class="w-2/3 h-2/3 text-gray-500 dark:text-gray-300" />
+      </div>
+    </div>
+    <div class="flex-1 p-6 flex flex-col justify-center">
+      <!-- Signed-in view -->
+      <div id="signed-in-view" class="hidden space-y-3">
+        <!-- Line 1: Title -->
+        <div class="w-full flex justify-center items-center mb-2">
+          <h1
+            class="text-2xl md:text-3xl lg:text-4xl font-extrabold text-skin-base text-center w-full"
+          >
+            Your Profile
+          </h1>
+        </div>
+
+        <!-- Line 2: Name · Email -->
+        <div
+          class="flex flex-row items-center text-base md:text-lg text-skin-base mb-1"
+        >
+          <span class="font-semibold w-32">Name:</span>
+          <span id="uc-name" class="ml-2 w-48 tabular-nums">—</span>
+        </div>
+        <div
+          class="flex flex-row items-center text-base md:text-lg text-skin-base mb-1"
+        >
+          <span class="font-semibold w-32">Email:</span>
+          <span id="uc-email" class="ml-2 w-48 tabular-nums">—</span>
+        </div>
+
+        <!-- Line 3: Groups -->
+        <div
+          class="flex flex-row items-center text-base md:text-lg text-skin-base mb-1"
+        >
+          <span class="font-semibold w-32">Groups:</span>
+          <div
+            id="uc-groups-inline"
+            class="ml-2 flex flex-row flex-nowrap gap-2 whitespace-nowrap [&>span]:px-2 [&>span]:py-1 [&>span]:rounded-full [&>span]:text-xs [&>span]:font-semibold [&>span]:bg-skin-accent [&>span]:text-skin-card"
+          >
+          </div>
+        </div>
+        <div
+          class="flex flex-row items-center text-base md:text-lg text-skin-base mb-1"
+        >
+          <span class="font-semibold w-32">Geo Location:</span>
+          <span id="uc-geo" class="ml-2 w-48 tabular-nums">—</span>
+        </div>
+
+        <!-- Line 4: spacer -->
+        <div class="h-6"></div>
+
+        <!-- Line 5: Status icon · message + Sign out button on the right -->
+        <div
+          class="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700"
+        >
+          <div
+            class="inline-flex items-center gap-2 text-skin-base opacity-80 whitespace-nowrap"
+          >
+            <!-- Logout icon (only shown when signed in) -->
+            <svg
+              id="icon-logout"
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-5 h-5 shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span class="opacity-80" id="uc-status-text">You are signed in</span
+            >
+          </div>
+          <button
+            id="sign-out-btn"
+            type="button"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition whitespace-nowrap"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+
+      <!-- Signed-out view -->
+      <div
+        id="signed-out-view"
+        class="flex flex-col items-center justify-center py-6 w-full"
+      >
+        <!-- Line 1: Title -->
+        <h1
+          class="text-2xl md:text-3xl lg:text-4xl font-extrabold text-skin-base text-center w-full mb-2"
+        >
+          Your Profile
+        </h1>
+        <div class="h-6"></div>
+        <!-- Line 5: icon · message -->
+        <div
+          class="mt-3 inline-flex items-center gap-2 text-skin-base opacity-80 whitespace-nowrap"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-5 h-5 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" y1="12" x2="3" y2="12"></line>
+          </svg>
+          <span class="opacity-80">You are signed out</span>
+        </div>
+        <button
+          id="sign-in-btn"
+          type="button"
+          class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          >Sign In</button
+        >
+      </div>
+    </div>
+  </div>
+</article>
+
+<script is:inline>
+  (function () {
+    console.log("[UserAuthCard] Script initializing...");
+
+    async function getAuthState() {
+      console.log("[UserAuthCard] getAuthState called");
+      if (window.__authBridge?.getState) {
+        const result = await window.__authBridge.getState();
+        console.log("[UserAuthCard] Auth state result:", result);
+        return result;
+      }
+      console.log("[UserAuthCard] No __authBridge available");
+      return null;
+    }
+
+    async function fetchUserProfile(email, token) {
+      console.log("[UserAuthCard] Fetching profile for:", email);
+      try {
+        const headers = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const url = `https://api.skicyclerun.com/dev/profile?email=${encodeURIComponent(email)}`;
+        const res = await fetch(url, { headers });
+        if (!res.ok) {
+          console.log("[UserAuthCard] Profile fetch failed:", res.status);
+          return null;
+        }
+        const profile = await res.json();
+        console.log("[UserAuthCard] Profile fetched:", profile);
+        return profile;
+      } catch (error) {
+        console.log("[UserAuthCard] Profile fetch error:", error);
+        return null;
+      }
+    }
+
+    function setView(isSignedIn) {
+      const inView = document.getElementById("signed-in-view");
+      const outView = document.getElementById("signed-out-view");
+      if (!inView || !outView) return;
+      if (isSignedIn) {
+        outView.classList.add("hidden");
+        inView.classList.remove("hidden");
+        outView.setAttribute("aria-hidden", "true");
+        inView.setAttribute("aria-hidden", "false");
+        outView.style.display = "none";
+        inView.style.display = "";
+      } else {
+        outView.classList.remove("hidden");
+        inView.classList.add("hidden");
+        outView.setAttribute("aria-hidden", "false");
+        inView.setAttribute("aria-hidden", "true");
+        outView.style.display = "";
+        inView.style.display = "none";
+      }
+    }
+
+    function updateUI(auth, profile) {
+      console.log(
+        "[UserAuthCard] Updating UI - auth:",
+        !!auth?.signedIn,
+        "profile:",
+        !!profile
+      );
+
+      const inView = document.getElementById("signed-in-view");
+      const outView = document.getElementById("signed-out-view");
+      if (!inView || !outView) {
+        console.log("[UserAuthCard] Views not found");
+        return;
+      }
+
+      if (!auth?.signedIn || !auth.email) {
+        // Show signed-out, hide signed-in
+        setView(false);
+
+        const signInBtn = document.getElementById("sign-in-btn");
+        if (signInBtn) {
+          signInBtn.onclick = () => {
+            console.log("[UserAuthCard] Sign in clicked");
+            window.__authBridge?.login?.();
+          };
+        }
+
+        return;
+      }
+
+      // Populate signed-in fields
+      setView(true);
+
+      const user = profile
+        ? { ...profile, email: auth.email }
+        : { email: auth.email };
+      const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value ?? "—";
+      };
+      setText("uc-name", user.name);
+      setText("uc-email", user.email);
+      setText("uc-geo", user.geo);
+
+      const groupsWrapInline = document.getElementById("uc-groups-inline");
+      if (groupsWrapInline) {
+        groupsWrapInline.replaceChildren();
+        (user.groups ?? []).forEach((g) => {
+          const span = document.createElement("span");
+          span.className =
+            "px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+          span.textContent = g;
+          groupsWrapInline.appendChild(span);
+        });
+      }
+
+      // Update status text (icon is already visible in signed-in view)
+      const statusText = document.getElementById("uc-status-text");
+      if (statusText) {
+        statusText.textContent = "You are signed in";
+      }
+
+      const signOutBtn = document.getElementById("sign-out-btn");
+      if (signOutBtn) {
+        signOutBtn.onclick = () => {
+          console.log("[UserAuthCard] Sign out clicked");
+          window.__authBridge?.logout?.();
+        };
+      }
+    }
+
+    async function load() {
+      console.log("[UserAuthCard] Load function called");
+      const auth = await getAuthState();
+      let profile = null;
+      if (auth?.signedIn && auth.email) {
+        const token = auth.idToken || auth.accessToken;
+        profile = await fetchUserProfile(auth.email, token);
+      }
+      updateUI(auth, profile);
+
+      // DEBUG: Log computed styles for the h1 element
+      setTimeout(() => {
+        const h1Elements = document.querySelectorAll("article h1");
+        h1Elements.forEach((h1, index) => {
+          const computed = window.getComputedStyle(h1);
+          console.log(`[UserAuthCard] H1 #${index} Debug:`, {
+            element: h1,
+            classList: Array.from(h1.classList),
+            fontSize: computed.fontSize,
+            textAlign: computed.textAlign,
+            display: computed.display,
+            width: computed.width,
+            margin: computed.margin,
+            padding: computed.padding,
+            fontWeight: computed.fontWeight,
+            allClasses: h1.className,
+            innerHTML: h1.innerHTML.substring(0, 50),
+          });
+        });
+      }, 500);
+    }
+
+    if (document.readyState === "loading") {
+      console.log("[UserAuthCard] Waiting for DOMContentLoaded");
+      document.addEventListener("DOMContentLoaded", load);
+    } else {
+      console.log("[UserAuthCard] DOM already ready, loading immediately");
+      load();
+    }
+
+    window.addEventListener("focus", () => {
+      console.log("[UserAuthCard] Window focused, reloading in 100ms");
+      setTimeout(load, 100);
+    });
+
+    console.log("[UserAuthCard] Script setup complete");
+  })();
+</script>

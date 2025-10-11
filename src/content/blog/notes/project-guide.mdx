@@ -1,0 +1,422 @@
+---
+title: "SkiCycleRun Project Guide"
+layout: "@layouts/TechPostLayout.astro"
+slug: "project-guide"
+type: "TECH"
+pubDatetime: 2025-10-02T10:00:00-08:00
+modDatetime: 2025-10-02T10:00:00-08:00
+featured: true
+draft: false
+tags:
+  - "skicyclerun"
+  - "guide"
+  - "development"
+  - "astro"
+  - "aws"
+  - "cognito"
+  - "architecture"
+description: "Complete guide to the SkiCycleRun project architecture, AWS services, authentication, and development workflow."
+author: "Tim H"
+cover: "ProjectGuide.png"
+auth_required: false
+---
+
+This comprehensive guide documents the SkiCycleRun.dev project architecture, AWS cloud services, authentication system, and development workflow. The site is built as a modern static site with serverless backend services for enhanced functionality and security.
+
+## Table of contents
+
+## Architecture Overview
+
+SkiCycleRun.dev is a hybrid static site built with Astro.js that leverages AWS cloud services for authentication, protected content, and data storage. The architecture follows modern JAMstack principles with serverless backend integration.
+
+### Core Technology Stack
+
+- **Frontend Framework**: Astro.js with React components
+- **Styling**: Tailwind CSS with custom theme system
+- **Authentication**: AWS Cognito with Hosted UI
+- **Backend API**: AWS API Gateway with Lambda functions
+- **Database**: Azure Cosmos DB for content management
+- **Storage**: AWS S3 for media and assets
+- **Infrastructure**: AWS CloudFormation for deployment
+- **Security**: Geo-blocking and JWT token validation
+
+## AWS Cloud Services Integration
+
+### Authentication with AWS Cognito
+
+The site implements a robust authentication system using AWS Cognito:
+
+- **User Pool**: Manages user registration, login, and profile management
+- **Hosted UI**: Provides branded login/logout experience
+- **JWT Tokens**: Secure token-based authentication for API calls
+- **Client-side Authentication**: Static site compatible auth flow
+
+#### Configuration
+
+Cognito settings are managed in `src/config/cognito.ts`:
+
+```typescript
+export const cognitoConfig = {
+  userPoolId: "us-west-2_UqZZY2Hbw",
+  clientId: "hsrpdhl5sellv9n3dotako1tm",
+  domain: "us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com",
+  region: "us-west-2",
+  scopes: ["openid", "email", "profile", "phone"],
+  redirectUri: "/",
+  logoutUri: "/",
+};
+```
+
+### API Gateway and Lambda Functions
+
+Protected content and dynamic features are served through AWS API Gateway:
+
+- **REST API**: Secure endpoints for protected content
+- **Lambda Integration**: Serverless functions for business logic
+- **CORS Configuration**: Proper cross-origin resource sharing
+- **Authorization**: JWT token validation middleware
+
+#### Key Endpoints
+
+- `/api/auth/session` - User session validation
+- `/api/content/protected` - Authenticated content delivery
+- `/api/media/signed-urls` - Secure media access
+
+### CloudFormation Infrastructure
+
+The AWS infrastructure is defined as code using CloudFormation templates:
+
+- **API Gateway Configuration**: RESTful API setup
+- **Lambda Functions**: Serverless compute resources
+- **IAM Roles**: Least-privilege access policies
+- **Security Groups**: Network access controls
+- **Geo-blocking Rules**: Country-based access restrictions
+
+### Security Features
+
+#### Geo-blocking Implementation
+
+The site implements geo-blocking to restrict access to friendly countries:
+
+- **CloudFront Distribution**: Edge location filtering
+- **WAF Rules**: Web Application Firewall restrictions
+- **IP Whitelisting**: Country-based IP range filtering
+- **Fallback Mechanisms**: Graceful degradation for blocked regions
+
+#### JWT Token Validation
+
+All protected endpoints validate JWT tokens:
+
+```typescript
+export async function validateToken(token: string): Promise<boolean> {
+  try {
+    const payload = parseJWT(token);
+    return !isTokenExpired(token) && payload.email_verified;
+  } catch {
+    return false;
+  }
+}
+```
+
+## Data Storage Solutions
+
+### Azure Cosmos DB Integration
+
+Cosmos DB serves as the primary database for content management:
+
+- **Document Storage**: JSON-based content documents
+- **Global Distribution**: Multi-region replication
+- **Automatic Scaling**: On-demand capacity management
+- **Query Optimization**: SQL-like query interface
+
+### AWS S3 Storage
+
+S3 handles media assets and static file storage:
+
+- **Image Optimization**: Automated image processing
+- **CDN Integration**: CloudFront distribution
+- **Lifecycle Policies**: Automated archival and cleanup
+- **Secure Access**: Pre-signed URL generation
+
+## Development Workflow
+
+### Environment Configuration
+
+The project supports multiple environments with specific configurations:
+
+```typescript
+// astro.config.dev.mjs - Development environment
+export default defineConfig({
+  site: "https://dev.skicyclerun.com",
+  output: "static",
+  server: {
+    port: 4321,
+    host: "localhost",
+    https: true, // SSL certificates required for Cognito
+  },
+});
+```
+
+### Authentication Flow
+
+The client-side authentication uses a secure OAuth 2.0 flow:
+
+1. **Login Initiation**: Redirect to Cognito Hosted UI
+2. **Authorization Code**: Cognito returns auth code
+3. **Token Exchange**: Exchange code for JWT tokens
+4. **Local Storage**: Secure token persistence
+5. **API Calls**: Include tokens in protected requests
+
+### Content Management
+
+#### Frontmatter Schema
+
+Blog posts use extended frontmatter for enhanced functionality:
+
+```yaml
+---
+title: "Post Title"
+slug: "post-slug"
+type: "TECH" | "TRAVEL" | "GENERAL"
+pubDatetime: 2025-10-02T10:00:00-08:00
+modDatetime: 2025-10-02T10:00:00-08:00
+featured: true
+draft: false
+auth_required: false
+tags: ["tag1", "tag2"]
+description: "SEO-optimized description"
+author: "Author Name"
+cover: "image.jpg"
+---
+```
+
+#### Protected Content
+
+Content requiring authentication uses the `auth_required` flag:
+
+- **Protected Posts**: Require valid JWT token
+- **Access Control**: Role-based content visibility
+- **Graceful Degradation**: Public preview with login prompt
+- **SEO Friendly**: Public metadata, protected body content
+
+### Responsive Design System
+
+The site implements a comprehensive responsive design system:
+
+#### Typography
+
+- **Base Font**: Custom "Asimovian" font family
+- **Responsive Scaling**: Fluid typography across devices
+- **Line Height**: Optimized for readability
+- **Hyphenation**: Smart word breaking on mobile
+
+#### Component Architecture
+
+Components are built with responsive-first design:
+
+```astro
+<!-- Card.astro - Responsive card component -->
+<article class="card">
+  <div class="flex items-start justify-between gap-6">
+    <div class="flex-1 min-w-0">
+      <h3 class="mb-3">
+        <a
+          href={href}
+          class="text-xl font-bold text-skin-accent underline hover:no-underline"
+          style="font-size: 1.25rem !important;"
+        >
+          {title}
+        </a>
+      </h3>
+      <p class="text-skin-base leading-relaxed font-medium">
+        {description}
+      </p>
+    </div>
+    <div class="flex-shrink-0">
+      <Datetime pubDatetime={pubDatetime} className="text-xs opacity-60" />
+    </div>
+  </div>
+</article>
+```
+
+## Theme System
+
+### Color Scheme Configuration
+
+The site supports dynamic light/dark themes with CSS custom properties:
+
+```css
+@layer base {
+  :root,
+  html[data-theme="light"] {
+    --color-fill: 251, 254, 251;
+    --color-text-base: 40, 39, 40;
+    --color-accent: 0, 108, 172;
+    --color-card: 230, 230, 230;
+    --color-card-muted: 205, 205, 205;
+    --color-border: 236, 233, 233;
+  }
+
+  html[data-theme="dark"] {
+    --color-fill: 33, 39, 55;
+    --color-text-base: 234, 237, 243;
+    --color-accent: 255, 107, 1;
+    --color-card: 52, 63, 96;
+    --color-card-muted: 138, 51, 2;
+    --color-border: 171, 75, 8;
+  }
+}
+```
+
+### Theme Switching
+
+Client-side theme switching with persistence:
+
+- **System Preference**: Respects OS dark/light mode
+- **Local Storage**: Persists user preference
+- **Smooth Transitions**: Animated theme changes
+- **No Flash**: Prevents theme flicker on load
+
+## Build and Deployment
+
+### Static Site Generation
+
+The site builds to a fully static output:
+
+```bash
+# Development server with HTTPS
+npm run devs
+
+# Production build
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+### SSL Certificate Management
+
+Development requires SSL certificates for Cognito integration:
+
+```bash
+# Generate local SSL certificates
+mkcert -install
+mkcert localhost 127.0.0.1 ::1
+```
+
+### Environment Variables
+
+Critical environment variables for different deployments:
+
+```bash
+# Cognito Configuration
+COGNITO_DOMAIN=https://us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com
+COGNITO_USER_POOL_ID=us-west-2_UqZZY2Hbw
+COGNITO_USER_POOL_CLIENT_ID=hsrpdhl5sellv9n3dotako1tm
+COGNITO_REDIRECT_URI=https://localhost:4321/
+COGNITO_LOGOUT_REDIRECT_URI=https://localhost:4321/
+COGNITO_SCOPES=openid email phone profile
+
+# API Configuration
+PUBLIC_API_BASE_URL=api.skicyclerun.com/dev
+```
+
+## Performance Optimization
+
+### Image Optimization
+
+Astro's built-in image optimization with custom enhancements:
+
+- **Format Selection**: WebP with fallbacks
+- **Responsive Images**: Multiple size variants
+- **Lazy Loading**: Intersection Observer API
+- **CDN Integration**: CloudFront edge caching
+
+### Code Splitting
+
+Dynamic imports for optimal bundle sizes:
+
+```typescript
+// Dynamic authentication imports
+const { loginHosted } = await import("@utils/clientAuth");
+const { getAuthState } = await import("@utils/clientAuth");
+```
+
+### Caching Strategy
+
+Multi-layer caching for optimal performance:
+
+- **CDN Caching**: CloudFront edge locations
+- **Browser Caching**: Long-term asset caching
+- **API Caching**: Lambda response caching
+- **Database Caching**: Cosmos DB query optimization
+
+## Development Guidelines
+
+### Code Standards
+
+- **TypeScript**: Strict type checking enabled
+- **ESLint**: Consistent code formatting
+- **Prettier**: Automated code formatting
+- **Husky**: Pre-commit hooks for quality
+
+### Component Guidelines
+
+- **Single Responsibility**: Each component has one purpose
+- **Responsive Design**: Mobile-first approach
+- **Accessibility**: WCAG 2.1 compliance
+- **Performance**: Optimized rendering
+
+### Security Best Practices
+
+- **Token Validation**: All protected endpoints verify JWT
+- **Input Sanitization**: XSS prevention
+- **CORS Configuration**: Restricted cross-origin access
+- **Rate Limiting**: API abuse prevention
+
+## Troubleshooting
+
+### Common Issues
+
+#### Authentication Problems
+
+1. **SSL Certificate Issues**: Ensure HTTPS for Cognito redirect URLs
+2. **Token Expiration**: Implement automatic token refresh
+3. **CORS Errors**: Verify API Gateway CORS configuration
+
+#### Build Failures
+
+1. **TypeScript Errors**: Run `npm run sync` to update schemas
+2. **Image Optimization**: Check image file formats and sizes
+3. **Environment Variables**: Verify all required variables are set
+
+### Debug Tools
+
+- **Browser DevTools**: Network and console debugging
+- **AWS CloudWatch**: Lambda function logs
+- **Cognito Logs**: Authentication flow debugging
+- **API Gateway Logs**: Request/response monitoring
+
+## Resources and References
+
+### Documentation Links
+
+- [Astro.js Documentation](https://docs.astro.build/)
+- [AWS Cognito Documentation](https://docs.aws.amazon.com/cognito/)
+- [API Gateway Documentation](https://docs.aws.amazon.com/apigateway/)
+- [CloudFormation Documentation](https://docs.aws.amazon.com/cloudformation/)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+
+### GitHub Repositories
+
+- [Main Site Repository](https://github.com/timothyhalley/skicyclerun.dev)
+- [AWS SAM Backend](https://github.com/timothyhalley/skicyclerun.sam)
+
+### External Tools
+
+- [Timestamp Generator](https://timestampgenerator.com/) - ISO 8601 datetime
+- [TinyJPG](https://tinyjpg.com/) - Image compression
+- [SVG Repo](https://www.svgrepo.com/) - SVG icon resources
+- [Tabler Icons](https://tabler.io/icons) - Icon library
+
+This guide provides a comprehensive overview of the SkiCycleRun.dev architecture and development workflow. For specific implementation details, refer to the source code and AWS documentation.

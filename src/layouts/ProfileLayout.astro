@@ -1,0 +1,33 @@
+---
+// Profile Layout - handles responsive content structure and margins
+// Navigation (Header/Footer) should be handled by the page using this layout
+---
+
+<!-- Content wrapper with responsive margins -->
+<div class="profile-content-wrapper">
+  <slot />
+</div>
+
+<style>
+  .profile-content-wrapper {
+    max-width: 1024px; /* Matches SkiCycleRunConfig.maxWidth */
+    margin: 0 auto;
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 2rem; /* py-8 equivalent */
+    padding-bottom: 2rem;
+  }
+
+  /* Prefer using global .post-title and .profile-title from base.css. Avoid extra specificity here. */
+
+  /* Responsive adjustments */
+  @media (max-width: 640px) {
+    .profile-content-wrapper {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+      padding-top: 1rem; /* Reduce padding on mobile */
+      padding-bottom: 1rem;
+    }
+  }
+</style>

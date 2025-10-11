@@ -1,0 +1,22 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import Breadcrumbs from "@layouts/Breadcrumbs.astro";
+import Header from "@components/Header.astro";
+
+export interface Props {
+  title: string;
+  pageTitle: string;
+  pageDesc?: string;
+  activeNav: "home" | "posts" | "travel" | "tech" | "tags" | "about" | "search";
+  usePostsGutter?: boolean;
+}
+
+const { title, pageTitle, pageDesc, activeNav, usePostsGutter } = Astro.props;
+---
+
+<BaseLayout {title}>
+  <Header {activeNav} />
+  <Breadcrumbs {pageTitle} {pageDesc} usePostsGutter={usePostsGutter}>
+    <slot />
+  </Breadcrumbs>
+</BaseLayout>

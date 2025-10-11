@@ -1,0 +1,330 @@
+---
+import { getCollection } from "astro:content";
+import { generatePostStaticPaths } from "../utils/generatePostStaticPaths";
+import { slugifyStr } from "../utils/slugify";
+import postFilter from "../utils/postFilter";
+import { SkiCycleRunConfig } from "../skicyclerun.config";
+
+const posts = await getCollection("blog");
+// Generate paths exactly like the app does: separate tech and posts, with base paths
+const techPaths = generatePostStaticPaths(posts, ["TECH", "BETA"], "/tech");
+const postPaths = generatePostStaticPaths(
+  posts,
+  ["TRAVEL", "BLOG", "VLOG", "NOTES"],
+  "/posts"
+);
+
+function mapPathInfo(p: any, basePath: string) {
+  // Page 2+ pagination entries have no post
+  if (!p.props.post) {
+    return {
+      kind: "pagination",
+      url: `${basePath}/${p.params.slug}`,
+      slug: p.params.slug,
+      file: "PAGINATION",
+      frontmatterSlug: "N/A",
+    };
+  }
+  // Astro provides post.slug from frontmatter or filename
+  const slug = p.props.post.slug;
+  return {
+    kind: "post",
+    url: `${basePath}/${p.params.slug}`,
+    slug: p.params.slug,
+    file: p.props.post.id,
+    frontmatterSlug: slug || "N/A",
+    type: p.props.post.data?.type || "",
+  };
+}
+
+const techInfo = techPaths.map((p) => mapPathInfo(p, "/tech"));
+const postInfo = postPaths.map((p) => mapPathInfo(p, "/posts"));
+
+// Help surface why entries may be missing: show posts lacking slugs
+const debugTypesAll = ["TECH", "BETA", "TRAVEL", "BLOG", "VLOG", "NOTES"];
+const missingSlug = posts
+  .filter((p) => debugTypesAll.includes((p as any).data?.type))
+  .filter((p) => !(p.slug && `${p.slug}`.trim()))
+  .map((p) => ({
+    id: p.id,
+    type: (p as any).data?.type || "",
+    title: (p as any).data?.title || "",
+    slug: p.slug || "(none)",
+  }));
+
+// Additional diagnostics: posts excluded by filters (type, draft, scheduled)
+const includeTypesUnion = new Set(debugTypesAll);
+const now = Date.now();
+const margin = SkiCycleRunConfig.scheduledPostMargin;
+function exclusionReason(p: any): string | null {
+  const type = p.data?.type;
+  if (!includeTypesUnion.has(type)) return `excluded: type ${type}`;
+  if (p.data?.draft === true) return "excluded: draft";
+  const pub = new Date(p.data?.pubDatetime).getTime();
+  if (!import.meta.env.DEV && now <= pub - margin)
+    return "excluded: scheduled (publish time not reached)";
+  if (!p.slug || `${p.slug}`.trim() === "") return "excluded: missing slug";
+  return null;
+}
+
+const excluded = posts
+  .map((p) => ({ post: p, reason: exclusionReason(p as any) }))
+  .filter((x) => x.reason !== null)
+  .map((x) => ({
+    id: x.post.id,
+    title: (x.post as any).data?.title || "",
+    type: (x.post as any).data?.type || "",
+    reason: x.reason as string,
+  }));
+
+const summary = {
+  env: import.meta.env.DEV ? "DEV" : "PROD",
+  totalPosts: posts.length,
+  techRouteCount: techInfo.length,
+  postsRouteCount: postInfo.length,
+  missingSlugCount: missingSlug.length,
+  excludedCount: excluded.length,
+};
+
+// Slug-derived canonical URLs (independent of route filters)
+const fmUrls = posts.map((p) => {
+  const type = (p as any).data?.type || "";
+  const slug = p.slug ? `${p.slug}`.trim() : "";
+  const base = ["TECH", "BETA"].includes(type) ? "/tech" : "/posts";
+  return {
+    id: p.id,
+    type,
+    slug: slug || "(none)",
+    url: slug ? `${base}/${slug}` : "",
+  };
+});
+---
+
+<html>
+  <head>
+    <title>Slug Debug</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 2em;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f4f4f4;
+      }
+      code {
+        background-color: #eee;
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Generated Static Path Slugs</h1>
+    <p>
+      This page shows the output of <code>generatePostStaticPaths</code> exactly
+      like the app uses it, split into <code>/tech</code> and
+      <code>/posts</code> routes.
+    </p>
+    <p>
+      <strong>How Astro slugs work:</strong> Astro provides <code
+        >post.slug</code
+      >
+      which comes from the frontmatter <code>slug</code> field if defined, or is
+      auto-generated from the filename. This value is used <strong
+        >exactly as-is</strong
+      >
+      for SEO control. There is NO normalization - you control the exact slug value
+      in your frontmatter for maximum SEO flexibility.
+    </p>
+    <p>
+      <strong>Environment:</strong>
+      {summary.env} • <strong>Total posts:</strong>
+      {summary.totalPosts} • <strong>/tech rows:</strong>
+      {summary.techRouteCount}
+      • <strong>/posts rows:</strong>
+      {summary.postsRouteCount} •
+      <strong>Missing slugs:</strong>
+      {summary.missingSlugCount} •
+      <strong>Excluded:</strong>
+      {summary.excludedCount}
+    </p>
+    <h2>/tech routes</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>URL</th>
+          <th>Generated Slug</th>
+          <th>Source File</th>
+          <th>Frontmatter Slug</th>
+          <th>Type</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          techInfo.map((info) => (
+            <tr>
+              <td>
+                <code>{info.url}</code>
+              </td>
+              <td>
+                <code>{info.slug}</code>
+              </td>
+              <td>{info.file}</td>
+              <td>
+                <code>{info.frontmatterSlug}</code>
+              </td>
+              <td>{info.type || info.kind}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+
+    <h2 class="mt-8">Canonical URLs from slugs</h2>
+    <p>
+      These URLs are computed directly from each post's <code>slug</code> (from frontmatter
+      or Astro-generated). This is independent of route filters and shows the exact
+      canonical path.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Slug</th>
+          <th>Canonical URL</th>
+          <th>Content ID</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          fmUrls.map((r) => (
+            <tr>
+              <td>{r.type}</td>
+              <td>
+                <code>{r.slug}</code>
+              </td>
+              <td>
+                <code>{r.url}</code>
+              </td>
+              <td>
+                <code>{r.id}</code>
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+
+    <h2 class="mt-8">/posts routes</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>URL</th>
+          <th>Generated Slug</th>
+          <th>Source File</th>
+          <th>Frontmatter Slug</th>
+          <th>Type</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          postInfo.map((info) => (
+            <tr>
+              <td>
+                <code>{info.url}</code>
+              </td>
+              <td>
+                <code>{info.slug}</code>
+              </td>
+              <td>{info.file}</td>
+              <td>
+                <code>{info.frontmatterSlug}</code>
+              </td>
+              <td>{info.type || info.kind}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+
+    {
+      missingSlug.length > 0 && (
+        <>
+          <h2 class="mt-8">Posts missing slug</h2>
+          <p>
+            These entries are filtered by type but have no <code>slug</code>, so
+            routes are not generated for them:
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Slug</th>
+                <th>Content ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              {missingSlug.map((m) => (
+                <tr>
+                  <td>{m.type}</td>
+                  <td>{m.title}</td>
+                  <td>
+                    <code>{m.slug}</code>
+                  </td>
+                  <td>
+                    <code>{m.id}</code>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )
+    }
+
+    {
+      excluded.length > 0 && (
+        <>
+          <h2 class="mt-8">Posts excluded by filters</h2>
+          <p>
+            These entries are not included in static path generation due to
+            draft, scheduling, type filtering, or missing slugs.
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>Reason</th>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Content ID</th>
+              </tr>
+            </thead>
+            <tbody>
+              {excluded.map((e) => (
+                <tr>
+                  <td>{e.reason}</td>
+                  <td>{e.type}</td>
+                  <td>{e.title}</td>
+                  <td>
+                    <code>{e.id}</code>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )
+    }
+  </body>
+</html>

@@ -1,81 +1,103 @@
 ---
-import AuthGate from '@components/AuthGate.astro';
-import ProtectedContentLoader from '@components/ProtectedContentLoader.tsx';
-import { getPhotoCover } from '@utils/getPhotoCover';
-
 const { frontmatter } = Astro.props;
-const { auth_required = false, title, description, author, pubDatetime, cover } = frontmatter;
+const { title, description, author, pubDatetime: pubDatetimeRaw } = frontmatter;
+import Datetime from "@components/Datetime.astro";
 
-const coverMeta = getPhotoCover(cover);
-const dt = pubDatetime ? new Date(pubDatetime) : undefined;
-const dateStr = dt
-  ? dt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-  : undefined;
+// Convert string date to Date object
+const pubDatetime = pubDatetimeRaw ? new Date(pubDatetimeRaw) : undefined;
+console.log("Pub Date:", pubDatetime);
 ---
 
-<div id='content-wrapper' class='mx-auto max-w-3xl px-4 sm:px-6'>
-  <main id='main-content'>
-    <!-- Single-row header: 70/30 split -->
-    <div
-      class={`grid grid-cols-1 items-start gap-4 md:gap-6 ${coverMeta ? 'md:grid-cols-[7fr_3fr]' : ''}`}
-    >
-      <div>
-        {title && <h1 class='m-0 text-3xl font-bold leading-tight'>{title}</h1>}
-
-        {
-          (dateStr || author) && (
-            <div class='text-skin-muted mt-1 flex flex-wrap items-center gap-x-2 text-sm'>
-              {dateStr && <time datetime={dt?.toISOString()}>{dateStr}</time>}
-              {dateStr && author && <span aria-hidden='true'>•</span>}
-              {author && <span>{author}</span>}
-            </div>
-          )
-        }
-
-        {
-          description && (
-            <p class='md:text-base text-skin-muted mt-2 text-sm italic'>{description}</p>
-          )
-        }
-      </div>
-
-      {
-        coverMeta && (
-          <img
-            src={coverMeta.src}
-            alt={title ?? 'cover image'}
-            class='md:justify-self-end max-h-48 w-full rounded-md object-cover shadow-sm'
-            loading='lazy'
-          />
-        )
-      }
-    </div>
-
-    <!-- Divider -->
-    <hr class='my-3 border-skin-line/60' />
-
-    {
-      auth_required ? (
-        <AuthGate auth_required={true}>
-          <div id='protected-content-container' class='prose max-w-none dark:prose-invert'>
-            <p>Loading protected content...</p>
-          </div>
-          <ProtectedContentLoader client:load />
-        </AuthGate>
-      ) : (
-        <article class='prose max-w-none dark:prose-invert'>
-          <slot />
-        </article>
-      )
-    }
-  </main>
+<!-- Date on right side (matches PostDetails.astro datetime-wrapper) -->
+<div class="datetime-wrapper">
+  {
+    pubDatetime && (
+      <Datetime pubDatetime={pubDatetime} size="lg" className="my-1" />
+    )
+  }
 </div>
 
+<!-- Title and Description (matches PostDetails.astro structure) -->
+<div class="header-wrapper">
+  {
+    title && (
+      <h1 class="text-4xl font-extrabold text-skin-accent mb-4">{title}</h1>
+    )
+  }
+  {
+    description && (
+      <p class="text-lg text-skin-base leading-relaxed mt-4">{description}</p>
+    )
+  }
+</div>
+
+<!-- Article content -->
+<div class="article-wrapper">
+  <article id="article" role="article" class="prose mt-8">
+    <slot />
+  </article>
+</div>
+
+<!-- Author attribution -->
+{
+  author && (
+    <div class="author-wrapper">
+      <div class="author-attribution">• {author} •</div>
+    </div>
+  )
+}
+
 <style>
-  /* Normalize top margins so content starts right after the divider */
-  #protected-content-container > :first-child,
-  #protected-content-container > :is(h1, h2, h3, h4, h5, h6, p, ul, ol, figure):first-child,
-  article.prose > :first-child {
-    margin-top: 0 !important;
+  .datetime-wrapper {
+    max-width: 1024px;
+    margin: 0 auto;
+    width: 100%;
+    /* Use flex so the Datetime component stays on one line and right-justified */
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .header-wrapper {
+    max-width: 1024px;
+    margin: 0 auto;
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-top: 1rem;
+  }
+
+  /* Title styling moved to Tailwind utilities on the element to avoid scoped CSS specificity conflicts */
+
+  .article-wrapper {
+    max-width: 1024px;
+    margin: 0 auto;
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .article-wrapper .prose {
+    max-width: 100%;
+  }
+
+  .author-wrapper {
+    max-width: 1024px;
+    margin: 0.5rem auto 0;
+    width: 100%;
+    text-align: right;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .author-attribution {
+    font-size: 0.875rem;
+    color: #9ca3af;
+  }
+
+  :global(.dark) .author-attribution {
+    color: #6b7280;
   }
 </style>

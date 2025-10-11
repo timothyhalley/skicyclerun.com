@@ -1,12 +1,9 @@
 ---
 import { type CollectionEntry } from "astro:content";
-import Layout from "@layouts/Layout.astro";
-import Main from "@layouts/Main.astro";
-import Header from "@components/Header.astro";
-import Footer from "@components/Footer.astro";
-import Card from "@components/Card";
+import PageLayout from "@layouts/PageLayout.astro";
+import PostCard from "@components/PostCards.astro";
 import Pagination from "@components/Pagination.astro";
-import { SkiCycleRunConfig } from "skicyclerun.config";
+import { getPhotoCover } from "@utils/getPhotoCover";
 
 export interface Props {
   currentPage: number;
@@ -16,25 +13,49 @@ export interface Props {
   tagName: string;
 }
 
-const { currentPage, totalPages, paginatedPosts, tag, tagName } = Astro.props;
+const {
+  currentPage,
+  totalPages,
+  paginatedPosts,
+  tag,
+  tagName = tag,
+} = Astro.props;
+
+// Fetch cover images for all posts
+const coverImages = await Promise.all(
+  paginatedPosts.map((post) =>
+    getPhotoCover(post.data.cover ?? "images/default-cover.png")
+  )
+);
 ---
 
-<Layout title={`Tag: ${tagName} | ${SkiCycleRunConfig.title}`}>
-  <Header activeNav="tags" />
-  <Main
-    pageTitle={[`Tag:`, `${tagName}`]}
-    titleTransition={tag}
-    pageDesc={`All the articles with the tag "${tagName}".`}
-  >
-    <h1 slot="title" transition:name={tag}>{`Tag:${tag}`}</h1>
-    <ul>
+<PageLayout
+  title={`Tag: ${tagName}`}
+  pageTitle={`Tag: ${tagName}`}
+  pageDesc={`All articles tagged with "${tagName}"`}
+  activeNav="tags"
+>
+  <div class="posts-gutter">
+    <div class="flex flex-col gap-6">
       {
-        paginatedPosts.map(({ data, slug }) => (
-          <Card href={`/posts/${slug}`} frontmatter={data} />
+        paginatedPosts.map((post, index) => (
+          <PostCard
+            title={post.data.title}
+            author={post.data.author}
+            pubDatetime={post.data.pubDatetime.toISOString()}
+            tags={post.data.tags}
+            description={post.data.description}
+            cover={coverImages[index]?.src ?? "images/default-cover.png"}
+            href={
+              post.data.type === "TECH"
+                ? `/tech/${post.data.slug || post.slug}`
+                : `/posts/${post.data.slug || post.slug}`
+            }
+          />
         ))
       }
-    </ul>
-  </Main>
+    </div>
+  </div>
 
   <Pagination
     {currentPage}
@@ -44,6 +65,4 @@ const { currentPage, totalPages, paginatedPosts, tag, tagName } = Astro.props;
     }`}
     nextUrl={`/tags/${tag}/${currentPage + 1}`}
   />
-
-  <Footer noMarginTop={totalPages > 1} />
-</Layout>
+</PageLayout>

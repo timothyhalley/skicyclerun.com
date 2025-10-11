@@ -1,0 +1,42 @@
+---
+export interface Props {}
+
+const {} = Astro.props;
+---
+
+<li>
+  <a
+    href="/search"
+    class={`focus-outline p-2 text-skin-base`}
+    aria-label="Search"
+    title="Search"
+  >
+    <svg
+      class="menu-svg icon-tabler"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+      <circle cx="10" cy="10" r="7" fill="none"></circle>
+      <line x1="21" y1="21" x2="15" y2="15"></line>
+    </svg>
+  </a>
+</li>
+
+<style>
+  .menu-svg {
+    height: 1.5rem;
+    width: 1.5rem;
+    fill: currentColor;
+    stroke-width: 2.2;
+    transition:
+      fill 0.3s ease,
+      stroke 0.3s ease,
+      transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+      stroke-width 0.3s ease;
+  }
+</style>

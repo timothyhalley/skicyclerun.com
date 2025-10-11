@@ -1,0 +1,48 @@
+---
+// Guard: If slug is empty, redirect to /tech (handled by static page)
+const { slug } = Astro.params;
+if (!slug || (Array.isArray(slug) && slug.length === 0)) {
+  throw Astro.redirect("/tech", 301);
+}
+
+import { getCollection } from "astro:content";
+import Posts from "@layouts/Posts.astro";
+import PostDetails from "@layouts/PostDetails.astro";
+import {
+  generatePostStaticPaths,
+  type PostPageProps,
+} from "@utils/generatePostStaticPaths";
+import { TECH_TYPES } from "@constants/blogTypes";
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blog");
+  const paths = generatePostStaticPaths(posts, TECH_TYPES, "/tech");
+  const postSlugs = paths
+    .filter((p) => p.params.slug)
+    .map((p) => p.params.slug);
+  const paginated = paths
+    .filter((p) => p.params.page)
+    .map((p) => `${p.params.section}/${p.params.page}`);
+  console.log("Generated post slugs for /tech:", postSlugs);
+  console.log("Generated paginated paths for /tech:", paginated);
+  return paths;
+}
+
+const { post, page } = Astro.props as PostPageProps;
+---
+
+{
+  post ? (
+    <PostDetails post={post} />
+  ) : page ? (
+    <Posts
+      paginatedPosts={page.data}
+      currentPage={page.currentPage}
+      totalPages={page.totalPages}
+      prevUrl={page.url.prev}
+      nextUrl={page.url.next}
+    />
+  ) : null
+}

@@ -1,24 +1,249 @@
 ---
 import { getCollection } from "astro:content";
-import Header from "@components/Header.astro";
-import Footer from "@components/Footer.astro";
-import Layout from "@layouts/Layout.astro";
-import Main from "@layouts/Main.astro";
-import Tag from "@components/Tag.astro";
+import PageLayout from "@layouts/PageLayout.astro";
 import getUniqueTags from "@utils/getUniqueTags";
-import { SkiCycleRunConfig } from "skicyclerun.config";
 
 const posts = await getCollection("blog");
-
 let tags = getUniqueTags(posts);
+
+// Build counts and a map for quick lookups
+const tagCounts = new Map<string, number>();
+for (const post of posts) {
+  const tlist = (post.data.tags || []) as string[];
+  for (const t of tlist) {
+    const key = t.trim();
+    tagCounts.set(key, (tagCounts.get(key) || 0) + 1);
+  }
+}
+
+// Display items include slug, name, and count
+type TagItem = { slug: string; name: string; count: number };
+const tagItems: TagItem[] = tags.map(({ tag, tagName }) => ({
+  slug: tag,
+  name: tagName,
+  count: tagCounts.get(tagName) || 0,
+}));
+
+// Popular tags (top N by count)
+const TOP_N = 12;
+const popularTags = [...tagItems]
+  .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+  .slice(0, TOP_N);
+
+// Alphabetical grouping (by first letter)
+const alphaGroups = new Map<string, TagItem[]>();
+for (const item of tagItems) {
+  const letter = (item.name[0] || "#").toUpperCase();
+  if (!alphaGroups.has(letter)) alphaGroups.set(letter, []);
+  alphaGroups.get(letter)!.push(item);
+}
+for (const [, list] of alphaGroups) {
+  list.sort((a, b) => a.name.localeCompare(b.name));
+}
+const alphaIndex = [...alphaGroups.keys()].sort();
 ---
 
-<Layout title={`Tags | ${SkiCycleRunConfig.title}`}>
-  <Header activeNav="tags" />
-  <Main pageTitle="Tags" pageDesc="All the tags used in posts.">
-    <ul>
-      {tags.map(({ tag }) => <Tag {tag} size="lg" />)}
+<PageLayout
+  title="Tags"
+  pageTitle="Tags"
+  pageDesc="Browse tags by popularity or alphabet."
+  activeNav="tags"
+>
+  {/* Filter */}
+  <div class="tags-filter">
+    <input
+      id="tag-search"
+      type="search"
+      placeholder="Filter tags…"
+      aria-label="Filter tags"
+    />
+  </div>
+
+  {/* Quick A–Z index */}
+  <nav class="tags-az" aria-label="Tag index">
+    {
+      alphaIndex.map((L) => (
+        <a href={`#tag-group-${L}`} class="tags-az-link">
+          {L}
+        </a>
+      ))
+    }
+  </nav>
+
+  {/* Popular */}
+  <section class="tags-section">
+    <h2 class="tags-h2">Popular</h2>
+    <ul class="tags-grid">
+      {
+        popularTags.map((t) => (
+          <li class="tags-item">
+            <a href={`/tags/${t.slug}`} class="tags-chip">
+              <span class="chip-label">#{t.name}</span>
+              <span class="chip-count" aria-label={`${t.count} posts`}>
+                {t.count}
+              </span>
+            </a>
+          </li>
+        ))
+      }
     </ul>
-  </Main>
-  <Footer />
-</Layout>
+  </section>
+
+  {/* Alphabetical groups */}
+  {
+    alphaIndex.map((L) => (
+      <section id={`tag-group-${L}`} class="tags-section">
+        <h3 class="tags-h3">{L}</h3>
+        <ul class="tags-list">
+          {alphaGroups.get(L)!.map((t) => (
+            <li class="tags-item">
+              <a href={`/tags/${t.slug}`} class="tags-chip">
+                <span class="chip-label">#{t.name}</span>
+                <span class="chip-count" aria-label={`${t.count} posts`}>
+                  {t.count}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</PageLayout>
+
+<style>
+  .tags-filter {
+    max-width: 48rem;
+    margin: 0 auto 1rem auto;
+    padding: 0 1rem;
+  }
+  #tag-search {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--color-skin-line, rgba(0, 0, 0, 0.12));
+    border-radius: 10px;
+    background: var(--color-skin-card);
+    outline: none;
+  }
+  #tag-search:focus {
+    border-color: rgb(var(--color-accent));
+    box-shadow: 0 0 0 3px rgba(var(--color-accent), 0.15);
+  }
+
+  .tags-az {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+    justify-content: center;
+    padding: 0 1rem;
+    margin-bottom: 1rem;
+  }
+  .tags-az-link {
+    font-weight: 600;
+    opacity: 0.85;
+    text-decoration: none;
+    padding: 0.15rem 0.4rem;
+    border-radius: 6px;
+  }
+  .tags-az-link:hover {
+    color: rgb(var(--color-accent));
+    background: rgba(var(--color-accent), 0.08);
+  }
+
+  .tags-section {
+    max-width: 64rem;
+    margin: 0 auto 1rem auto;
+    padding: 0 1rem;
+  }
+  .tags-h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0.75rem 0;
+  }
+  .tags-h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+    opacity: 0.85;
+  }
+
+  .tags-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.5rem;
+  }
+  .tags-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .tags-item {
+    display: inline-flex;
+  }
+
+  .tags-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.7rem;
+    border: 1px dashed var(--color-skin-line, rgba(0, 0, 0, 0.12));
+    border-radius: 999px;
+    text-decoration: none;
+    background: var(--color-skin-card);
+  }
+  .tags-chip:hover {
+    transform: translateY(-2px);
+    color: rgb(var(--color-accent));
+    border-style: solid;
+  }
+  .chip-label {
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .chip-count {
+    font-size: 0.85rem;
+    opacity: 0.75;
+  }
+
+  @media (max-width: 640px) {
+    .tags-grid {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+  }
+</style>
+
+<script>
+  // Robust client-side filter for tags
+  function initTagFilter() {
+    const input = document.querySelector(
+      "#tag-search"
+    ) as HTMLInputElement | null;
+    if (!input) return;
+    // Prevent double initialization when Astro swaps or page-load fires multiple times
+    if ((input as HTMLInputElement).dataset.filterInit === "1") return;
+
+    const chips = Array.from(
+      document.querySelectorAll(".tags-item")
+    ) as HTMLElement[];
+    input.addEventListener("input", () => {
+      const q = input.value.trim().toLowerCase();
+      chips.forEach((el) => {
+        const text = el.textContent?.toLowerCase() || "";
+        el.style.display = text.includes(q) ? "" : "none";
+      });
+    });
+
+    // mark as initialized
+    (input as HTMLInputElement).dataset.filterInit = "1";
+  }
+
+  document.addEventListener("astro:page-load", initTagFilter);
+  document.addEventListener("astro:after-swap", initTagFilter);
+  document.addEventListener("DOMContentLoaded", initTagFilter);
+</script>

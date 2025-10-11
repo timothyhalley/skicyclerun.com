@@ -1,0 +1,37 @@
+---
+// LoginButton.astro
+// Minimal login button that redirects to Cognito Hosted UI
+import { cognitoConfig } from "@config/cognito";
+const domain = cognitoConfig.domain;
+const clientId = cognitoConfig.clientId;
+---
+
+<button
+  id="login-btn"
+  class="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm"
+  data-domain={domain}
+  data-client-id={clientId}
+>
+  Login
+</button>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const loginBtn = document.getElementById("login-btn");
+    if (!loginBtn) return;
+    const domain = loginBtn.getAttribute("data-domain");
+    const clientId = loginBtn.getAttribute("data-client-id");
+    loginBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const authUrl = new URL(`https://${domain}/oauth2/authorize`);
+      authUrl.searchParams.set("client_id", clientId || "");
+      authUrl.searchParams.set("response_type", "code");
+      authUrl.searchParams.set(
+        "scope",
+        ["email", "openid", "phone", "profile"].join(" ")
+      );
+      authUrl.searchParams.set("redirect_uri", window.location.origin + "/");
+      window.location.assign(authUrl.toString());
+    });
+  });
+</script>

@@ -1,44 +1,44 @@
 ---
 import { getCollection } from "astro:content";
-import Layout from "@layouts/Layout.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
 import Header from "@components/Header.astro";
-import Footer from "@components/Footer.astro";
 import LinkButton from "@components/LinkButton.astro";
 import Hr from "@components/Hr.astro";
-import Card from "@components/Card";
-import Socials from "@components/Socials.astro";
+import Card from "@components/Card.astro";
 import getSortedPosts from "@utils/getSortedPosts";
 import { SkiCycleRunConfig } from "skicyclerun.config";
 
-import { Image } from "astro:assets";
-import mtnTops from "@svg_imgs/mtntops.svg";
+import MtnTops from "@svg_imgs/mtntops.svg";
 
 const posts = await getCollection("blog");
 
 const sortedPosts = getSortedPosts(posts);
-const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
-const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
+const featuredPosts = sortedPosts.filter(
+  ({ data }: { data: any }) => data.featured
+);
+const recentPosts = sortedPosts.filter(
+  ({ data }: { data: any }) => !data.featured
+);
 
 const socialCount = SkiCycleRunConfig.socials.filter(
-  social => social.active
+  (social) => social.active
 ).length;
 ---
 
-<Layout>
+<BaseLayout>
   <Header />
   <main id="main-content">
     <section id="hero">
-      <div class="flex justify-center">
-        <h1>Adventum</h1>
+      <div class="hero-visual">
+        <MtnTops class="hero-img" aria-label="top of the mtn" />
+        <h1 class="hero-title">Adventum</h1>
       </div>
-
-      <Image src={mtnTops} alt="top of the mtn" />
       <p>
-        🌍 Travel & Terrain Photos from the road—mountains, bikes, hikes. Places
-        visited, moments captured, & past paths retraced. 🎿🚴‍♀️🥾
+        🌍 Travels & Terrain. Photos from the mountains to urban cities. A few
+        moments caught & sites explored worth sharing. 🎿🚴‍♀️🥾
       </p>
       <p>
-        🔬 Explore topics of interest regarding technology, coding and the
+        🔬 Including topics of interest regarding technology, coding and the
         latest in AI areas ✨ and research. 💻🔭
       </p>
       <p class="my-50 m-20">
@@ -53,97 +53,212 @@ const socialCount = SkiCycleRunConfig.socials.filter(
       </p>
     </section>
 
-    <Hr />
+    <div class="my-2">
+      <Hr />
+    </div>
 
     {
       featuredPosts.length > 0 && (
         <>
-          <section id="featured">
-            <h2>Featured Topics</h2>
-            <ul>
+          <section id="featured" class="mt-1">
+            <h2 class="mb-3 text-2xl md:text-3xl font-bold">Featured Topics</h2>
+            <ul class="featured-list">
               {featuredPosts.map(({ data, slug }) => (
-                <Card
-                  href={`/posts/${slug}`}
-                  frontmatter={data}
-                  secHeading={false}
-                />
-              ))}
-            </ul>
-          </section>
-          {recentPosts.length > 0 && <Hr />}
-        </>
-      )
-    }
-
-    {
-      recentPosts.length > 0 && (
-        <section id="recent-posts">
-          <h2>Recent Posts</h2>
-          <ul>
-            {recentPosts.map(
-              ({ data, slug }, index) =>
-                index < 4 && (
+                <li>
                   <Card
-                    href={`/posts/${slug}`}
+                    href={
+                      data.type === "TECH" || data.type === "BETA"
+                        ? `/tech/${slug}`
+                        : `/posts/${slug}`
+                    }
                     frontmatter={data}
                     secHeading={false}
                   />
-                )
-            )}
-          </ul>
-        </section>
+                </li>
+              ))}
+            </ul>
+          </section>
+          {recentPosts.length > 0 && (
+            <div style="margin-top: 10px; margin-bottom: 10px;" />
+          )}
+        </>
       )
     }
 
     <div class="all-posts-btn-wrapper">
       <LinkButton href="/posts">
-        All Posts
-        <svg xmlns="http://www.w3.org/2000/svg"
+        All Posts <svg
+          xmlns="http://www.w3.org/2000/svg"
+          style="display: inline-block; vertical-align: middle; margin-left: 2px;"
           ><path
             d="m11.293 17.293 1.414 1.414L19.414 12l-6.707-6.707-1.414 1.414L15.586 11H6v2h9.586z"
-          ></path>
-        </svg>
+          ></path></svg
+        >
       </LinkButton>
     </div>
   </main>
-
-  <Footer />
-</Layout>
+</BaseLayout>
 
 <style>
   /* ===== Hero Section ===== */
   #hero {
-    @apply pb-6 pt-8;
+    padding-top: 0; /* bring content tight to the header hr */
+    padding-bottom: 1rem;
+    max-width: 64rem; /* center the hero content */
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem; /* keep content off the edges */
+    padding-right: 1rem;
+    /* Reduced spacing between hero and next section */
+    margin-bottom: 20px;
   }
-  #hero h1 {
-    @apply my-4 inline-block text-3xl font-bold sm:my-8 sm:text-5xl;
+  .hero-visual {
+    position: relative;
+    text-align: center; /* ensure inner content is centered */
+  }
+  .hero-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 0 auto; /* always center the SVG/image */
+  }
+  .hero-title {
+    position: absolute;
+    top: 38%; /* lower the title a bit more over the image */
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    text-align: center;
+    font-size: 4rem; /* doubled size on mobile */
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--color-skin-inverted);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  }
+  @media (min-width: 640px) {
+    .hero-title {
+      font-size: 6rem; /* doubled size on sm+ */
+    }
+  }
+  /* Light mode: move title to 20% from top and left-align at 15% (stable across breakpoints) */
+  :global(html[data-theme="light"]) .hero-title {
+    top: 20%;
+    left: 15%;
+    transform: none;
+    text-align: left;
+    /* reduce size by ~33% from base */
+    font-size: calc(4rem * 0.67);
+    /* remove gradient/card backdrop for a cleaner overlay */
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  @media (min-width: 640px) {
+    :global(html[data-theme="light"]) .hero-title {
+      /* reduce size by ~33% from sm+ base */
+      font-size: 4rem; /* ~6rem * 0.67 ≈ 4.02rem */
+      /* keep the same position to avoid jarring movement */
+    }
+  }
+  /* Paragraphs under the image: comfortable line length and side margins */
+  #hero p {
+    max-width: 65ch;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
   #hero .rss-link {
-    @apply mb-6;
+    margin-bottom: 1.5rem;
   }
   #hero .rss-icon {
-    @apply mb-2 h-6 w-6 scale-110 fill-skin-accent sm:mb-3 sm:scale-125;
+    margin-bottom: 0.5rem;
+    height: 1.5rem;
+    width: 1.5rem;
+    transform: scale(1.1);
+    fill: var(--color-skin-accent);
+  }
+  @media (min-width: 640px) {
+    #hero .rss-icon {
+      margin-bottom: 0.75rem;
+      transform: scale(1.25);
+    }
   }
   #hero p {
-    @apply my-2;
+    margin-top: 0.25rem; /* reduced by 50% */
+    margin-bottom: 0.25rem; /* reduced by 50% */
   }
   .social-wrapper {
-    @apply mt-4 flex flex-col sm:flex-row sm:items-center;
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    /* Responsive: sm:flex-row, sm:items-center */
+  }
+  @media (min-width: 640px) {
+    .social-wrapper {
+      flex-direction: row;
+      align-items: center;
+    }
   }
   .social-links {
-    @apply mb-1 mr-2 whitespace-nowrap sm:mb-0;
+    margin-bottom: 0.25rem;
+    margin-right: 0.5rem;
+    white-space: nowrap;
+  }
+  @media (min-width: 640px) {
+    .social-links {
+      margin-bottom: 0;
+    }
   }
 
   /* ===== Featured & Recent Posts Sections ===== */
   #featured,
   #recent-posts {
-    @apply pb-6 pt-12;
+    padding-bottom: 1rem;
+    padding-top: 1.5rem;
+    max-width: 64rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  /* Explicit vertical rhythm: hero bottom margin already 100px; keep sections flush after that */
+  #featured {
+    margin-top: 0;
+  }
+  #recent-posts {
+    margin-top: 1rem;
   }
   #featured h2,
   #recent-posts h2 {
-    @apply text-2xl font-semibold tracking-wide;
+    margin-left: 0; /* rely on section padding */
+    margin-right: 0;
+    margin-bottom: 0.75rem;
+  }
+  #featured h2,
+  #recent-posts h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
   }
   .all-posts-btn-wrapper {
-    @apply my-8 text-center;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  /* Ensure featured list has explicit separation with clean styling */
+  .featured-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .featured-list li {
+    margin: 0;
   }
 </style>

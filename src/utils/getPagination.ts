@@ -12,11 +12,11 @@ const getPagination = ({
   page = 1,
   isIndex = false,
 }: GetPaginationProps) => {
-  const totalPages = Math.ceil(posts.length / SkiCycleRunConfig.postPerPage);
+  const totalPages = Math.ceil(posts.length / SkiCycleRunConfig.postsPerPage);
   const currentPage = isIndex ? 1 : Number(page);
 
-  const lastPost = currentPage * SkiCycleRunConfig.postPerPage;
-  const startPost = lastPost - SkiCycleRunConfig.postPerPage;
+  const lastPost = currentPage * SkiCycleRunConfig.postsPerPage;
+  const startPost = lastPost - SkiCycleRunConfig.postsPerPage;
   const paginatedPosts = posts.slice(startPost, lastPost);
 
   // Generate URLs that match the /posts/page/[page] structure

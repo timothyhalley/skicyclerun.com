@@ -1,20 +1,26 @@
 ---
-// The purpose of Hr.astro in your main page (index.astro) is to render a styled horizontal rule (<hr>) that visually separates sections of your content.
-
-// It uses Tailwind classes for consistent spacing and styling (max-w-3xl mx-auto, optional padding).
-// The border-skin-line class applies your theme’s border color.
-// Props like noPadding and ariaHidden let you control spacing and accessibility.
-// In summary:
-// Hr.astro provides a reusable, theme-consistent horizontal divider for your pages.
-
-export interface Props {
+interface Props {
   noPadding?: boolean;
   ariaHidden?: boolean;
+  marginY?: string;
 }
 
-const { noPadding = false, ariaHidden = true } = Astro.props;
+const { noPadding = false, ariaHidden = true, marginY = "my-6" } = Astro.props;
 ---
 
-<div class={`max-w-3xl mx-auto ${noPadding ? "px-0" : "px-4"}`}>
-  <hr class="border-skin-line" aria-hidden={ariaHidden} />
+<div class="hr-wrapper">
+  <div class={`w-full mx-auto ${noPadding ? "px-0" : "px-4"} ${marginY}`}>
+    <hr
+      style="border-color: var(--color-skin-line);"
+      aria-hidden={ariaHidden}
+    />
+  </div>
 </div>
+
+<style>
+  .hr-wrapper {
+    max-width: 1024px;
+    margin: 0 auto;
+    width: 100%;
+  }
+</style>

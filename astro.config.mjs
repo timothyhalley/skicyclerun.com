@@ -1,76 +1,69 @@
 import { defineConfig } from "astro/config";
-import fs from 'node:fs';
-import node from "@astrojs/node";
-import tailwind from "@astrojs/tailwind";
-import react from "@astrojs/react";
-import remarkToc from "remark-toc";
-import remarkCollapse from "remark-collapse";
+import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
-import { SkiCycleRunConfig } from "./src/skicyclerun.config.ts";
-import mdx from '@astrojs/mdx';
-import icon from "astro-icon";
+import react from "@astrojs/react";
+import tailwindcss from "@tailwindcss/vite";
+import path from "path";
+import fs from "fs";
+import { loadEnv } from "vite";
 
-const isCI = process.env.CI === 'true';
-const isProd = process.env.NODE_ENV === 'production';
-const isDev = !isProd && !isCI;
+// Derive mode and load .env files so SKICYCLERUN_URL also works from .env.development/.env.production
+const mode = process.env.MODE || process.env.NODE_ENV || "development";
+const env = loadEnv(mode, process.cwd(), "");
 
-// Safely build dev HTTPS options only when running locally and files exist
-function getDevHttps() {
-  try {
-    const keyPath = 'localhost+2-key.pem';
-    const certPath = 'localhost+2.pem';
-    if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
-      return {
-        key: fs.readFileSync(keyPath),
-        cert: fs.readFileSync(certPath),
-      };
-    }
-  } catch {
-    // ignore; fall back to no https
-  }
-  return undefined;
-}
-
-// https://astro.build/config
-export default defineConfig({
-    site: SkiCycleRunConfig.website,
-    output: "server", // <-- Change from 'static' to 'server'
-    adapter: node({
-    // <-- Add the adapter
-    mode: "standalone",
-    }),
-    integrations: [tailwind({
-        applyBaseStyles: false,
-    }), react(), sitemap(), mdx(), icon()],
-    markdown: {
-        remarkPlugins: [
-            remarkToc,
-            [
-                remarkCollapse,
-                {
-                    test: "Table of contents",
-                },
-            ],
-        ],
-        shikiConfig: {
-            theme: "one-dark-pro",
-            wrap: true,
-        },
-    },
-    vite: {
-        server: {
-            ...(isDev && getDevHttps()
+// Optional local HTTPS for astro dev when certs are present
+const httpsConfig =
+  fs.existsSync("./localhost+2.pem") && fs.existsSync("./localhost+2-key.pem")
     ? {
-        https: getDevHttps(),
+        key: fs.readFileSync(path.resolve("./localhost+2-key.pem")),
+        cert: fs.readFileSync(path.resolve("./localhost+2.pem")),
       }
-    : {}),
-            host: 'localhost',
-            port: 4321,
-            strictPort: true,
-        },
-        optimizeDeps: {
-            exclude: ["@resvg/resvg-js"],
-        },
+    : undefined;
+
+export default defineConfig({
+  // Canonical site URL for sitemap/canonicals, from env first
+  site: process.env.SKICYCLERUN_URL ?? env.SKICYCLERUN_URL ?? "https://dev.skicyclerun.com",
+  output: "static",
+  integrations: [mdx(), sitemap(), react()],
+  devToolbar: {
+    enabled: false,
+  },
+  image: {
+    service: {
+      entrypoint: "astro/assets/services/noop",
     },
-    scopedStyleStrategy: "where",
+  },
+  vite: {
+    plugins: [tailwindcss()],
+    resolve: {
+      alias: {
+        "@assets": path.resolve("src/assets"),
+        "@components": path.resolve("src/components"),
+        "@config": path.resolve("src/config"),
+        "@constants": path.resolve("src/constants"),
+        "@content": path.resolve("src/content"),
+        "@images": path.resolve("src/assets/images"),
+        "@layouts": path.resolve("src/layouts"),
+        "@lib": path.resolve("src/lib"),
+        "@locales": path.resolve("src/locales"),
+        "@pages": path.resolve("src/pages"),
+        "@scripts": path.resolve("src/scripts"),
+        "@styles": path.resolve("src/styles"),
+        "@types": path.resolve("src/types"),
+        "@utils": path.resolve("src/utils"),
+        "@svg_imgs": path.resolve("src/assets/svg_imgs"),
+      },
+    },
+    server: {
+      https: httpsConfig,
+    },
+    preview: {
+      https: httpsConfig || true,
+    },
+  },
+  server: {
+    port: 4321,
+    host: "localhost",
+    https: !!httpsConfig,
+  },
 });

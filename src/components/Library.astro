@@ -1,11 +1,13 @@
 ---
+// ImageMetadata is no longer exported from astro in newer versions
+// import type { ImageMetadata } from "astro";
 export function getRndValue(images: any) {
   const randomIndex = Math.floor(Math.random() * images.length);
   return images[randomIndex];
 }
 
 export async function getLocalImages() {
-  const imageObject = await import.meta.glob<{ default: ImageMetadata }>(
+  const imageObject = import.meta.glob<{ default: ImageMetadata }>(
     "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
   );
   const imageKeys = Object.keys(imageObject);
@@ -21,31 +23,8 @@ export async function getAlbumPhotos(album: any): Promise<any[]> {
   try {
     let photos: any[] = [];
 
-    if (album !== "local") {
-      const photoURL = `https://api.skicyclerun.com/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=150`;
-      const res = await fetch(photoURL);
-      const data = await res.json();
-
-      // ✅ Defensive check: only map if data is an array
-      if (Array.isArray(data)) {
-        photos = data.map((p: any, i: number) => {
-          const src = typeof p === "string" ? p : p?.src;
-          return {
-            src,
-            altText: p?.altText ?? `Photo ${i + 1}`,
-            sourceType: "remote",
-          };
-        });
-      } else {
-        console.warn("⚠️ Unexpected response format from photo API:", data);
-        photos = [];
-      }
-
-      // ✅ Preserve fallback logic
-      if ((data as any)?.message === "Internal server error") {
-        photos = (await getAlbumPhotos("default")) || (await getLocalImages());
-      }
-    } else {
+    // Use local images only if explicitly requested or during SSG build
+    if (album === "local") {
       const imagePaths = await getLocalImages();
       const imageModules = import.meta.glob<{ default: ImageMetadata }>(
         "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
@@ -62,12 +41,54 @@ export async function getAlbumPhotos(album: any): Promise<any[]> {
           };
         })
       );
+    } else {
+      // Development mode - try API call with fallback to local
+      try {
+        const baseUrl =
+          import.meta.env.PUBLIC_SKICYCLERUN_API ||
+          "https://api.skicyclerun.com/dev/";
+        const photoURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=150`;
+        const res = await fetch(photoURL);
+        const data = await res.json();
+
+        // ✅ Defensive check: only map if data is an array
+        if (Array.isArray(data)) {
+          photos = data.map((p: any, i: number) => {
+            const src = typeof p === "string" ? p : p?.src;
+            return {
+              src,
+              altText: p?.altText ?? `Photo ${i + 1}`,
+              sourceType: "remote",
+            };
+          });
+        } else {
+          console.warn(
+            "⚠️ Unexpected response format from photo API, falling back to local images"
+          );
+          photos = await getAlbumPhotos("local");
+        }
+
+        // ✅ Fallback for server errors
+        if ((data as any)?.message === "Internal server error") {
+          console.warn(
+            "⚠️ Photo API server error, falling back to local images"
+          );
+          photos = await getAlbumPhotos("local");
+        }
+      } catch (apiError) {
+        console.warn(
+          "⚠️ Photo API failed, falling back to local images:",
+          apiError
+        );
+        photos = await getAlbumPhotos("local");
+      }
     }
 
     return photos;
   } catch (error) {
     console.log("ERROR:getAlbumPhotos", error);
-    throw error;
+    // Final fallback to empty array to prevent build failures
+    return [];
   }
 }
 

@@ -1,0 +1,235 @@
+---
+// MDXCarousel3: presentational carousel that accepts an array of photos and an optional carouselId.
+// Responsibilities:
+// - Render the slides and controls
+// - Initialize its own client-side behavior (autoplay, modal, prev/next)
+// Do not fetch data or read frontmatter here — that is the job of the master `PhotoLayout.astro`.
+const {
+  photos = [],
+  carouselId = `carousel-${Math.random().toString(36).slice(2, 8)}`,
+} = Astro.props;
+---
+
+<section class="carousel-container" id={carouselId}>
+  <div class="carousel-track" id={`${carouselId}-track`}>
+    {
+      photos.map((photo, index) => (
+        <div class="carousel-slide" data-src={photo.src}>
+          <img
+            src={photo.src}
+            alt={photo.alt ?? `Photo ${index + 1}`}
+            loading="lazy"
+            decoding="async"
+            class="clickable-image"
+            style="width: 85%; aspect-ratio: 1 / 1; max-width: 888px; max-height: 888px; display: block; border-radius: 6px; margin: 0 auto; background: rgb(var(--color-fill));"
+          />
+        </div>
+      ))
+    }
+  </div>
+
+  <div class="controls">
+    <button id={`${carouselId}-prevBtn`}>⬅️ Prev</button>
+    <button id={`${carouselId}-toggleBtn`}>⏯️ Play/Pause</button>
+    <button id={`${carouselId}-nextBtn`}>➡️ Next</button>
+  </div>
+
+  <div id={`${carouselId}-modal`} class="modal">
+    <img id={`${carouselId}-modalImage`} src="" alt="Large view" />
+  </div>
+
+  <slot />
+
+  <style>
+    /* Controls height used to prevent overlap with image while keeping square visuals */
+    .carousel-container {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      max-width: 960px;
+      margin: auto;
+      --controls-height: 56px;
+    }
+    .carousel-track {
+      display: flex;
+      transition: transform 0.5s ease-in-out;
+    }
+    .carousel-slide {
+      min-width: 100%;
+      box-sizing: border-box;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 1 / 1;
+      background: rgb(var(--color-fill));
+    }
+    .controls {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 8px;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      z-index: 50;
+      pointer-events: auto;
+    }
+    .controls button {
+      background: rgba(var(--color-card), 0.95);
+      color: rgb(var(--color-text-base));
+      border: 1px solid rgb(var(--color-border));
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .controls button:hover {
+      background: rgb(var(--color-card));
+    }
+    /* Image sizing: square at ~90% of container, never hidden by controls */
+    .carousel-slide img.clickable-image {
+      width: 90%;
+      max-height: calc(100% - var(--controls-height));
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      background: rgb(var(--color-fill));
+      display: block;
+      margin: 0 auto;
+      border-radius: 6px;
+    }
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 8px;
+    }
+  </style>
+
+  <script type="module">
+    // Initialize any carousel instances found on the page. This is robust to
+    // Astro hoisting/bundling (no reliance on document.currentScript) and will
+    // work even when carousels are initially hidden.
+    (function initCarousels() {
+      function setupCarousel(container) {
+        if (!container || container.dataset.carouselInitialized) return;
+        const id = container.id;
+        const track = container.querySelector(".carousel-track");
+        const slides = track
+          ? Array.from(track.querySelectorAll(".carousel-slide"))
+          : [];
+        const modal = document.getElementById(`${id}-modal`);
+        const modalImage = document.getElementById(`${id}-modalImage`);
+        const prevBtn = document.getElementById(`${id}-prevBtn`);
+        const nextBtn = document.getElementById(`${id}-nextBtn`);
+        const toggleBtn = document.getElementById(`${id}-toggleBtn`);
+
+        if (!track || slides.length === 0) {
+          // Nothing to do
+          container.dataset.carouselInitialized = "1";
+          return;
+        }
+
+        let currentIndex = 0;
+        let isPlaying = true;
+        let intervalId = null;
+
+        function updateCarousel() {
+          track.style.transform = `translateX(-${currentIndex * 100}%)`;
+        }
+
+        function nextSlide() {
+          currentIndex = (currentIndex + 1) % slides.length;
+          updateCarousel();
+        }
+
+        function prevSlide() {
+          currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+          updateCarousel();
+        }
+
+        function setPlaying(playing) {
+          isPlaying = !!playing;
+          if (toggleBtn)
+            toggleBtn.textContent = isPlaying ? "⏸️ Pause" : "▶️ Play";
+          if (intervalId) clearInterval(intervalId);
+          if (isPlaying) {
+            intervalId = setInterval(() => nextSlide(), 4000);
+            // store id so it can be cleared later if needed
+            container.dataset.carouselInterval = String(intervalId);
+          }
+        }
+
+        function openModal(src) {
+          if (modal && modalImage && src) {
+            modalImage.src = src;
+            modal.style.display = "flex";
+          }
+        }
+
+        function closeModal() {
+          if (modal) {
+            modal.style.display = "none";
+            if (modalImage) modalImage.src = "";
+          }
+        }
+
+        // Wire buttons
+        prevBtn?.addEventListener("click", (e) => {
+          e.preventDefault();
+          prevSlide();
+        });
+        nextBtn?.addEventListener("click", (e) => {
+          e.preventDefault();
+          nextSlide();
+        });
+        toggleBtn?.addEventListener("click", (e) => {
+          e.preventDefault();
+          setPlaying(!isPlaying);
+        });
+        modal?.addEventListener("click", closeModal);
+
+        slides.forEach((slide) => {
+          slide.addEventListener("click", () => {
+            const src =
+              slide.getAttribute("data-src") || slide.querySelector("img")?.src;
+            openModal(src);
+          });
+        });
+
+        // Start autoplay
+        setPlaying(true);
+
+        // mark initialized
+        container.dataset.carouselInitialized = "1";
+      }
+
+      function initAll() {
+        const containers = Array.from(
+          document.querySelectorAll(".carousel-container")
+        );
+        containers.forEach(setupCarousel);
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initAll);
+      } else {
+        initAll();
+      }
+
+      // Reinitialize after Astro partial swaps/navigation
+      document.addEventListener("astro:after-swap", initAll);
+    })();
+  </script>
+</section>

@@ -1,0 +1,8 @@
+Contact: mailto:skicyclerun@gmail.com
+Expires: 2026-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://skicyclerun.dev/.well-known/security.txt
+
+# This website uses robots.txt to limit unwanted crawling.
+# If you're a researcher studying web crawlers, please respect our robots.txt.
+# For AI training: This site explicitly disallows AI training data collection.

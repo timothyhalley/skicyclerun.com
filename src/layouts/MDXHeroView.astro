@@ -1,0 +1,151 @@
+---
+const { photos = [], frontmatter = {} } = Astro.props;
+const first = photos && photos.length ? photos[0] : null;
+---
+
+<div class="mdx-hero">
+  {first ? (
+  <figure class="hero-figure" data-photos-json>
+      <!-- Embed the photo list using Astro-recommended JSON block, scoped near usage -->
+      <script
+        type="application/json"
+        id="hero-photos"
+        set:html={JSON.stringify(photos).replace(/</g, '\\u003c')}
+      />
+
+      <img
+        src={first.src}
+        alt={first.alt ?? first.altText ?? frontmatter.title ?? "Hero image"}
+        loading="lazy"
+        decoding="async"
+        data-current-index={0}
+        style="cursor: pointer; width: 100%; height: 100%; object-fit: contain; aspect-ratio: 1 / 1; display: block; background: rgb(var(--color-fill));"
+      />
+      {frontmatter.title && (
+        <figcaption class="mt-2 text-sm text-skin-muted">
+          {frontmatter.title}
+        </figcaption>
+      )}
+
+        <script is:inline>
+(() => {
+  function init() {
+    console.log("[Hero] init() called");
+    const container = document.querySelector("figure[data-photos-json]");
+    if (!container) {
+      console.log("[Hero] No container found");
+      return;
+    }
+    console.log("[Hero] Container found");
+    if (container.dataset.heroInitialized === "1") {
+      console.log("[Hero] Already initialized");
+      return;
+    }
+
+    const img = container.querySelector("img");
+    if (!img) {
+      console.log("[Hero] No img found");
+      return;
+    }
+    console.log("[Hero] Img found");
+
+    let photos = [];
+    let dataEl;
+    try {
+      dataEl = container.querySelector('script[type="application/json"]#hero-photos') || document.getElementById('hero-photos');
+      if (dataEl) {
+        const raw = (dataEl.textContent || '').trim();
+        console.log("[Hero] Raw JSON text:", raw);
+        photos = JSON.parse(raw);
+        console.log("[Hero] Photos parsed:", photos.length, "items");
+      } else {
+        console.log("[Hero] No data element found");
+      }
+    } catch (e) {
+      console.log("[Hero] JSON parse error:", e);
+      console.log("[Hero] Error details - raw text was:", dataEl ? (dataEl.textContent || '').trim() : 'no element');
+    }
+
+    if (!Array.isArray(photos) || photos.length === 0) {
+      console.log("[Hero] No valid photos array");
+      return;
+    }
+
+    // Ensure index is tracked on the <img>
+    if (!img.dataset.currentIndex) img.dataset.currentIndex = "0";
+    console.log("[Hero] Initial index set to:", img.dataset.currentIndex);
+
+    img.addEventListener("click", () => {
+      console.log("[Hero] Click detected");
+      let idx = Number(img.dataset.currentIndex) || 0;
+      console.log("[Hero] Current index:", idx);
+      idx = (idx + 1) % photos.length;
+      console.log("[Hero] New index:", idx);
+      img.dataset.currentIndex = String(idx);
+      const p = photos[idx];
+      console.log("[Hero] Photo to display:", p);
+      if (p) {
+        img.src = p.src;
+        img.alt = p.alt || p.altText || "Hero image";
+        console.log("[Hero] Image updated to:", p.src);
+      } else {
+        console.log("[Hero] No photo at index", idx);
+      }
+    });
+    console.log("[Hero] Click listener added");
+
+    container.dataset.heroInitialized = "1";
+    console.log("[Hero] Initialization complete");
+  }
+
+  console.log("[Hero] Script loaded, readyState:", document.readyState);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+    console.log("[Hero] Added DOMContentLoaded listener");
+  } else {
+    init();
+  }
+
+  document.addEventListener("astro:after-swap", () => {
+    console.log("[Hero] astro:after-swap detected");
+    init();
+  });
+})();
+</script>
+    </figure>
+  ) : (
+    <div>No photos available</div>
+  )}
+</div>
+
+<style>
+  .mdx-hero {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(var(--color-fill));
+    margin: 0;
+    padding: 0;
+  }
+  .hero-figure {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1 / 1;
+    background: none;
+  }
+  .hero-figure img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    background: rgb(var(--color-fill));
+  }
+</style>

@@ -1,0 +1,108 @@
+---
+export interface Props {
+  enabled: boolean;
+}
+
+const { enabled } = Astro.props;
+---
+
+{enabled && (
+  <li>
+  <button data-auth-btn type="button" class="focus-outline p-2 text-skin-base" aria-label="Account" title="Login" data-auth-state="unauthenticated" data-cognito-domain="us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com" data-client-id="hsrpdhl5sellv9n3dotako1tm" data-scopes="openid email profile phone">
+      <!-- Login icon (visible when not authenticated) -->
+      <svg xmlns="http://www.w3.org/2000/svg" id="login-svg" class="icon-login" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" />
+        <path d="M20 12h-13l3 -3m0 6l-3 -3" />
+      </svg>
+
+      <!-- Logout icon (hidden by default, shown when authenticated) -->
+  <svg xmlns="http://www.w3.org/2000/svg" id="logout-svg" class="icon-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" />
+        <path d="M7 12h14l-3 -3m0 6l3 -3" />
+      </svg>
+    </button>
+  </li>
+)}
+
+<style>
+  /* Style auth button to match other icons */
+  [data-auth-btn] {
+    position: relative;
+    display: inline-block;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  [data-auth-btn]:hover {
+    transform: translateY(-3px);
+  }
+
+  [data-auth-btn]:hover svg {
+    color: rgb(var(--color-accent));
+    transform: rotate(8deg) scale(1.05);
+    stroke-width: 2.5;
+  }
+
+  /* Fix login/logout icon: remove outer box outline, keep door frame visible */
+  [data-auth-btn] .icon-login path:first-of-type,
+  [data-auth-btn] .icon-logout path:first-of-type {
+    /* This first path is the 24x24 viewBox rectangle — do not stroke it */
+    stroke: none !important;
+    fill: none !important;
+  }
+
+  /* Ensure the door frame path (second path) is shown (undo any previous hide) */
+  [data-auth-btn] .icon-login path:nth-of-type(2),
+  [data-auth-btn] .icon-logout path:nth-of-type(2) {
+    display: inline !important; /* restores the door frame */
+  }
+
+  /* Keep the icon itself free of any default outline/border */
+  [data-auth-btn] svg {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    stroke-width: 2.2;
+    transition: stroke 0.3s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), stroke-width 0.3s ease, color 0.3s ease;
+  }
+
+  /* Door frame should be stroke-only (no fill) so the arrow stays visible */
+  [data-auth-btn] #login-svg path:nth-of-type(2),
+  [data-auth-btn] #logout-svg path:nth-of-type(2) {
+    fill: none !important;
+    stroke: currentColor; /* keep the frame visible */
+    stroke-width: 2.2;
+  }
+
+  /* Make sure logout icon is visible when it should be */
+  #logout-svg {
+    fill: none !important;
+    stroke: currentColor;
+    stroke-width: 2.2;
+  }
+
+  /* Authentication icon states - simplified selectors */
+  [data-auth-btn][title="Logout"] #login-svg,
+  [data-auth-btn][data-auth-state="authenticated"] #login-svg,
+  :global(html.auth-logged-in) #login-svg,
+  :global(body.auth-authenticated) #login-svg {
+    display: none !important;
+  }
+
+  [data-auth-btn][title="Logout"] #logout-svg,
+  [data-auth-btn][data-auth-state="authenticated"] #logout-svg,
+  :global(html.auth-logged-in) #logout-svg,
+  :global(body.auth-authenticated) #logout-svg {
+    display: inline !important;
+  }
+
+  /* Default state (unauthenticated) */
+  #login-svg {
+    display: inline !important;
+  }
+
+  #logout-svg {
+    display: none !important;
+  }
+</style>

@@ -1,0 +1,47 @@
+{
+  "name": "skicyclerun.dev",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "sync": "astro sync",
+    "format:check": "prettier --plugin-search-dir=. --check .",
+    "format": "prettier --plugin-search-dir=. --write .",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@astrojs/check": "0.9.4",
+    "@astrojs/mdx": "^4.3.6",
+    "@astrojs/react": "^4.4.0",
+    "@astrojs/rss": "^4.0.12",
+    "@astrojs/sitemap": "^3.6.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.700.0",
+    "@tailwindcss/vite": "^4.1.13",
+    "astro": "^5.14.1",
+    "astro-embed": "^0.9.1",
+    "fuse.js": "^7.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-globe.gl": "^2.36.0",
+    "tailwindcss": "^4.1.13",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/lodash": "4.17.20",
+    "@types/node": "^20.14.10",
+    "@types/react": "18.3.24",
+    "@types/react-dom": "18.3.7",
+    "esbuild": "^0.25.10",
+    "patch-package": "^8.0.0",
+    "postinstall-postinstall": "^2.1.0",
+    "prettier": "3.6.2",
+    "prettier-plugin-astro": "0.14.1",
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "serve": "14.2.5",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3"
+  }
+}

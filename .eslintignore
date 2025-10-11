@@ -1,4 +1,21 @@
-.vscode
-node_modules
-public
-dist
+# Build output
+dist/
+.astro/
+
+# Dependencies
+node_modules/
+
+# Dead code folder
+.deadCode/
+
+# Environment files
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

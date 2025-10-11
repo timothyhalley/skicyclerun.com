@@ -1,28 +1,213 @@
 ---
 import { SkiCycleRunConfig } from "skicyclerun.config";
-import Breadcrumbs from "@components/Breadcrumbs.astro";
+import Breadcrumbs from "@layouts/Breadcrumbs.astro";
 import Header from "@components/Header.astro";
-import Footer from "@components/Footer.astro";
-import Layout from "./Layout.astro";
+import BaseLayout from "./BaseLayout.astro";
+import type { SvgComponent } from "astro/types";
+
+// Import SVG assets as Astro components using glob
+const svgImages = import.meta.glob<SvgComponent>("/src/assets/svg_imgs/*.svg", {
+  eager: true,
+  import: "default",
+});
 
 export interface Props {
   frontmatter: {
     title: string;
     description?: string;
+    background?: string;
   };
 }
 
 const { frontmatter } = Astro.props;
+
+// Get background SVG component
+let BackgroundSvg: SvgComponent | undefined = undefined;
+
+if (frontmatter.background) {
+  // Handle both full path and short name references
+  const imageName = frontmatter.background.includes("/")
+    ? frontmatter.background.split("/").pop()
+    : frontmatter.background;
+
+  // Remove .svg extension if present for matching
+  const cleanName = imageName?.replace(".svg", "");
+
+  // Find matching SVG in imported assets
+  for (const [path, component] of Object.entries(svgImages)) {
+    if (path.includes(`/${cleanName}.svg`)) {
+      BackgroundSvg = component;
+      break;
+    }
+  }
+}
 ---
 
-<Layout title={`${frontmatter.title} | ${SkiCycleRunConfig.title}`}>
+<BaseLayout title={`${frontmatter.title} | ${SkiCycleRunConfig.title}`}>
   <Header activeNav="about" />
-  <Breadcrumbs />
-  <main id="main-content">
-    <section id="about" class="prose mb-28 max-w-3xl prose-img:border-0">
-      <h1 class="text-2xl tracking-wider sm:text-3xl">{frontmatter.title}</h1>
-      <slot />
+  <!-- Breadcrumbs provide navigation but do not render the page title (prevents duplicate titles) -->
+  <Breadcrumbs pageTitle={frontmatter.title} pageDesc={frontmatter.description}>
+    <section
+      id="about"
+      class={`prose mb-28 prose-img:border-0 relative ${BackgroundSvg ? "has-background" : ""}`}
+    >
+      <!-- Background SVG component - conditionally rendered -->
+      {
+        BackgroundSvg && (
+          <div class="background-image-container">
+            <BackgroundSvg class="background-image" />
+          </div>
+        )
+      }
+      <div
+        class="about-content"
+        style="line-height: 1.6; position: relative; z-index: 2;"
+      >
+        <slot />
+      </div>
     </section>
-  </main>
-  <Footer />
-</Layout>
+  </Breadcrumbs>
+</BaseLayout>
+
+<style>
+  /* About page specific styling with increased specificity */
+  .prose .about-content {
+    line-height: 1.6 !important;
+    margin-top: 1.5rem !important;
+  }
+
+  /* Preserve line breaks with !important */
+  .prose .about-content p {
+    margin-top: 1.25rem !important;
+    margin-bottom: 1.25rem !important;
+    line-height: 1.7 !important;
+    text-align: left !important;
+    hyphens: auto !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  /* Responsive text sizing */
+  @media (max-width: 640px) {
+    .prose .about-content p {
+      font-size: 0.95rem !important;
+      line-height: 1.6 !important;
+      margin-top: 1rem !important;
+      margin-bottom: 1rem !important;
+    }
+  }
+
+  /* Style links with underlines consistent with project style */
+  .prose .about-content a {
+    color: rgb(var(--color-accent)) !important;
+    text-decoration: underline !important;
+    text-underline-offset: 0.2em !important;
+    text-decoration-thickness: 1px !important;
+    transition: text-decoration-thickness 0.2s ease !important;
+  }
+
+  .prose .about-content a:hover {
+    text-decoration-thickness: 2px !important;
+  }
+
+  /* Ensure proper margin alignment with breadcrumb */
+  #about h1 {
+    margin-top: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.05em !important;
+    font-size: 1.875rem !important;
+    line-height: 2.25rem !important;
+  }
+
+  .about-title {
+    position: relative;
+    z-index: 2;
+    color: rgb(var(--color-text-base));
+  }
+
+  @media (min-width: 640px) {
+    #about h1 {
+      font-size: 1.875rem !important;
+      line-height: 2.25rem !important;
+    }
+  }
+
+  /* Style for images */
+  .prose .about-content img {
+    margin: 1.5rem 0 !important;
+    border-radius: 0.5rem !important;
+  }
+
+  /* Override any tailwind prose styles that might affect our links */
+  .prose :where(a):not(:where([class~="not-prose"] *)) {
+    color: rgb(var(--color-accent)) !important;
+    text-decoration: underline !important;
+    text-underline-offset: 0.2em !important;
+  }
+
+  /* Background image styling */
+  .background-image-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .background-image {
+    width: 80%;
+    height: auto;
+    opacity: 0.14; /* Slightly higher so image is visible but subtle */
+    filter: grayscale(100%) contrast(65%); /* Grayscale and softened contrast */
+    mix-blend-mode: multiply; /* Blends with background color */
+    object-fit: contain;
+    pointer-events: none; /* Prevents image from receiving mouse events */
+  }
+
+  /* In dark mode invert the SVG so it remains visible against dark backgrounds */
+  html[data-theme="dark"] .background-image {
+    filter: invert(1) grayscale(100%) contrast(75%);
+    mix-blend-mode: normal; /* avoid multiply which can darken inverted image */
+    opacity: 0.14;
+  }
+
+  /* Add a slight background tint to improve text readability, only when background is present */
+  /* Reduce opacity so the background image remains visible and ensure the overlay sits behind the footer */
+  #about.has-background::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-color: rgba(var(--color-fill), 0.35);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Slightly adjust overlay on dark theme so inverted image remains visible */
+  html[data-theme="dark"] #about.has-background::before {
+    background-color: rgba(0, 0, 0, 0.18);
+  }
+
+  /* Constrain the prose container to match other pages (max-width 1024px) and center content */
+  #about {
+    max-width: 1024px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Ensure footer is visually above the about overlay; footer will still inherit theme colors */
+  footer {
+    position: relative;
+    z-index: 10;
+  }
+</style>

@@ -1,0 +1,107 @@
+---
+// AuthStateManager.astro - A component to manage authentication state across the site
+---
+
+<script>
+  import { getAuthState } from "@utils/clientAuth";
+
+  class AuthStateManager {
+    private static instance: AuthStateManager;
+    private _isAuthenticated: boolean = false;
+    private eventTarget = new EventTarget();
+
+    private constructor() {
+      // Singleton pattern
+      this.refreshAuthState();
+
+      // Refresh auth state periodically
+      setInterval(() => this.refreshAuthState(), 60000); // Every minute
+
+      // Refresh auth state when the page gains focus
+      window.addEventListener("focus", () => this.refreshAuthState());
+
+      // Listen for auth state changes from other components
+      document.addEventListener("auth:state-change", (e: any) => {
+        if (e.detail && typeof e.detail.isAuthenticated === "boolean") {
+          this.updateAuthState(e.detail.isAuthenticated);
+        }
+      });
+    }
+
+    public static getInstance(): AuthStateManager {
+      if (!AuthStateManager.instance) {
+        AuthStateManager.instance = new AuthStateManager();
+      }
+      return AuthStateManager.instance;
+    }
+
+    public get isAuthenticated(): boolean {
+      return this._isAuthenticated;
+    }
+
+    public async refreshAuthState(): Promise<boolean> {
+      try {
+        // Use client-side auth state check (localStorage tokens)
+        const authState = await getAuthState();
+        const isAuthenticated = !!authState?.signedIn;
+        this.updateAuthState(isAuthenticated);
+        return isAuthenticated;
+      } catch (err) {
+        console.error("Error checking auth state:", err);
+        this.updateAuthState(false);
+        return false;
+      }
+    }
+
+    public subscribe(callback: (isAuthenticated: boolean) => void): () => void {
+      const handler = (e: any) => callback(e.detail.isAuthenticated);
+      this.eventTarget.addEventListener("auth:change", handler);
+
+      // Immediately call with current state
+      setTimeout(() => callback(this._isAuthenticated), 0);
+
+      // Return unsubscribe function
+      return () => this.eventTarget.removeEventListener("auth:change", handler);
+    }
+
+    private updateAuthState(isAuthenticated: boolean) {
+      if (this._isAuthenticated !== isAuthenticated) {
+        this._isAuthenticated = isAuthenticated;
+        console.log(
+          `Auth state updated: ${isAuthenticated ? "Authenticated" : "Not authenticated"}`
+        );
+
+        // Dispatch event to event target (for subscribers)
+        this.eventTarget.dispatchEvent(
+          new CustomEvent("auth:change", {
+            detail: { isAuthenticated },
+          })
+        );
+
+        // Dispatch event to document (for other components)
+        document.dispatchEvent(
+          new CustomEvent("auth:state-updated", {
+            detail: { isAuthenticated },
+            bubbles: true,
+          })
+        );
+      }
+    }
+  }
+
+  // Initialize the auth state manager
+  const authManager = AuthStateManager.getInstance();
+
+  // Make it available globally
+  (window as any).authManager = authManager;
+
+  // Log initial state when available
+  authManager.refreshAuthState().then((isAuth) => {
+    console.log(
+      `Initial auth state: ${isAuth ? "Authenticated" : "Not authenticated"}`
+    );
+  });
+
+  // Export a function to help other components use the auth manager
+  (window as any).getAuthManager = () => AuthStateManager.getInstance();
+</script>

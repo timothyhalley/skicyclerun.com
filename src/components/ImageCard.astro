@@ -1,132 +1,39 @@
 ---
-import { getRandomImage, getFileName } from "@components/Library.astro";
-import { Image } from "astro:assets";
-import type { ImageMetadata } from "astro";
-
-type ImageMeta = {
+export interface ImageInput {
   src: string;
   altText?: string;
-  sourceType?: "local" | "remote";
-};
+  sourceType?: string;
+}
 
-interface Props {
-  image?: ImageMeta;
-  imagePath?: string | ImageMeta;
+export interface Props {
+  imagePath?: string; // legacy usage
+  image?: ImageInput; // newer usage
   altText?: string;
   twCSS?: string;
-  maxWidth?: number;
-  sourceType?: "local" | "remote";
-  showCaption?: boolean;
-  fallbackSrc?: string;
-  [key: string]: any;
+  maxWidth?: number | string;
 }
 
 const {
-  image,
   imagePath,
-  altText: altTextProp,
+  image,
+  altText = "",
   twCSS = "",
-  maxWidth = 800,
-  sourceType: sourceTypeProp,
-  showCaption = false,
-  fallbackSrc = "/placeholder.svg",
-  ...rest
+  maxWidth,
 } = Astro.props as Props;
 
-// 🔧 Centralized resolver
-function resolveImageMeta({
-  image,
-  imagePath,
-  altTextProp,
-  sourceTypeProp,
-  fallbackSrc,
-}: {
-  image?: ImageMeta;
-  imagePath?: string | ImageMeta;
-  altTextProp?: string;
-  sourceTypeProp?: "local" | "remote";
-  fallbackSrc: string;
-}) {
-  const isValidImageObject = (obj: unknown): obj is ImageMeta =>
-    typeof obj === "object" && obj !== null && "src" in obj;
-
-  const src =
-    typeof imagePath === "string"
-      ? imagePath
-      : isValidImageObject(imagePath)
-        ? imagePath.src
-        : (image?.src ?? fallbackSrc);
-
-  const altText = altTextProp ?? image?.altText ?? "Untitled";
-  const sourceType = sourceTypeProp ?? image?.sourceType ?? "local";
-
-  return { src, altText, sourceType };
-}
-
-const {
-  src: resolvedSrc,
-  altText: resolvedAltText,
-  sourceType: resolvedSourceType,
-} = resolveImageMeta({
-  image,
-  imagePath,
-  altTextProp,
-  sourceTypeProp,
-  fallbackSrc,
-});
-
-// 🖼️ Local image resolution
-const images: Record<string, () => Promise<{ default: ImageMetadata }>> =
-  import.meta.glob<{ default: ImageMetadata }>(
-    "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
-  );
-
-const imageName = getFileName(resolvedSrc);
-const imageKey =
-  imageName && images[`/src/assets/images/${imageName}`]
-    ? `/src/assets/images/${imageName}`
-    : getRandomImage(images);
-
-let imageMeta: ImageMetadata | undefined = undefined;
-if (resolvedSourceType === "local" && imageKey && images[imageKey]) {
-  const imageModule = await images[imageKey]();
-  imageMeta = imageModule.default;
-}
+const resolvedSrc = (image && image.src) || imagePath || "";
+const resolvedAlt = (image && image.altText) || altText || "image";
+const styleMax =
+  typeof maxWidth !== "undefined"
+    ? `max-width: ${typeof maxWidth === "number" ? maxWidth + "px" : maxWidth};`
+    : "";
 ---
 
-<div class={twCSS}>
-  {
-    resolvedSourceType === "local" && imageMeta ? (
-      <figure>
-        <Image
-          src={imageMeta}
-          alt={resolvedAltText}
-          width={maxWidth}
-          loading="lazy"
-          {...rest}
-        />
-        {showCaption && resolvedAltText && (
-          <figcaption class="mt-2 text-center text-sm text-gray-600">
-            {resolvedAltText}
-          </figcaption>
-        )}
-      </figure>
-    ) : (
-      <figure>
-        <img
-          src={resolvedSrc}
-          alt={resolvedAltText}
-          width={maxWidth}
-          loading="lazy"
-          onerror={`this.onerror=null;this.src='${fallbackSrc}'`}
-          {...rest}
-        />
-        {showCaption && resolvedAltText && (
-          <figcaption class="mt-2 text-center text-sm text-gray-600">
-            {resolvedAltText}
-          </figcaption>
-        )}
-      </figure>
-    )
-  }
-</div>
+<img
+  src={resolvedSrc}
+  alt={resolvedAlt}
+  loading="lazy"
+  decoding="async"
+  class={`block h-full w-full rounded-lg object-cover object-center ${twCSS}`}
+  style={`${styleMax} width: 100%; height: auto;`}
+/>

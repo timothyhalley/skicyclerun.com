@@ -1,0 +1,119 @@
+/* 
+  Prose fix for Tailwind v4 compatibility 
+  This file provides standard styling for prose content
+  that works with Tailwind v4 without relying on @apply
+*/
+
+/* Base prose styles */
+.prose {
+  max-width: 65ch;
+  color: rgb(var(--color-text-base));
+  line-height: 1.75;
+}
+
+.prose h1 {
+  /* Let Tailwind utilities control font-size/weight/line-height for
+     page-level headings. Keep only vertical rhythm here so prose flow
+     remains consistent when used inside article content. */
+  margin-top: 0;
+  margin-bottom: 0.8888889em;
+}
+
+.prose h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3333333;
+  margin-top: 2em;
+  margin-bottom: 1em;
+}
+
+.prose h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.6;
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
+}
+
+.prose h4 {
+  font-weight: 600;
+  line-height: 1.5;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose p {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+.prose a {
+  color: rgb(var(--color-accent));
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  font-weight: 500;
+}
+
+.prose a:hover {
+  text-decoration-thickness: 2px;
+}
+
+.prose strong {
+  font-weight: 600;
+}
+
+.prose ul {
+  list-style-type: disc;
+  padding-left: 1.625em;
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+.prose ol {
+  list-style-type: decimal;
+  padding-left: 1.625em;
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+.prose li {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose img {
+  margin-top: 2em;
+  margin-bottom: 2em;
+  max-width: 100%;
+  height: auto;
+}
+
+.prose blockquote {
+  font-style: italic;
+  border-left-width: 0.25rem;
+  border-left-color: rgb(var(--color-accent));
+  quotes: "\201C" "\201D" "\2018" "\2019";
+  margin-top: 1.6em;
+  margin-bottom: 1.6em;
+  padding-left: 1em;
+}
+
+.prose code {
+  font-family: monospace;
+  font-size: 0.875em;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  background-color: rgba(var(--color-card), 0.5);
+}
+
+/* Special cases for the about page */
+#about .about-content p {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  white-space: pre-line;
+}
+
+#about .about-content a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}

@@ -1,0 +1,117 @@
+---
+// LoginIcon.astro - A simple component that shows login or logout icon based on auth state
+---
+
+<div class="login-icon-container">
+  <!-- Login Icon (shown when NOT authenticated) -->
+  <svg
+    id="login-icon"
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+    <path
+      d="M9 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2"
+    ></path>
+    <path d="M3 12h13l-3 -3"></path>
+    <path d="M13 15l3 -3"></path>
+  </svg>
+
+  <!-- Logout Icon (shown when authenticated) -->
+  <svg
+    id="logout-icon"
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    style="display:none;"
+  >
+    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+    <path
+      d="M10 8v-2a2 2 0 0 1 2 -2h7a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-7a2 2 0 0 1 -2 -2v-2"
+    ></path>
+    <path d="M15 12h-12l3 -3"></path>
+    <path d="M6 15l-3 -3"></path>
+  </svg>
+</div>
+
+<script>
+  async function updateLoginIcon() {
+    try {
+      const mod = await import("@utils/clientAuth");
+      const state = await mod.getAuthState();
+      const isAuthenticated = !!state?.signedIn;
+
+      console.log(
+        "LoginIcon auth check:",
+        isAuthenticated ? "Authenticated" : "Not Authenticated"
+      );
+      setIconState(isAuthenticated);
+    } catch (error) {
+      console.error("Error checking auth state for login icon:", error);
+      setIconState(false);
+    }
+  }
+
+  function setIconState(isAuthenticated: boolean) {
+    const loginIcon = document.getElementById("login-icon");
+    const logoutIcon = document.getElementById("logout-icon");
+
+    if (loginIcon && logoutIcon) {
+      if (isAuthenticated) {
+        loginIcon.style.display = "none";
+        logoutIcon.style.display = "inline";
+        console.log("Showing LOGOUT icon");
+      } else {
+        loginIcon.style.display = "inline";
+        logoutIcon.style.display = "none";
+        console.log("Showing LOGIN icon");
+      }
+    }
+  }
+
+  // Update on page load
+  document.addEventListener("DOMContentLoaded", updateLoginIcon);
+
+  // Update on navigation
+  document.addEventListener("astro:page-load", updateLoginIcon);
+  document.addEventListener("astro:after-swap", updateLoginIcon);
+
+  // Listen for auth state changes
+  document.addEventListener("auth:state-updated", (e: any) => {
+    const isAuthenticated = e?.detail?.isAuthenticated;
+    if (typeof isAuthenticated === "boolean") {
+      setIconState(isAuthenticated);
+    } else {
+      updateLoginIcon();
+    }
+  });
+</script>
+
+<style>
+  .login-icon-container {
+    display: inline-block;
+  }
+
+  #login-icon,
+  #logout-icon {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    transition:
+      stroke 0.3s ease,
+      transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+</style>

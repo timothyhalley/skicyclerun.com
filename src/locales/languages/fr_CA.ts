@@ -27,4 +27,4 @@ export const fr_CA: Translation = {
 
   [key.pages_tags_title]: "Tags",
   [key.pages_categories_title]: "Catégories",
-};
+} as Translation;

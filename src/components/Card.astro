@@ -1,0 +1,116 @@
+---
+import { slugifyStr } from "@utils/slugify";
+import Datetime from "@components/Datetime.astro";
+
+const { href, frontmatter, secHeading = true } = Astro.props;
+const { title, pubDatetime, modDatetime, description } = frontmatter;
+const viewTransitionName = slugifyStr(title);
+---
+
+<article class="card-container">
+  <div class="card">
+    <div class="card-content">
+      <h2 class="mb-3">
+        <a
+          href={href}
+          class="text-2xl md:text-3xl lg:text-4xl font-extrabold text-skin-base hover:text-skin-accent"
+          transition:name={viewTransitionName}
+        >
+          {title}
+        </a>
+      </h2>
+      <div class="card-meta">
+        <time datetime={pubDatetime}>
+          {new Date(pubDatetime).toLocaleDateString()}
+        </time>
+        {
+          modDatetime && (
+            <>
+              <span class="date-separator">•</span>
+              <span class="text-xs opacity-70">
+                Updated: {new Date(modDatetime).toLocaleDateString()}
+              </span>
+            </>
+          )
+        }
+      </div>
+      <p class="card-description">
+        {description}
+      </p>
+    </div>
+  </div>
+</article>
+
+<style>
+  .card-container {
+    margin-bottom: 2rem;
+  }
+
+  .card {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-card);
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    transform: translateY(3px);
+    border: 1px solid var(--color-card-muted);
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .card:hover {
+    transform: translateY(0);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .card-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card-meta {
+    margin-bottom: 0.75rem;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .date-separator {
+    opacity: 0.6;
+  }
+
+  .card-description {
+    margin-bottom: 0.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: var(--color-text-base);
+    line-height: 1.5;
+  }
+
+  /* Defensive rule: ensure anchor title remains large */
+  .card-content h2 a {
+    font-size: 1.5rem !important;
+    line-height: 1.4 !important;
+    font-weight: 800 !important;
+    text-decoration: none !important;
+    transition: color 0.3s ease;
+  }
+
+  /* Increase specificity to outrank prose rules */
+  article.card-container .card .card-content h2 a {
+    font-size: 1.75rem !important;
+  }
+
+  @media (max-width: 768px) {
+    .card-content {
+      padding: 1.25rem;
+    }
+  }
+</style>

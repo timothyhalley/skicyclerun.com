@@ -1,0 +1,323 @@
+---
+import { SkiCycleRunConfig } from "skicyclerun.config";
+import "@styles/base.css";
+import "@styles/prose-fix.css"; // Import our prose fix for Tailwind v4
+import "@styles/auth-styles.css"; // Import auth-related styles
+import "@styles/searchbar.css"; // Import search-related styles
+import Footer from "@components/Footer.astro";
+
+export interface Props {
+  title?: string;
+  author?: string;
+  description?: string;
+  ogImage?: string;
+  canonicalURL?: string;
+  pubDatetime?: Date;
+  modDatetime?: Date | null;
+  scrollSmooth?: boolean;
+}
+
+const {
+  title = SkiCycleRunConfig.title,
+  author = SkiCycleRunConfig.author,
+  description = SkiCycleRunConfig.description,
+  ogImage = SkiCycleRunConfig.ogImage,
+  canonicalURL = new URL(Astro.url.pathname, Astro.site).href,
+  pubDatetime,
+  modDatetime,
+  scrollSmooth = false,
+} = Astro.props;
+
+const socialImageURL = new URL(
+  ogImage ?? SkiCycleRunConfig.ogImage ?? "og.png",
+  Astro.url.origin
+).href;
+---
+
+<!doctype html>
+<html
+  lang=`${SkiCycleRunConfig.locale.lang ?? "en"}`
+  class={`${scrollSmooth && "scroll-smooth"}`}
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonicalURL} />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- General Meta Tags -->
+    <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    <meta name="author" content={author} />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={socialImageURL} />
+
+    <!-- Article Published/Modified time -->
+    {
+      pubDatetime && (
+        <meta
+          property="article:published_time"
+          content={pubDatetime.toISOString()}
+        />
+      )
+    }
+    {
+      modDatetime && (
+        <meta
+          property="article:modified_time"
+          content={modDatetime.toISOString()}
+        />
+      )
+    }
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={canonicalURL} />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={socialImageURL} />
+
+    <meta name="theme-color" content="" />
+
+    <script src="/toggle-theme.js" defer></script>
+  </head>
+  <body>
+    {
+      /** Global, minimal auth icon handler (uses localStorage tokens, toggles #auth-btn icons) */
+    }
+    <!-- Auth bridge inline script to handle OAuth redirect -->
+    <script is:inline>
+      // Handle OAuth redirect and token exchange
+      (async function () {
+        const TOKEN_KEYS = {
+          idToken: "cognito_id_token",
+          accessToken: "cognito_access_token",
+          refreshToken: "cognito_refresh_token",
+        };
+
+        const COGNITO_CONFIG = {
+          domain: "us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com",
+          clientId: "hsrpdhl5sellv9n3dotako1tm",
+          scopes: ["openid", "email", "profile", "phone"],
+        };
+
+        function parseJWT(token) {
+          try {
+            const base64Url = token.split(".")[1];
+            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+            const jsonPayload = decodeURIComponent(
+              atob(base64)
+                .split("")
+                .map(
+                  (c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
+                )
+                .join("")
+            );
+            return JSON.parse(jsonPayload);
+          } catch {
+            return null;
+          }
+        }
+
+        function isTokenExpired(token) {
+          const payload = parseJWT(token);
+          if (!payload || !payload.exp) return true;
+          return Date.now() >= payload.exp * 1000;
+        }
+
+        function storeTokens(tokens) {
+          try {
+            if (tokens.idToken)
+              localStorage.setItem(TOKEN_KEYS.idToken, tokens.idToken);
+            if (tokens.accessToken)
+              localStorage.setItem(TOKEN_KEYS.accessToken, tokens.accessToken);
+            if (tokens.refreshToken)
+              localStorage.setItem(
+                TOKEN_KEYS.refreshToken,
+                tokens.refreshToken
+              );
+            console.log("[AuthBridge] Tokens stored successfully");
+          } catch (e) {
+            console.error("[AuthBridge] Failed to store tokens:", e);
+          }
+        }
+
+        function clearTokens() {
+          try {
+            Object.values(TOKEN_KEYS).forEach((key) =>
+              localStorage.removeItem(key)
+            );
+          } catch {}
+        }
+
+        function getStoredTokens() {
+          try {
+            return {
+              idToken: localStorage.getItem(TOKEN_KEYS.idToken) || undefined,
+              accessToken:
+                localStorage.getItem(TOKEN_KEYS.accessToken) || undefined,
+              refreshToken:
+                localStorage.getItem(TOKEN_KEYS.refreshToken) || undefined,
+            };
+          } catch {
+            return {};
+          }
+        }
+
+        async function exchangeCodeForTokens(code, redirectUri) {
+          const tokenUrl = `https://${COGNITO_CONFIG.domain}/oauth2/token`;
+          const body = new URLSearchParams({
+            grant_type: "authorization_code",
+            client_id: COGNITO_CONFIG.clientId,
+            code: code,
+            redirect_uri: redirectUri,
+          });
+
+          console.log("[AuthBridge] Exchanging code for tokens...");
+          const response = await fetch(tokenUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: body.toString(),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+              "[AuthBridge] Token exchange failed:",
+              response.status,
+              errorText
+            );
+            throw new Error("Failed to exchange code for tokens");
+          }
+
+          const data = await response.json();
+          console.log("[AuthBridge] Token exchange successful");
+          return data;
+        }
+
+        async function handleHostedUiRedirect() {
+          try {
+            const url = new URL(window.location.href);
+            const code = url.searchParams.get("code");
+
+            if (!code) {
+              console.log("[AuthBridge] No authorization code found in URL");
+              return;
+            }
+
+            console.log(
+              "[AuthBridge] Authorization code found, exchanging for tokens..."
+            );
+            const redirectUri = window.location.origin + "/";
+            const tokenResponse = await exchangeCodeForTokens(
+              code,
+              redirectUri
+            );
+
+            if (tokenResponse.id_token) {
+              storeTokens({
+                idToken: tokenResponse.id_token,
+                accessToken: tokenResponse.access_token,
+                refreshToken: tokenResponse.refresh_token,
+              });
+              console.log("[AuthBridge] Tokens stored, cleaning URL");
+            }
+
+            // Clean the URL
+            url.searchParams.delete("code");
+            url.searchParams.delete("state");
+            window.history.replaceState({}, document.title, url.toString());
+
+            // Trigger auth state update
+            setTimeout(() => {
+              if (window.updateAuthIcon) window.updateAuthIcon();
+              document.dispatchEvent(
+                new CustomEvent("auth-changed", {
+                  detail: { authenticated: true },
+                })
+              );
+            }, 100);
+          } catch (error) {
+            console.error("[AuthBridge] Error handling auth redirect:", error);
+            clearTokens();
+          }
+        }
+
+        function getAuthState() {
+          const tokens = getStoredTokens();
+          if (!tokens.idToken || isTokenExpired(tokens.idToken)) {
+            return { signedIn: false };
+          }
+          const payload = parseJWT(tokens.idToken);
+          if (!payload) {
+            return { signedIn: false };
+          }
+          return {
+            signedIn: true,
+            email: payload.email || null,
+            groups: payload["cognito:groups"] || [],
+            idToken: tokens.idToken,
+            accessToken: tokens.accessToken,
+          };
+        }
+
+        function loginHosted(redirectUri) {
+          const ru = redirectUri || window.location.origin + "/";
+          const url = new URL(
+            `https://${COGNITO_CONFIG.domain}/oauth2/authorize`
+          );
+          url.searchParams.set("client_id", COGNITO_CONFIG.clientId);
+          url.searchParams.set("response_type", "code");
+          url.searchParams.set("scope", COGNITO_CONFIG.scopes.join(" "));
+          url.searchParams.set("redirect_uri", ru);
+          window.location.assign(url.toString());
+        }
+
+        function signOutHosted(redirectUri) {
+          clearTokens();
+          const ru = redirectUri || window.location.origin + "/";
+          const url = new URL(`https://${COGNITO_CONFIG.domain}/logout`);
+          url.searchParams.set("client_id", COGNITO_CONFIG.clientId);
+          url.searchParams.set("logout_uri", ru);
+          window.location.assign(url.toString());
+        }
+
+        // Handle redirect on page load
+        await handleHostedUiRedirect();
+
+        // Setup window.__authBridge
+        window.__authBridge = {
+          login: loginHosted,
+          logout: signOutHosted,
+          getState: getAuthState,
+          getIdToken: () => {
+            const tokens = getStoredTokens();
+            return tokens.idToken && !isTokenExpired(tokens.idToken)
+              ? tokens.idToken
+              : null;
+          },
+          getAccessToken: () => {
+            const tokens = getStoredTokens();
+            return tokens.accessToken && !isTokenExpired(tokens.accessToken)
+              ? tokens.accessToken
+              : null;
+          },
+        };
+        console.log("[AuthBridge] window.__authBridge setup complete");
+      })();
+    </script>
+    <!-- Load auth icon script from public folder (external, defer to avoid inline CSP) -->
+    <script src="/scripts/simple-auth-icon.js" defer></script>
+    <slot />
+    <Footer />
+  </body>
+</html>

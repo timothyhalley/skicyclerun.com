@@ -1,7 +1,7 @@
 import { SkiCycleRunConfig } from "skicyclerun.config";
 
 const getPageNumbers = (numberOfPosts: number) => {
-  const numberOfPages = numberOfPosts / Number(SkiCycleRunConfig.postPerPage);
+  const numberOfPages = numberOfPosts / Number(SkiCycleRunConfig.postsPerPage);
 
   let pageNumbers: number[] = [];
   for (let i = 1; i <= Math.ceil(numberOfPages); i++) {

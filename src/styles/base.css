@@ -1,11 +1,28 @@
-@import '@styles/topography.css';
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/*
+ * CRITICAL: Tailwind CSS v4 Import
+ * ===================================
+ * This project uses Tailwind CSS v4.x (see package.json: "tailwindcss": "^4.1.13")
+ * 
+ * TAILWIND V4 IMPORT SYNTAX:
+ *   @import "tailwindcss";  ✅ CORRECT - imports all utilities, components, and base styles
+ * 
+ * DO NOT USE V3 SYNTAX (will break):
+ *   @import "tailwindcss/base";       ❌ WRONG for v4
+ *   @import "tailwindcss/components"; ❌ WRONG for v4
+ *   @import "tailwindcss/utilities";  ❌ WRONG for v4
+ *   @import "tailwindcss/preflight";  ❌ WRONG for v4
+ * 
+ * Without the correct import, NO Tailwind utility classes (text-2xl, flex, etc.) will work!
+ * 
+ * See: https://tailwindcss.com/docs/v4-beta
+ */
+
+@import "@styles/topography.css";
+@import "tailwindcss";
 
 @font-face {
-  font-family: 'Asimovian';
-  src: url('/fonts/asimovian/Asimovian-Regular.ttf') format('truetype');
+  font-family: "Asimovian";
+  src: url("/fonts/asimovian/Asimovian-Regular.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -13,7 +30,7 @@
 
 @layer base {
   :root,
-  html[data-theme='light'] {
+  html[data-theme="light"] {
     --color-fill: 251, 254, 251;
     --color-text-base: 40, 39, 40;
     --color-accent: 0, 108, 172;
@@ -22,7 +39,7 @@
     --color-border: 236, 233, 233;
   }
 
-  html[data-theme='dark'] {
+  html[data-theme="dark"] {
     --color-fill: 33, 39, 55;
     --color-text-base: 234, 237, 243;
     --color-accent: 255, 107, 1;
@@ -32,59 +49,101 @@
   }
 
   #sun-svg,
-  html[data-theme='dark'] #moon-svg {
+  html[data-theme="dark"] #moon-svg {
     display: none;
   }
 
   #moon-svg,
-  html[data-theme='dark'] #sun-svg {
+  html[data-theme="dark"] #sun-svg {
     display: block;
   }
 
   body {
-    @apply flex min-h-[100svh] flex-col bg-skin-fill font-asimovian text-skin-base selection:bg-skin-accent selection:bg-opacity-70 selection:text-skin-inverted;
+    display: flex;
+    min-height: 100svh;
+    flex-direction: column;
+    font-family: "Asimovian", sans-serif;
+    background-color: rgb(var(--color-fill));
+    color: rgb(var(--color-text-base));
   }
 
+  /* Remove global fixed max-width so page layouts can control their own container widths
+     (some pages require wider containers like 1024px). Keep consistent side padding. */
   section,
   footer {
-    @apply mx-auto max-w-3xl px-4;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
   a {
-    @apply outline-2 outline-offset-1 outline-skin-fill focus-visible:no-underline focus-visible:outline-dashed;
+    outline-width: 2px;
+    outline-offset: 1px;
+    outline-color: rgb(var(--color-fill));
+  }
+  a:focus-visible {
+    text-decoration: none;
+    outline-style: dashed;
   }
 
   svg {
-    @apply inline-block h-6 w-6 fill-skin-base group-hover:fill-skin-accent;
+    display: inline-block;
+    height: 1.5rem;
+    width: 1.5rem;
+    fill: rgb(var(--color-text-base));
   }
 
-  svg.icon-tabler {
-    @apply inline-block h-6 w-6 scale-125 fill-transparent stroke-current stroke-2 opacity-90 group-hover:fill-transparent sm:scale-110;
+  /* Global post title utility to match layouts like TechPostLayout/PostDetails */
+  /* Post/title components: define plain CSS so we avoid @apply compilation issues
+     This centralizes typography and avoids scoped CSS specificity conflicts. */
+}
+
+@layer components {
+  /* Post/title helpers intentionally moved to overrides.css so they can be
+     imported after prose-fix.css and avoid being overridden by .prose rules. */
+}
+
+@layer base {
+  .group:hover svg {
+    fill: rgb(var(--color-accent));
   }
 
-  /* ===== scrollbar ===== */
+  nav ul li a {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    text-align: center;
+    font-weight: 500;
+  }
+  nav ul li a:hover {
+    color: rgb(var(--color-accent));
+  }
+
   html {
     overflow-y: scroll;
   }
 
   /* width */
   ::-webkit-scrollbar {
-    @apply w-3;
+    width: 0.75rem;
   }
 
   /* Track */
   ::-webkit-scrollbar-track {
-    @apply bg-skin-fill;
+    background-color: rgb(var(--color-fill));
   }
 
   /* Handle */
   ::-webkit-scrollbar-thumb {
-    @apply bg-skin-card;
+    background-color: rgb(var(--color-card));
   }
 
   /* Handle on hover */
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-skin-card-muted;
+    background-color: rgb(var(--color-card-muted));
   }
 
   code,
@@ -94,16 +153,6 @@
 
   pre > code {
     white-space: pre;
-  }
-}
-
-@layer components {
-  .display-none {
-    @apply hidden;
-  }
-
-  .focus-outline {
-    @apply outline-2 outline-offset-1 outline-skin-fill focus-visible:no-underline focus-visible:outline-dashed;
   }
 }
 
@@ -134,10 +183,6 @@
   }
 
   .scrollbar-hide {
-    /* Firefox */
-    scrollbar-width: none;
-    scrollbar-color: transparent transparent;
-
     /* IE 10+ and legacy Edge */
     -ms-overflow-style: none;
 

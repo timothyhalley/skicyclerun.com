@@ -11,53 +11,400 @@ export interface Props {
 const { noMarginTop = false } = Astro.props;
 ---
 
-<footer class={`${noMarginTop ? "" : "mt-auto"}`}>
+<!-- DO NOT AUTO-EDIT: Footer responsive display logic guarded. Changes must be reviewed. -->
+<footer class={`${noMarginTop ? "" : "mt-auto"} w-full`}>
   <Hr noPadding />
   <div class="footer-wrapper">
-    <Socials centered />
-    <div class="copyright-wrapper">
-      <span>Copyright &#169; {currentYear}</span>
-      <span class="separator">&nbsp;|&nbsp;</span>
-      <span>All rights reserved.</span>
-    </div>
-    <div>
-      <a
-        target="_blank"
-        href="/rss.xml"
-        class="rss-link"
-        aria-label="rss feed"
-        title="RSS Feed"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="rss-icon" fill="#0000ff"
-          ><path
-            d="M19 20.001C19 11.729 12.271 5 4 5v2c7.168 0 13 5.832 13 13.001h2z"
-          ></path><path
-            d="M12 20.001h2C14 14.486 9.514 10 4 10v2c4.411 0 8 3.589 8 8.001z"
-          ></path><circle cx="6" cy="18" r="2"></circle>
-        </svg>
-        <span class="sr-only">RSS Feed</span>
-      </a>
+    <div class="footer-content">
+      <div class="rss-section">
+        <a
+          href="/profile"
+          class="footer-icon-link"
+          aria-label="profile"
+          title="Profile"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="footer-icon"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            fill="none"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polygon
+              points="10.08 11.04 11.04 6.25 12.96 6.25 13.92 11.04 12.75 12 11.25 12 10.08 11.04"
+            ></polygon>
+            <line x1="8.17" y1="6.25" x2="15.83" y2="6.25"></line>
+            <line x1="10.08" y1="14.88" x2="13.92" y2="14.88"></line>
+            <polygon
+              points="18.71 15.83 17.56 17.56 16.79 18.71 7.21 18.71 6.44 17.56 5.29 15.83 6.25 4.33 9.13 1.46 14.88 1.46 17.75 4.33 18.71 15.83"
+            ></polygon>
+            <polygon
+              points="20.63 20.63 20.63 22.54 3.38 22.54 3.38 20.63 6.44 17.56 7.21 18.71 16.79 18.71 17.56 17.56 20.63 20.63"
+            ></polygon>
+            <line x1="0.5" y1="22.54" x2="23.5" y2="22.54"></line>
+          </svg>
+        </a>
+        <a
+          target="_blank"
+          href="/rss.xml"
+          class="footer-icon-link"
+          aria-label="rss feed"
+          title="RSS Feed"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="footer-icon"
+            stroke="currentColor"
+            fill="none"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><path
+              d="M19 20.001C19 11.729 12.271 5 4 5v2c7.168 0 13 5.832 13 13.001h2z"
+            ></path><path
+              d="M12 20.001h2C14 14.486 9.514 10 4 10v2c4.411 0 8 3.589 8 8.001z"
+            ></path><circle cx="6" cy="18" r="2"></circle>
+          </svg>
+        </a>
+      </div>
+
+      <div class="copyright-wrapper">
+        <span id="footer-auth-info"
+          >Copyright © {currentYear} • All rights reserved</span
+        >
+        <span id="user-info" class="user-info hidden"></span>
+      </div>
+
+      <div class="socials-section">
+        <Socials centered />
+      </div>
     </div>
   </div>
 </footer>
 
 <style>
   footer {
-    @apply w-full;
+    width: 100vw;
+    padding: 0.75rem 0;
+    max-width: 100%;
+    overflow-x: hidden;
+    background-color: rgb(
+      var(--color-fill)
+    ); /* explicit background to avoid overlay bleed-through */
+    position: relative;
+    z-index: 12; /* sit above any page overlays */
   }
+
+  /* Subtle darkening overlay (approx. 5%) so footer is slightly darker across themes */
+  footer::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.05); /* darken by ~5% */
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Dark theme: make footer slightly more contrasted */
+  html[data-theme="dark"] footer {
+    background-color: rgb(var(--color-card));
+  }
+
   .footer-wrapper {
-    @apply flex flex-col items-center justify-between py-6 sm:flex-row-reverse sm:py-4;
+    max-width: 1024px;
+    margin: 0 auto;
+    width: 100%;
+    position: relative;
+    z-index: 2; /* make sure content sits above the overlay */
   }
-  .link-button {
-    @apply my-1 p-2 hover:rotate-6;
+
+  .footer-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 2.5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
-  .link-button svg {
-    @apply scale-125;
-  }
+
   .copyright-wrapper {
-    @apply my-2 flex flex-col items-center whitespace-nowrap sm:flex-row;
+    white-space: nowrap;
+    text-align: center;
+    flex-grow: 1;
+    font-size: 0.9rem;
+    color: var(--color-text-muted, #666);
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .separator {
-    @apply hidden sm:inline;
+
+  .rss-section,
+  .socials-section {
+    flex-basis: auto;
+    min-width: 2rem;
+  }
+
+  .rss-section {
+    text-align: left;
+  }
+
+  .socials-section {
+    text-align: right;
+  }
+
+  .footer-icon {
+    height: 1.5rem;
+    width: 1.5rem;
+    transition:
+      transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+      stroke 0.3s ease,
+      stroke-width 0.3s ease;
+    vertical-align: middle;
+    stroke-width: 2.2;
+    stroke: rgb(var(--color-text-base)); /* Use theme-aware stroke color */
+    fill: none !important; /* Force no fill for outline SVGs */
+  }
+
+  .footer-icon-link {
+    position: relative;
+    display: inline-block;
+    margin: 0 0.3rem;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    color: rgb(var(--color-text-base)); /* Use theme-aware text color */
+  }
+
+  .footer-icon-link:hover {
+    transform: translateY(-3px);
+  }
+
+  .footer-icon-link:hover .footer-icon {
+    transform: rotate(8deg);
+    stroke: rgb(var(--color-accent));
+    stroke-width: 2.5;
+  }
+
+  /* Add pulse effect to footer icons */
+  .footer-icon-link::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(var(--color-accent), 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    transition:
+      transform 0.4s ease-out,
+      opacity 0.4s ease-out;
+    z-index: -1;
+  }
+
+  .footer-icon-link:hover::after {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
+    animation: pulse 1.2s ease-out infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0.6;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(1.8);
+      opacity: 0;
+    }
+  }
+
+  /* Responsive styles */
+  @media (max-width: 900px) and (min-width: 641px) {
+    .footer-content {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
+  /* Force single row even on small screens */
+  @media (max-width: 640px) {
+    .footer-content {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+
+    .copyright-wrapper {
+      font-size: 0.75rem;
+      padding: 0 0.25rem;
+      max-width: 55%;
+    }
+
+    .rss-section,
+    .socials-section {
+      min-width: 1.5rem;
+    }
+  }
+
+  /* Extra small screens */
+  @media (max-width: 400px) {
+    .footer-content {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+
+    .copyright-wrapper {
+      font-size: 0.7rem;
+      max-width: 60%;
+    }
+  }
+
+  /* Ultra small screens - hide footer text completely */
+  @media (max-width: 450px) {
+    #footer-auth-info,
+    #user-info {
+      display: none !important;
+    }
+  }
+
+  /* User info styling */
+  .user-info {
+    display: inline-block;
+    font-size: 0.9rem;
+    color: var(--color-text-muted, #666);
+    transition: color 0.3s ease;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    background-color: rgba(var(--color-accent), 0.1);
+    margin: 0 0.25rem;
+  }
+
+  /* Responsive font size for user info */
+  @media (max-width: 640px) {
+    .user-info {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.4rem;
+    }
+  }
+
+  /* Highlight effect for user info */
+  #user-info.highlight {
+    animation: highlight-pulse 2s ease-in-out;
+  }
+
+  @keyframes highlight-pulse {
+    0% {
+      color: var(--color-text-muted, #666);
+      background-color: rgba(var(--color-accent), 0.1);
+    }
+    25% {
+      color: rgb(var(--color-accent));
+      background-color: rgba(var(--color-accent), 0.2);
+    }
+    75% {
+      color: rgb(var(--color-accent));
+      background-color: rgba(var(--color-accent), 0.2);
+    }
+    100% {
+      color: var(--color-text-muted, #666);
+      background-color: rgba(var(--color-accent), 0.1);
+    }
   }
 </style>
+<script>
+  import { getAuthState } from "@utils/clientAuth";
+  import {
+    formatUserDisplay,
+    formatCopyright,
+    isSmallDevice,
+  } from "@lib/userDisplay";
+
+  async function updateFooterAuth() {
+    const el = document.getElementById("footer-auth-info");
+    const userEl = document.getElementById("user-info");
+    if (!el) {
+      console.error("[Footer] Could not find footer-auth-info element");
+      return;
+    }
+
+    const compact = isSmallDevice();
+    const currentYear = new Date().getFullYear();
+
+    console.log(
+      "[Footer] updateFooterAuth called, compact:",
+      compact,
+      "year:",
+      currentYear
+    );
+
+    try {
+      const state = await getAuthState();
+      console.log("[Footer] Auth state:", state);
+
+      if (state.signedIn) {
+        const userEmail = state.email || "signed-in user";
+        const userGroups = Array.isArray(state.groups) ? state.groups : [];
+
+        // Use compact format on small devices
+
+        const txt = formatUserDisplay({
+          email: userEmail,
+          groups: userGroups,
+          compact,
+        });
+
+        console.log("[Footer] Signed in, displaying user info:", txt);
+
+        el.classList.add("hidden");
+        if (userEl) {
+          userEl.textContent = txt;
+          userEl.classList.remove("hidden");
+          userEl.classList.add("highlight");
+          setTimeout(() => userEl.classList.remove("highlight"), 2000);
+        } else {
+          el.textContent = txt;
+          el.classList.remove("hidden");
+        }
+      } else {
+        // Not signed in - show copyright
+        console.log("[Footer] Not signed in, showing copyright");
+        if (userEl) userEl.classList.add("hidden");
+        const copyrightText = formatCopyright(currentYear, compact);
+        console.log("[Footer] Copyright text:", copyrightText);
+        el.textContent = copyrightText;
+        el.classList.remove("hidden");
+      }
+    } catch (error) {
+      // On error, show copyright as fallback
+      console.error("[Footer] Error in updateFooterAuth:", error);
+      if (userEl) userEl.classList.add("hidden");
+      const copyrightText = formatCopyright(currentYear, compact);
+      console.log("[Footer] Fallback copyright text:", copyrightText);
+      el.textContent = copyrightText;
+      el.classList.remove("hidden");
+    }
+  }
+
+  // Update on page events
+  document.addEventListener("astro:page-load", updateFooterAuth);
+  document.addEventListener("astro:after-swap", updateFooterAuth);
+
+  // Listen for explicit auth change events dispatched by the auth script
+  document.addEventListener("auth-changed", () => {
+    setTimeout(updateFooterAuth, 10);
+  });
+
+  // Update on window resize to handle orientation changes
+  let resizeTimeout;
+  // Use breakpoints 650px and 300px for footer compactness rules
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = window.setTimeout(updateFooterAuth, 150);
+  });
+
+  // Initial update
+  updateFooterAuth();
+</script>

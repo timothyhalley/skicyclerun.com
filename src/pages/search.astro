@@ -1,70 +1,166 @@
 ---
-import { getCollection } from "astro:content";
 import { SkiCycleRunConfig } from "skicyclerun.config";
-import Layout from "@layouts/Layout.astro";
-import Main from "@layouts/Main.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import Breadcrumbs from "@layouts/Breadcrumbs.astro";
 import Header from "@components/Header.astro";
-import Footer from "@components/Footer.astro";
-import SearchBar from "@components/Search";
-import getSortedPosts from "@utils/getSortedPosts";
-
-// Retrieve all published articles
-const posts = await getCollection("blog", ({ data }) => !data.draft);
-const sortedPosts = getSortedPosts(posts);
-
-// Helper to produce a lightweight, lowercased body snippet (strip most markdown / code blocks)
-const stripMarkdown = (raw: string) =>
-  raw
-    .replace(/```[\s\S]*?```/g, " ") // fenced code
-    .replace(/`[^`]*`/g, " ") // inline code
-    .replace(/!\[[^\]]*]\([^)]*\)/g, " ") // images
-    .replace(/\[[^\]]*]\([^)]*\)/g, " ") // links
-    .replace(/[#>*_~`-]+/g, " ") // md tokens
-    .replace(/\s+/g, " ")
-    .trim();
-
-// Provide ONLY serializable primitives to the island (avoid Date objects / functions)
-const searchList = sortedPosts.map(({ data, slug, body }) => {
-  const tags = data.tags ?? [];
-  const rawBody = body ? stripMarkdown(body) : "";
-  // Limit snippet length to keep payload reasonable
-  const bodySnippet = rawBody.slice(0, 4000).toLowerCase();
-
-  // Build composite searchText including body snippet
-  const searchText = [
-    data.title,
-    data.description,
-    tags.join(" "),
-    data.author,
-    data.type,
-    slug,
-    data.class || "",
-    data.album || "",
-    bodySnippet,
-  ]
-    .filter(Boolean)
-    .join(" \n ")
-    .toLowerCase();
-
-  return {
-    slug,
-    title: data.title,
-    description: data.description ?? "",
-    type: data.type,
-    author: data.author,
-    pubDatetime: data.pubDatetime?.toISOString?.() ?? null,
-    modDatetime: data.modDatetime?.toISOString?.() ?? null,
-    tags,
-    bodySnippet, // new searchable field
-    searchText,
-  };
-});
 ---
 
-<Layout title={`Search | ${SkiCycleRunConfig.title}`}>
+<BaseLayout title={`Search | ${SkiCycleRunConfig.title}`}>
   <Header activeNav="search" />
-  <Main pageTitle="Search" pageDesc="Search any article ...">
-    <SearchBar client:load searchList={searchList} />
-  </Main>
-  <Footer />
-</Layout>
+  <Breadcrumbs pageTitle="Search" pageDesc="Search all posts...">
+    <div class="w-full">
+      <div class="w-full mx-auto max-w-[64rem]">
+        <div
+          class="flex flex-nowrap items-center gap-3 py-3 px-5 rounded-md border-2 border-skin-line bg-skin-card focus-within:border-skin-accent transition-colors"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6 text-skin-accent opacity-90 flex-none"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path
+              d="M19.023 16.977a35.13 35.13 0 0 1-1.367-1.384c-.372-.378-.596-.653-.596-.653l-2.8-1.337A6.962 6.962 0 0 0 16 9c0-3.859-3.14-7-7-7S2 5.141 2 9s3.14 7 7 7c1.763 0 3.37-.66 4.603-1.739l1.337 2.8s.275.224.653.596c.387.363.896.854 1.384 1.367l1.358 1.392.604.646 2.121-2.121-.646-.604c-.379-.372-.885-.866-1.391-1.36zM9 14c-2.757 0-5-2.243-5-5s2.243-5 5-5 5 2.243 5 5-2.243 5-5 5z"
+            ></path>
+          </svg>
+          <input
+            id="search-input"
+            class="flex-1 min-w-0 bg-transparent border-0 outline-none text-skin-base placeholder:text-skin-base placeholder:opacity-60 text-lg py-2"
+            placeholder="Search posts..."
+            type="text"
+          />
+        </div>
+        <div id="search-status" class="mt-3 text-sm text-skin-base opacity-70">
+        </div>
+      </div>
+    </div>
+    <div id="search-fragment"></div>
+  </Breadcrumbs>
+
+  <script>
+    import { SearchEngine } from "@lib/search";
+
+    const searchEngine = new SearchEngine();
+
+    function onReady(cb: () => void) {
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", cb, { once: true });
+      } else {
+        cb();
+      }
+    }
+
+    function renderResults(q: string, page = 1) {
+      const target = document.getElementById("search-fragment");
+      const status = document.getElementById("search-status");
+
+      if (!target || !status) return;
+
+      // If query is empty, clear results
+      if (!q) {
+        console.debug("[search] empty query → clear results");
+        target.innerHTML = "";
+        status.textContent = "";
+        return;
+      }
+
+      if (searchEngine.isLoadingData()) {
+        status.textContent = "Loading search index...";
+        return;
+      }
+
+      // Filter and paginate posts
+      const filtered = searchEngine.filterPosts(q);
+      const { items, currentPage, totalPages } = searchEngine.paginatePosts(
+        filtered,
+        page
+      );
+
+      // Update status
+      if (filtered.length === 0) {
+        status.textContent = "No results found for '" + q + "'";
+        target.innerHTML = "";
+        return;
+      } else {
+        status.textContent =
+          "Found " +
+          filtered.length +
+          " result" +
+          (filtered.length === 1 ? "" : "s") +
+          " for '" +
+          q +
+          "'";
+      }
+
+      // Render results HTML
+      const html = searchEngine.renderResultsHTML(
+        items,
+        currentPage,
+        totalPages
+      );
+      target.innerHTML = html;
+
+      // Wire pagination buttons
+      const prevBtn = target.querySelector(".pagination-prev");
+      const nextBtn = target.querySelector(".pagination-next");
+      if (prevBtn) {
+        prevBtn.addEventListener("click", () => {
+          handleQueryChange(q, currentPage - 1);
+        });
+      }
+      if (nextBtn) {
+        nextBtn.addEventListener("click", () => {
+          handleQueryChange(q, currentPage + 1);
+        });
+      }
+    }
+
+    function handleQueryChange(q: string, page = 1) {
+      const url = q
+        ? `/search?q=${encodeURIComponent(q)}&page=${page}`
+        : "/search";
+      history.pushState({ q, page }, "", url);
+      renderResults(q, page);
+    }
+
+    onReady(async function () {
+      // Load posts data first
+      await searchEngine.loadPostsData();
+
+      // Prefill from URL and render initial results
+      const params = new URLSearchParams(window.location.search);
+      const q = (params.get("q") || "").trim();
+      const page = parseInt(params.get("page") || "1", 10) || 1;
+      console.debug("[search] init q='" + q + "' page=" + page);
+      renderResults(q, page);
+
+      // Wire input directly to render
+      const inputNode = document.getElementById("search-input");
+      if (inputNode && inputNode instanceof HTMLInputElement) {
+        const input = inputNode;
+        if (q) input.value = q;
+        input.addEventListener("input", () => {
+          const next = input.value.trim();
+          console.debug("[search] input value='" + next + "'");
+          handleQueryChange(next, 1);
+        });
+      }
+
+      window.addEventListener("popstate", function (ev) {
+        const state = ev.state as { q?: string; page?: number } | null;
+        const q =
+          state?.q ||
+          new URLSearchParams(window.location.search).get("q") ||
+          "";
+        const page =
+          state?.page ||
+          parseInt(
+            new URLSearchParams(window.location.search).get("page") || "1",
+            10
+          ) ||
+          1;
+        renderResults(q, page);
+      });
+    });
+  </script>
+</BaseLayout>

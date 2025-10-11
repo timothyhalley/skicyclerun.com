@@ -1,0 +1,18 @@
+/* User authentication styles */
+body.user-authenticated #login-icon {
+  display: none !important;
+}
+
+body.user-authenticated #logout-icon {
+  display: inline !important;
+}
+
+body.user-not-authenticated #login-icon {
+  display: inline !important;
+}
+
+body.user-not-authenticated #logout-icon {
+  display: none !important;
+}
+
+/* Add other authenticated user styles as needed */

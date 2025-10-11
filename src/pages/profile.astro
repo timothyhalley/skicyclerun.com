@@ -1,0 +1,485 @@
+---
+// Profile page - client-side auth only
+import BaseLayout from "@layouts/BaseLayout.astro";
+import Header from "@components/Header.astro";
+import ProfileLayout from "@layouts/ProfileLayout.astro";
+import AuthButton from "@components/AuthButton.astro";
+import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
+---
+
+<BaseLayout title="User Profile">
+  <Header />
+
+  <ProfileLayout>
+    <div class="bg-skin-card shadow-lg rounded-lg p-8 space-y-6">
+      <h1 class="text-4xl md:text-5xl font-extrabold text-skin-base mb-6">
+        Your Profile
+      </h1>
+
+      <!-- Loading -->
+      <div id="profile-loading" class="text-center py-8">
+        <p class="text-gray-600 dark:text-gray-400">Loading profile...</p>
+      </div>
+
+      <!-- Not Authenticated -->
+      <div
+        id="profile-not-authenticated"
+        class="bg-skin-fill border border-skin-line rounded-md p-6 hidden"
+      >
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Left Column: Easter Island Statue -->
+          <div class="flex items-center justify-center p-4">
+            <img
+              src={EasterIslandStatue.src}
+              alt="Easter Island Statue"
+              class="w-48 h-48 md:w-64 md:h-64 object-contain opacity-80"
+            />
+          </div>
+
+          <!-- Right Column: Authentication Message and Actions -->
+          <div class="flex flex-col justify-center space-y-4">
+            <div class="text-center md:text-left">
+              <h2 class="text-lg font-semibold text-skin-base mb-2">
+                Authentication Required
+              </h2>
+              <p class="text-skin-base mb-4">
+                Please sign in to view your profile and access personalized
+                content.
+              </p>
+            </div>
+
+            <div
+              class="flex flex-col sm:flex-row gap-3 justify-center md:justify-start items-center"
+            >
+              <button
+                data-auth-btn
+                type="button"
+                data-auth-state="unauthenticated"
+                data-cognito-domain="us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com"
+                data-client-id="hsrpdhl5sellv9n3dotako1tm"
+                data-scopes="openid email profile phone"
+                class="sign-in-btn inline-flex items-center gap-2 px-4 py-2 rounded-md text-white hover:opacity-90 transition-opacity cursor-pointer"
+                aria-label="Sign In"
+                title="Sign In"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-5 h-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                  <path
+                    d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"
+                  ></path>
+                  <path d="M20 12h-13l3 -3m0 6l-3 -3"></path>
+                </svg>
+                Sign In
+              </button>
+
+              <span class="text-skin-base opacity-60">or</span>
+
+              <a
+                href="/"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-skin-line text-skin-base hover:bg-skin-card-muted transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                  ></path>
+                </svg>
+                Back to Home
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Authenticated -->
+      <div id="profile-content" class="hidden space-y-6">
+        <!-- Injected UserCard goes here -->
+        <div id="user-card-container"></div>
+
+        <div class="flex gap-3">
+          <button
+            id="logout-btn"
+            class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition hidden"
+            >Sign Out</button
+          >
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div
+        id="profile-error"
+        class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-md p-4 hidden"
+      >
+        <p class="text-red-800 dark:text-red-200 mb-4">
+          Unable to load profile information. Please try signing out and back
+          in.
+        </p>
+        <button
+          id="error-logout-btn"
+          class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+          >Sign Out</button
+        >
+      </div>
+    </div>
+  </ProfileLayout>
+</BaseLayout>
+
+<script is:inline define:vars={{ statueImageSrc: EasterIslandStatue.src }}>
+  (function () {
+    console.log("[Profile] Script initializing...");
+
+    async function getAuthState() {
+      console.log("[Profile] getAuthState called");
+      console.log(
+        "[Profile] window.__authBridge exists:",
+        !!window.__authBridge
+      );
+      if (
+        window.__authBridge &&
+        typeof window.__authBridge.getState === "function"
+      ) {
+        console.log("[Profile] Calling bridge getState");
+        const state = await window.__authBridge.getState();
+        console.log("[Profile] Bridge getState result:", state);
+        return state;
+      }
+      console.log("[Profile] No auth bridge available");
+      return null;
+    }
+
+    async function fetchUserProfile(email, token) {
+      console.log("[Profile] fetchUserProfile called with:", {
+        email,
+        hasToken: !!token,
+      });
+      try {
+        const headers = {
+          "Content-Type": "application/json",
+        };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+          console.log("[Profile] Added Authorization header with Bearer token");
+        } else {
+          console.warn("[Profile] No token provided for API call");
+        }
+
+        const url = `https://api.skicyclerun.com/dev/profile?email=${encodeURIComponent(email)}`;
+        console.log("[Profile] Making API request to:", url);
+        console.log("[Profile] Request headers:", headers);
+
+        const res = await fetch(url, { headers });
+        console.log("[Profile] API response status:", res.status);
+        console.log("[Profile] API response ok:", res.ok);
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("[Profile] API error response:", errorText);
+          throw new Error(`Profile fetch failed: ${res.status} - ${errorText}`);
+        }
+
+        const data = await res.json();
+        console.log("[Profile] API success response:", data);
+        return data;
+      } catch (err) {
+        console.error("[Profile] API error:", err);
+        return null;
+      }
+    }
+
+    function renderUserCard({
+      name,
+      email,
+      phone,
+      geo,
+      groups,
+      lastLogin,
+      memberSince,
+    }) {
+      const container = document.getElementById("user-card-container");
+      // Use the statue image URL passed from Astro scope
+      const statueUrl = statueImageSrc;
+      container.innerHTML = `
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 p-6 rounded-lg shadow-lg">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center p-2">
+              <img src="${statueUrl}" alt="${name}" class="w-full h-full object-contain" />
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">${name}</h2>
+              <p class="text-gray-600 dark:text-gray-300">${email}</p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4">
+              <h3 class="font-semibold text-gray-900 dark:text-white border-b pb-2">Contact Information</h3>
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-400">Email:</span>
+                  <span class="font-medium text-gray-900 dark:text-white">${email}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-400">Phone:</span>
+                  <span class="font-medium text-gray-900 dark:text-white">${phone || "Not provided"}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-400">Location:</span>
+                  <span class="font-medium text-gray-900 dark:text-white">${geo || "Not specified"}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="space-y-4">
+              <h3 class="font-semibold text-gray-900 dark:text-white border-b pb-2">Account Details</h3>
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-400">Member Since:</span>
+                  <span class="font-medium text-gray-900 dark:text-white">${memberSince || "Unknown"}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-400">Last Login:</span>
+                  <span class="font-medium text-gray-900 dark:text-white">${lastLogin || "Current session"}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-600 dark:text-gray-400">Groups:</span>
+                  <div class="flex flex-wrap gap-2 justify-end">
+                    ${groups.map((g) => `<span class="px-3 py-1 rounded-full text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium">${g}</span>`).join("")}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadProfile() {
+      console.log("[Profile] loadProfile called");
+      const loading = document.getElementById("profile-loading");
+      const notAuth = document.getElementById("profile-not-authenticated");
+      const content = document.getElementById("profile-content");
+      const error = document.getElementById("profile-error");
+      const logoutBtn = document.getElementById("logout-btn");
+      const errorLogoutBtn = document.getElementById("error-logout-btn");
+
+      try {
+        console.log("[Profile] Getting auth state...");
+        const authState = await getAuthState();
+        console.log("[Profile] Auth state received:", authState);
+
+        if (!authState || !authState.signedIn || !authState.email) {
+          console.log(
+            "[Profile] User not authenticated, showing not-auth section"
+          );
+          loading.style.display = "none";
+          notAuth.style.display = "block";
+          content.style.display = "none";
+          error.style.display = "none";
+          return;
+        }
+
+        const email = authState.email;
+        const token = authState.idToken || authState.accessToken;
+        console.log(
+          "[Profile] User authenticated - Email:",
+          email,
+          "Has token:",
+          !!token
+        );
+
+        if (token) {
+          console.log(
+            "[Profile] Token type:",
+            authState.idToken ? "idToken" : "accessToken"
+          );
+          console.log(
+            "[Profile] Token preview:",
+            token.substring(0, 50) + "..."
+          );
+        }
+
+        console.log("[Profile] Calling fetchUserProfile...");
+        const profile = await fetchUserProfile(email, token);
+        console.log("[Profile] fetchUserProfile result:", profile);
+
+        if (!profile || !profile.email) {
+          console.error("[Profile] Invalid profile data received");
+          throw new Error("Invalid profile");
+        }
+
+        const name = profile.name || email.split("@")[0];
+        const phone = profile.phone;
+        const geo = profile.geo;
+        const groups = profile.groups?.length ? profile.groups : ["User"];
+        const lastLogin = profile.lastLogin
+          ? new Date(profile.lastLogin).toLocaleDateString()
+          : null;
+        const memberSince = profile.createdAt
+          ? new Date(profile.createdAt).toLocaleDateString()
+          : null;
+
+        renderUserCard({
+          name,
+          email,
+          phone,
+          geo,
+          groups,
+          lastLogin,
+          memberSince,
+        });
+
+        loading.style.display = "none";
+        content.style.display = "block";
+        notAuth.style.display = "none";
+        error.style.display = "none";
+        logoutBtn.style.display = "inline-block";
+      } catch (err) {
+        console.error("Profile load error:", err);
+        loading.style.display = "none";
+        content.style.display = "none";
+        notAuth.style.display = "none";
+        error.style.display = "block";
+      }
+    }
+
+    function setupButtons() {
+      const logoutBtns = document.querySelectorAll(
+        "#logout-btn, #error-logout-btn"
+      );
+
+      logoutBtns.forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          try {
+            await window.__authBridge?.logout?.();
+          } catch (error) {
+            console.error("Logout error:", error);
+          }
+        });
+      });
+
+      // Setup Sign In button manually
+      const signInBtn = document.querySelector(
+        "#profile-not-authenticated [data-auth-btn]"
+      );
+      if (signInBtn) {
+        console.log("[Profile] Setting up Sign In button click handler");
+        signInBtn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log("[Profile] Sign In button clicked");
+
+          try {
+            // Prefer bridge login
+            if (
+              window.__authBridge &&
+              typeof window.__authBridge.login === "function"
+            ) {
+              console.log("[Profile] Using authBridge.login()");
+              await window.__authBridge.login();
+              return;
+            }
+
+            // Fallback: construct Hosted UI URL
+            console.log("[Profile] Using fallback Hosted UI URL");
+            const domain = signInBtn.getAttribute("data-cognito-domain");
+            const clientId = signInBtn.getAttribute("data-client-id");
+            const scopes =
+              signInBtn.getAttribute("data-scopes") || "openid email profile";
+            const origin = window.location.origin + "/";
+
+            if (domain && clientId) {
+              const url = new URL(`https://${domain}/oauth2/authorize`);
+              url.searchParams.set("client_id", clientId);
+              url.searchParams.set("response_type", "code");
+              url.searchParams.set("redirect_uri", origin);
+              url.searchParams.set("scope", scopes);
+              console.log("[Profile] Redirecting to:", url.toString());
+              window.location.assign(url.toString());
+            } else {
+              console.error("[Profile] Missing domain or clientId");
+            }
+          } catch (error) {
+            console.error("[Profile] Sign in error:", error);
+          }
+        });
+      }
+    }
+
+    function init() {
+      console.log("[Profile] init() called");
+      console.log("[Profile] Document ready state:", document.readyState);
+      console.log(
+        "[Profile] localStorage available:",
+        typeof localStorage !== "undefined"
+      );
+      console.log(
+        "[Profile] window.__authBridge available:",
+        !!window.__authBridge
+      );
+
+      // Check localStorage tokens directly
+      if (typeof localStorage !== "undefined") {
+        const idToken = localStorage.getItem("cognito_id_token");
+        const accessToken = localStorage.getItem("cognito_access_token");
+        console.log("[Profile] Direct localStorage check:", {
+          hasIdToken: !!idToken,
+          hasAccessToken: !!accessToken,
+          idTokenPreview: idToken ? idToken.substring(0, 30) + "..." : null,
+        });
+      }
+
+      loadProfile();
+      setupButtons();
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
+
+    window.addEventListener("focus", () => {
+      setTimeout(loadProfile, 100);
+    });
+  })();
+</script>
+
+<!-- Include auth script to make login button functional -->
+<script is:inline src="/scripts/simple-auth-icon.js"></script>
+
+<style>
+  /* Sign In button with theme-aware accent color */
+  .sign-in-btn {
+    background-color: rgb(var(--color-accent));
+  }
+
+  /* Ensure SVGs stay outline-only with no fill */
+  .sign-in-btn svg {
+    fill: none !important;
+  }
+
+  /* Increase SVG size for better visibility */
+  .sign-in-btn svg,
+  .sign-in-btn + span + a svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+</style>

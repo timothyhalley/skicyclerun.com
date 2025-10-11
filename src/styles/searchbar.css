@@ -1,11 +1,48 @@
+/* Search Input Styling */
+.search-input {
+  border: 1px solid rgb(var(--color-border));
+  background-color: rgb(var(--color-card));
+  color: rgb(var(--color-text-base));
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.search-input:focus {
+  border-color: rgb(var(--color-accent));
+  box-shadow: 0 0 0 1px rgb(var(--color-accent) / 0.3);
+}
+
+.search-input::placeholder {
+  color: rgb(var(--color-text-base) / 0.6);
+  font-style: italic;
+}
+
+/* Search Results Styling */
+.result-item {
+  border: 1px solid rgb(var(--color-border));
+  background-color: rgb(var(--color-card));
+  transition: background-color 0.2s ease-in-out;
+}
+
 .result-item:hover {
-  @apply bg-[var(--primary-color-lighten)];
+  background-color: rgb(var(--color-card-muted));
 }
 
 .result-item:hover .result-title {
-  @apply text-[var(--primary-color)];
+  color: rgb(var(--color-accent));
 }
 
 .item-excerpt mark {
-  @apply bg-transparent font-bold text-[var(--primary-color)];
+  background-color: transparent;
+  font-weight: bold;
+  color: rgb(var(--color-accent));
+}
+
+/* Search Icon Styling */
+.search-icon {
+  color: rgb(var(--color-text-base) / 0.75);
+}
+
+/* Search Results Text */
+.search-results-text {
+  color: rgb(var(--color-text-base));
 }

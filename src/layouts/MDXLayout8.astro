@@ -1,0 +1,283 @@
+---
+import { SkiCycleRunConfig } from "@skicyclerun.config";
+import MDXCarousel from "@layouts/MDXCarousel3.astro";
+const { frontmatter } = Astro.props;
+
+// Grid control: 2, 3, or 4 (for 2x2, 3x3, 4x4)
+const galleryMatrix = frontmatter.galleryMatrix || 2;
+const gallerySlots = galleryMatrix * galleryMatrix;
+---
+
+<html>
+  <h1>{frontmatter.title}</h1>
+
+  <astro-photo-remote
+    id="apr"
+    data-album={frontmatter.album}
+    data-maxphotos={SkiCycleRunConfig.galleryMaxPhotos}
+  >
+    <!-- Gallery (fixed viewport, starts visible) -->
+    <div id="gallery" class="view active">
+      <div
+        class="photo-grid"
+        style={`grid-template-columns: repeat(${galleryMatrix}, 1fr); grid-template-rows: repeat(${galleryMatrix}, 1fr);`}
+      >
+        {Array.from({ length: gallerySlots }).map((_, i) => (
+          <div class="photo-cell" data-index={i}>
+            <!-- img injected by script when available -->
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- Hero (fixed viewport) -->
+    <div id="hero" class="view">
+      <div class="photo-placeholder-hero">
+        <img id="heroImage" alt="Focused image" />
+      </div>
+    </div>
+
+    <!-- Carousel (fixed viewport wrapper) -->
+    <div id="carousel" class="view">
+      <div class="carousel-wrapper">
+        <MDXCarousel frontmatter={frontmatter} />
+      </div>
+    </div>
+
+    <!-- Minimal selector (no legend text) -->
+    <div class="selector-wrapper">
+      <fieldset id="viewSelector" class="view-selector" role="radiogroup">
+        <label>
+          <input type="radio" name="view" value="hero" />
+          <span>Hero</span>
+        </label>
+        <label>
+          <input type="radio" name="view" value="gallery" checked />
+          <span>Gallery</span>
+        </label>
+        <label>
+          <input type="radio" name="view" value="carousel" />
+          <span>Carousel</span>
+        </label>
+      </fieldset>
+    </div>
+  </astro-photo-remote>
+
+  <slot />
+
+  <script is:inline>
+    (function () {
+      const apr = document.getElementById("apr");
+      const radios = document.querySelectorAll('input[name="view"]');
+      const views = document.querySelectorAll(".view");
+      const heroImg = document.getElementById("heroImage");
+      const gallery = document.getElementById("gallery");
+      const cells = Array.from(gallery.querySelectorAll(".photo-cell"));
+
+      function setView(value) {
+        views.forEach((v) => v.classList.remove("active"));
+        const el = document.getElementById(value);
+        if (el) el.classList.add("active");
+        radios.forEach((r) => (r.checked = r.value === value));
+      }
+
+      // Toggle via radios
+      radios.forEach((radio) => {
+        radio.addEventListener("change", () => setView(radio.value));
+      });
+
+      // Collect real images that appear anywhere under astro-photo-remote
+      const discovered = [];
+      function collectImagesFromAPR() {
+        const imgs = apr.querySelectorAll("img");
+        imgs.forEach((img) => {
+          const src = img.currentSrc || img.src;
+          if (!src) return;
+          if (!discovered.find((d) => d.src === src)) {
+            discovered.push({ src, alt: img.alt || "" });
+          }
+        });
+      }
+
+      // Fill gallery grid cells with discovered images (without cropping)
+      function populateGallery() {
+        if (discovered.length === 0) return;
+        for (let i = 0; i < cells.length; i++) {
+          const cell = cells[i];
+          const dataImg = cell.querySelector("img");
+          if (dataImg) continue; // already filled
+          const d = discovered[i % discovered.length];
+          const img = document.createElement("img");
+          img.src = d.src;
+          img.alt = d.alt || `Photo ${i + 1}`;
+          img.loading = "lazy";
+          img.decoding = "async";
+          cell.innerHTML = "";
+          cell.appendChild(img);
+
+          // Long-press and double-click to focus hero
+          let pressTimer;
+          img.addEventListener("mousedown", () => {
+            pressTimer = setTimeout(() => focusHero(img), 500);
+          });
+          ["mouseup", "mouseleave"].forEach((ev) =>
+            img.addEventListener(ev, () => clearTimeout(pressTimer))
+          );
+          img.addEventListener("dblclick", () => focusHero(img));
+          img.addEventListener("touchstart", () => {
+            pressTimer = setTimeout(() => focusHero(img), 500);
+          });
+          img.addEventListener("touchend", () => clearTimeout(pressTimer));
+        }
+      }
+
+      // Always set a hero image (first discovered)
+      function ensureHeroDefault() {
+        if (!heroImg) return;
+        if (heroImg.src) return; // already set
+        if (discovered.length > 0) {
+          heroImg.src = discovered[0].src;
+          heroImg.alt = discovered[0].alt || "Focused image";
+        }
+      }
+
+      function focusHero(img) {
+        if (heroImg) {
+          heroImg.src = img.currentSrc || img.src;
+          heroImg.alt = img.alt || "Focused image";
+        }
+        setView("hero");
+      }
+
+      // MutationObserver: whenever images appear (from gallery/carousel loaders), sync gallery & hero
+      const mo = new MutationObserver(() => {
+        collectImagesFromAPR();
+        populateGallery();
+        ensureHeroDefault();
+      });
+      mo.observe(apr, { subtree: true, childList: true });
+
+      // Initial run (in case images are already present)
+      collectImagesFromAPR();
+      populateGallery();
+      ensureHeroDefault();
+
+      // Default view: gallery, but ensure hero has content
+      setView("gallery");
+    })();
+  </script>
+
+  <style>
+    /* Fixed viewport for all modes: same box, no jumping */
+    .view {
+      display: none;
+      width: 100%;
+      max-width: 1024px;
+      margin: 0 auto;
+      aspect-ratio: 1 / 1; /* Square viewport; change to 16 / 9 if desired */
+      background-color: rgb(var(--color-fill));
+      position: relative;
+    }
+    .view.active {
+      display: block;
+    }
+
+    /* Any image inside view must scale to fit (no cropping) */
+    .view img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background-color: rgb(var(--color-fill)); /* theme-aware letterbox */
+      display: block;
+    }
+
+    /* Gallery grid fills the viewport */
+    .photo-grid {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      gap: 0.5rem;
+      background-color: rgb(var(--color-fill));
+    }
+    .photo-cell {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: rgb(var(--color-card)); /* theme-aware fallback while image loads */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .photo-cell img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain; /* keep square intent, no crop */
+      background-color: rgb(var(--color-fill));
+    }
+
+    /* Hero and carousel wrappers preserve viewport */
+    .carousel-wrapper {
+      width: 100%;
+      height: 100%;
+      background-color: rgb(var(--color-fill));
+    }
+    .photo-placeholder-hero,
+    .photo-placeholder-carousel {
+      width: 100%;
+      height: 100%;
+      background: rgb(var(--color-fill));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .photo-placeholder-carousel > * {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Minimal, compact radio selector */
+    .selector-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+    .view-selector {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .view-selector label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.2em 0.45em;
+      border-radius: 99em;
+      background: rgb(var(--color-card));
+      color: rgb(var(--color-text-base));
+      transition: background 0.2s;
+      position: relative;
+    }
+    .view-selector label:hover {
+      background: rgb(var(--color-card-muted));
+    }
+    .view-selector input {
+      position: absolute;
+      left: -9999px;
+    }
+    .view-selector span::before {
+      content: "";
+      display: inline-block;
+      width: 0.6em;  /* very small dot */
+      height: 0.6em;
+      border-radius: 50%;
+      margin-right: 0.25em;
+      background: rgb(var(--color-fill));
+      box-shadow: inset 0 0 0 0.12em rgb(var(--color-accent));
+      transition: box-shadow 0.2s;
+    }
+    .view-selector input:checked + span::before {
+      box-shadow: inset 0 0 0 0.28em rgb(var(--color-accent));
+    }
+  </style>
+</html>

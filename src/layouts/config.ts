@@ -7,7 +7,7 @@ export const SITE: Site = {
     title: "SkiCycleRun",
     ogImage: "/src/assets/images/hikeclimb.svg",
     lightAndDarkMode: true,
-    postPerPage: 5,
+    postsPerPage: 5,
     blogType: 'GENERAL',
     scheduledPostMargin: 15 * 60 * 1000, // 15 minutes
     version: '2025-07-25-0001'

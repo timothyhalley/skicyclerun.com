@@ -1,0 +1,39 @@
+---
+import { getCollection } from "astro:content";
+import { generatePostStaticPaths } from "@utils/generatePostStaticPaths";
+
+const posts = await getCollection("blog");
+const paths = generatePostStaticPaths(posts, ["TECH", "BETA"], "/tech");
+
+console.log(
+  "Generated paths for /tech:",
+  paths.map((p) => p.params.slug)
+);
+
+const pathInfo = paths.map((p) => ({
+  slug: p.params.slug,
+  hasPost: !!p.props.post,
+  postTitle: p.props.post?.data.title || "N/A",
+  postId: p.props.post?.id || "N/A",
+}));
+---
+
+<html>
+  <head>
+    <title>Debug Static Paths</title>
+  </head>
+  <body>
+    <h1>Generated Static Paths for /tech</h1>
+    <p>Total paths: {paths.length}</p>
+    <ul>
+      {
+        pathInfo.map((info, index) => (
+          <li>
+            Slug: <code>{info.slug}</code> | Post: {info.hasPost ? "Yes" : "No"}{" "}
+            | Title: {info.postTitle} | ID: {info.postId}
+          </li>
+        ))
+      }
+    </ul>
+  </body>
+</html>

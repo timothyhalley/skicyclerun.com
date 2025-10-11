@@ -1,29 +1,42 @@
 ---
-import Layout from '@layouts/Layout.astro';
-import Header from '@components/Header.astro';
-import Footer from '@components/Footer.astro';
-import Tag from '@components/Tag.astro';
-import Datetime from '@components/Datetime';
-import type { CollectionEntry } from 'astro:content';
-import { slugifyStr } from '@utils/slugify';
-import ShareLinks from '@components/ShareLinks.astro';
+import BaseLayout from "@layouts/BaseLayout.astro";
+import Header from "@components/Header.astro";
+import Tag from "@components/Tag.astro";
+import Datetime from "@components/Datetime.astro";
+import ProtectedContentWrapper from "@components/ProtectedContentWrapper.astro";
+import type { CollectionEntry } from "astro:content";
+import { slugifyStr } from "@utils/slugify";
+import { SkiCycleRunConfig } from "skicyclerun.config";
+import { getBlogSection } from "@constants/blogTypes";
 
 export interface Props {
-  post: CollectionEntry<'blog'>;
+  post: CollectionEntry<"blog">;
 }
 
 const { post } = Astro.props;
 
-// Robust, type-safe layout detection
-const usesTechLayout = post?.data?.type === 'TECH';
+// Detect section using the helper function
+const section = getBlogSection(post?.data?.type);
+const usesTechLayout = section === "tech";
 
-const { title, author, description, ogImage, canonicalURL, pubDatetime, modDatetime, tags } =
-  post.data;
+const {
+  title,
+  author,
+  description,
+  ogImage,
+  canonicalURL,
+  pubDatetime,
+  modDatetime,
+  tags,
+} = post.data;
 
 const { Content } = await post.render();
 
-const ogImageUrl = typeof ogImage === 'string' ? ogImage : ogImage?.src;
-const ogUrl = new URL(ogImageUrl ?? `/posts/${slugifyStr(title)}.png`, Astro.url.origin).href;
+const ogImageUrl = typeof ogImage === "string" ? ogImage : ogImage?.src;
+const ogUrl = new URL(
+  ogImageUrl ?? `/posts/${slugifyStr(title)}.png`,
+  Astro.url.origin
+).href;
 
 const layoutProps = {
   title,
@@ -37,51 +50,272 @@ const layoutProps = {
 };
 ---
 
-<Layout {...layoutProps}>
+<BaseLayout {...layoutProps}>
   <Header />
-  <div class='mx-auto flex w-full max-w-3xl justify-start px-2'>
-    <button class='focus-outline mb-2 mt-8 flex hover:opacity-75' onclick='history.back()'>
-      <svg xmlns='http://www.w3.org/2000/svg'
-        ><path d='M13.293 6.293 7.586 12l5.707 5.707 1.414-1.414L10.414 12l4.293-4.293z'></path>
-      </svg><span>Go back</span>
-    </button>
+  <!-- Combined navigation: Go back + Breadcrumbs on one line -->
+  <div class="nav-wrapper" data-site-centered>
+    <div class="py-2 max-w-[1024px] mx-auto px-4">
+      <div class="flex items-center whitespace-nowrap overflow-hidden">
+        <button
+          id="logical-back"
+          class="focus-outline hover:opacity-75 inline-flex items-center whitespace-nowrap"
+          data-fallback={`/${section}`}
+          type="button"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1"
+            ><path
+              d="M13.293 6.293 7.586 12l5.707 5.707 1.414-1.414L10.414 12l4.293-4.293z"
+            ></path>
+          </svg>Go back
+        </button>
+
+        <!-- Visual separator -->
+        <span class="mx-3 text-sm text-gray-400">•</span>
+
+        <span class="text-gray-600 dark:text-gray-400 whitespace-nowrap">
+          <a href="/" class="hover:underline">Home</a>
+          <span class="mx-1">»</span>
+          <a href={`/${section}`} class="hover:underline">{section}</a>
+          <span class="mx-1">»</span>
+          <span class="text-gray-900 dark:text-gray-100"
+            >{slugifyStr(post.data.slug || post.slug)}</span
+          >
+        </span>
+      </div>
+    </div>
   </div>
-  <main id='main-content'>
+
+  <main id="main-content">
+    <!-- Always show the published datetime in the header (right-justified). -->
+    <div class="datetime-wrapper">
+      <Datetime
+        pubDatetime={pubDatetime}
+        modDatetime={modDatetime}
+        size="lg"
+        className="my-1"
+      />
+    </div>
+    <ProtectedContentWrapper
+      authRequired={typeof post.data.auth_required === "boolean"
+        ? post.data.auth_required
+        : true}
+      requiredGroups={post.data.auth_groups || []}
+    >
+      <div class="article-wrapper">
+        <!-- Title rendered outside .prose to avoid .prose h1 overrides and ensure Tailwind utilities win -->
+        <header class="mb-6">
+          <h1
+            class="profile-title text-4xl md:text-5xl lg:text-6xl font-extrabold text-skin-accent"
+          >
+            {title}
+          </h1>
+        </header>
+        <article id="article" role="article" class="prose mt-4">
+          <Content />
+        </article>
+      </div>
+    </ProtectedContentWrapper>
+
+    <!-- Author attribution (only for non-tech posts, tech layout handles its own) -->
     {
-      !usesTechLayout && (
-        <Datetime pubDatetime={pubDatetime} modDatetime={modDatetime} size='lg' className='my-1' />
+      !usesTechLayout && author && (
+        <div class="author-wrapper">
+          <div class="author-attribution">• {author} •</div>
+        </div>
       )
     }
-    <article id='article' role='article' class='prose mx-auto mt-8 max-w-3xl'>
-      <Content />
-    </article>
 
-    <ul class='my-8'>
-      {tags.map((tag: string) => <Tag tag={slugifyStr(tag)} />)}
-    </ul>
+    <div class="tags-wrapper">
+      <div class="max-w-[1024px] mx-auto px-4">
+        <ul
+          class="my-8 flex flex-wrap gap-2 list-none p-0 m-0 justify-center tags-list"
+        >
+          {tags.map((tag: string) => <Tag tag={slugifyStr(tag)} />)}
+        </ul>
+      </div>
+    </div>
 
-    <div
-      class='flex flex-col-reverse items-center justify-between gap-6 sm:flex-row-reverse sm:items-end sm:gap-4'
-    >
-      <button id='back-to-top' class='focus-outline whitespace-nowrap py-1 hover:opacity-75'>
-        <svg xmlns='http://www.w3.org/2000/svg' class='rotate-90'>
-          <path d='M13.293 6.293 7.586 12l5.707 5.707 1.414-1.414L10.414 12l4.293-4.293z'></path>
-        </svg>
-        <span>Back to Top</span>
-      </button>
-
-      <ShareLinks />
+    <div class="back-to-top-wrapper" data-site-centered>
+      <div class="max-w-[1024px] mx-auto px-4">
+        <div class="flex items-center justify-start">
+          <button
+            id="back-to-top"
+            class="focus-outline py-1 hover:opacity-75 inline-flex items-center gap-2 whitespace-nowrap"
+          >
+            <span aria-hidden="true" class="mr-1">&lt;</span>
+            <span>Back to top</span>
+          </button>
+        </div>
+      </div>
     </div>
   </main>
-  <Footer />
-</Layout>
+</BaseLayout>
 
 <style>
   main {
-    @apply mx-auto w-full max-w-3xl px-4 pb-12;
+    width: 100%;
   }
-  .post-title {
-    @apply text-2xl font-semibold text-skin-accent;
+
+  .content-wrapper {
+    max-width: 1024px;
+    margin: 0 auto;
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Reduce breadcrumb top spacing and prevent wrapping */
+  .nav-wrapper {
+    margin-top: 0.5rem;
+  }
+
+  /* Target the actual inner container (max-w-[1024px] mx-auto px-4) and its flex row
+     so the breadcrumb items stay on a single line and horizontally scroll when necessary. */
+  .nav-wrapper > div,
+  .back-to-top-wrapper > div,
+  .tags-wrapper > div,
+  .article-wrapper {
+    max-width: 1024px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    box-sizing: border-box;
+  }
+
+  .nav-wrapper > div > .flex,
+  .nav-wrapper > div .flex.items-center {
+    white-space: nowrap;
+    overflow-x: auto;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Strong fallback if global styles try to override the container to full-bleed */
+  .nav-wrapper[data-site-centered] > div,
+  .back-to-top-wrapper[data-site-centered] > div {
+    max-width: 1024px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Ensure nav text does not wrap and remains on single line with back button */
+  .nav-wrapper button#logical-back {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    margin-right: 0.5rem;
+  }
+
+  .datetime-wrapper {
+    max-width: 1024px;
+    margin: 0 auto;
+    width: 100%;
+    /* Use flex so child content (Datetime) can remain on a single line and right-justify reliably */
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .article-wrapper {
+    max-width: 1024px;
+    margin: 0 auto;
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Ensure back-to-top uses the same container centering rules so it aligns
+     with the breadcrumb and article content regardless of global CSS changes. */
+  .back-to-top-wrapper > div {
+    max-width: 1024px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Ensure About layout content centers correctly when used inside PostDetails (safety fallback) */
+  #about {
+    max-width: 48rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Center tags and hide completely on very small screens to avoid wrapping */
+  .tags-list {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    justify-content: center !important;
+    align-items: center !important;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .tags-list > li {
+    display: inline-flex !important;
+  }
+
+  @media (max-width: 400px) {
+    .tags-list {
+      display: none !important;
+    }
+  }
+
+  .article-wrapper .prose {
+    max-width: 100%;
+  }
+
+  /* Hide small duplicate H1s that come from some MDX layouts (we render the main title above) */
+  .article-wrapper .prose h1 {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ensure layout-rendered profile title uses intended Tailwind-equivalent sizes
+     and outranks any global .prose h1 rules that may still apply. */
+  .profile-title {
+    font-size: 2.25rem !important; /* text-4xl */
+    font-weight: 800 !important;
+    line-height: 1.05 !important;
+  }
+
+  @media (min-width: 768px) {
+    .profile-title {
+      font-size: 3rem !important; /* md:text-5xl */
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .profile-title {
+      font-size: 3.75rem !important; /* lg:text-6xl */
+    }
+  }
+
+  .author-wrapper {
+    max-width: 1024px;
+    margin: 0.5rem auto 0;
+    width: 100%;
+    text-align: right;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .author-attribution {
+    font-size: 0.875rem;
+    color: #9ca3af;
+  }
+
+  :global(.dark) .author-attribution {
+    color: #6b7280;
   }
 </style>
 
@@ -89,13 +323,13 @@ const layoutProps = {
   /** Attaches links to headings in the document,
    *  allowing sharing of sections easily */
   function addHeadingLinks() {
-    let headings = Array.from(document.querySelectorAll('h2, h3, h4, h5, h6'));
+    let headings = Array.from(document.querySelectorAll("h2, h3, h4, h5, h6"));
     for (let heading of headings) {
-      heading.classList.add('group');
-      let link = document.createElement('a');
-      link.innerText = '#';
-      link.className = 'heading-link hidden group-hover:inline-block ml-2';
-      link.href = '#' + heading.id;
+      heading.classList.add("group");
+      let link = document.createElement("a");
+      link.innerText = "#";
+      link.className = "heading-link hidden group-hover:inline-block ml-2";
+      link.href = "#" + heading.id;
       link.ariaHidden = true;
       heading.appendChild(link);
     }
@@ -105,37 +339,37 @@ const layoutProps = {
   /** Attaches copy buttons to code blocks in the document,
    * allowing users to copy code easily. */
   function attachCopyButtons() {
-    let copyButtonLabel = 'Copy';
-    let codeBlocks = Array.from(document.querySelectorAll('pre'));
+    let copyButtonLabel = "Copy";
+    let codeBlocks = Array.from(document.querySelectorAll("pre"));
 
     for (let codeBlock of codeBlocks) {
-      let wrapper = document.createElement('div');
-      wrapper.style.position = 'relative';
+      let wrapper = document.createElement("div");
+      wrapper.style.position = "relative";
 
-      let copyButton = document.createElement('button');
+      let copyButton = document.createElement("button");
       copyButton.className =
-        'copy-code absolute right-3 -top-3 rounded bg-skin-card px-2 py-1 text-xs leading-4 text-skin-base font-medium';
-      copyButton.innerHTML = copyButtonLabel;
-      codeBlock.setAttribute('tabindex', '0');
+        "copy-code absolute right-3 -top-3 rounded bg-skin-card px-2 py-1 text-xs leading-4 text-skin-base font-medium";
+      copyButton.innerHTML = copyButtonLabel; // Removed 'text-skin-base' as it is not used
+      codeBlock.setAttribute("tabindex", "0");
       codeBlock.appendChild(copyButton);
 
       // wrap codebock with relative parent element
       codeBlock.parentNode.insertBefore(wrapper, codeBlock);
       wrapper.appendChild(codeBlock);
 
-      copyButton.addEventListener('click', async () => {
+      copyButton.addEventListener("click", async () => {
         await copyCode(codeBlock, copyButton);
       });
     }
 
     async function copyCode(block, button) {
-      let code = block.querySelector('code');
+      let code = block.querySelector("code");
       let text = code.innerText;
 
       await navigator.clipboard.writeText(text);
 
       // visual feedback that task is completed
-      button.innerText = 'Copied';
+      button.innerText = "Copied";
 
       setTimeout(() => {
         button.innerText = copyButtonLabel;
@@ -143,16 +377,90 @@ const layoutProps = {
     }
   }
   attachCopyButtons();
-  document.addEventListener('astro:after-swap', attachCopyButtons);
+  document.addEventListener("astro:after-swap", attachCopyButtons);
 
   /** Scrolls the document to the top when
    * the "Back to Top" button is clicked. */
   function backToTop() {
-    document.querySelector('#back-to-top')?.addEventListener('click', () => {
+    document.querySelector("#back-to-top")?.addEventListener("click", () => {
       document.body.scrollTop = 0; // For Safari
       document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
     });
   }
   backToTop();
-  document.addEventListener('astro:after-swap', backToTop);
+  document.addEventListener("astro:after-swap", backToTop);
+
+  // Logical back: avoid bouncing through Cognito/auth pages
+  function attachLogicalBack() {
+    const btn = document.getElementById("logical-back");
+    if (!btn) return;
+    const fallback =
+      (btn.getAttribute && btn.getAttribute("data-fallback")) || "/posts";
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      try {
+        const ref = document.referrer;
+        const isSameOrigin = !!ref && new URL(ref).origin === location.origin;
+        const isAuthRef = !!ref && /amazoncognito|\b\/api\/auth\//.test(ref);
+        const isCallbackRef = !!ref && /\/auth\/handle-callback/.test(ref);
+        if (isSameOrigin && !isAuthRef && !isCallbackRef) {
+          history.back();
+        } else {
+          window.location.href = fallback;
+        }
+      } catch {
+        window.location.href = fallback;
+      }
+    });
+  }
+  attachLogicalBack();
+  document.addEventListener("astro:after-swap", attachLogicalBack);
+
+  // Remove duplicate inner H1s that sometimes come from MDX content
+  // If an H1 inside the article (.article-wrapper .prose h1) matches the
+  // layout-rendered profile title, remove it from the DOM to avoid
+  // duplicate headings for assistive tech and visual users.
+  function removeDuplicateInnerH1() {
+    try {
+      const profile = document.querySelector(".profile-title");
+      if (!profile) return;
+      const profileText = (profile.textContent || "").trim();
+      if (!profileText) return;
+
+      const innerH1s = Array.from(
+        document.querySelectorAll(".article-wrapper .prose h1")
+      );
+      innerH1s.forEach((h1) => {
+        try {
+          const txt = (h1.textContent || "").trim();
+          if (!txt) {
+            h1.remove();
+            return;
+          }
+          if (txt === profileText) {
+            // exact duplicate title — remove to avoid repeated H1
+            h1.remove();
+          } else {
+            // not the same text but still an H1 inside prose; hide non-destructively
+            h1.setAttribute("aria-hidden", "true");
+            h1.style.display = "none";
+            h1.style.margin = "0";
+            h1.style.padding = "0";
+          }
+        } catch (e) {
+          /* ignore per-page failures */
+        }
+      });
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  // Run once on initial load and after Astro swaps/navigation
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", removeDuplicateInnerH1);
+  } else {
+    removeDuplicateInnerH1();
+  }
+  document.addEventListener("astro:after-swap", removeDuplicateInnerH1);
 </script>

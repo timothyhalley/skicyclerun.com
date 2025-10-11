@@ -1,0 +1,66 @@
+---
+import { SkiCycleRunConfig } from "skicyclerun.config";
+
+interface Props {
+  pubDatetime: string | Date;
+  modDatetime?: string | Date | undefined | null;
+  size?: "sm" | "lg";
+  className?: string;
+}
+
+const { pubDatetime, modDatetime, size = "sm", className = "" } = Astro.props;
+
+const myDatetime = new Date(modDatetime ?? pubDatetime);
+
+const date = myDatetime.toLocaleDateString(SkiCycleRunConfig.locale.langTag, {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+
+const sizeClasses = size === "lg" ? "text-lg" : "text-sm";
+const iconSize = size === "lg" ? "w-5 h-5" : "w-4 h-4";
+---
+
+<span
+  class={`inline-flex items-center gap-1.5 opacity-80 whitespace-nowrap ${sizeClasses} ${className} min-w-max`}
+>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    class={`${iconSize} flex-none datetime-icon`}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden="true"
+  >
+    <path
+      d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"
+    ></path>
+  </svg>
+  <time datetime={myDatetime.toISOString()} class="italic whitespace-nowrap">
+    {date}
+  </time>
+</span>
+
+<style>
+  /* Scoped fallback to ensure the datetime icon + time never wrap.
+     Keeps the element inline, prevents shrinking, and ensures right-justified
+     containers (like .datetime-wrapper) display it on a single line. */
+  span.inline-flex.items-center {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.375rem !important;
+    white-space: nowrap !important;
+    min-width: min-content !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Ensure SVG and time do not wrap internally */
+  span.inline-flex.items-center .datetime-icon {
+    flex: 0 0 auto !important;
+    display: inline-block !important;
+  }
+
+  span.inline-flex.items-center time {
+    display: inline-block !important;
+  }
+</style>

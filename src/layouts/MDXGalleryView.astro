@@ -1,0 +1,195 @@
+---
+const { photos = [], frontmatter = {} } = Astro.props;
+const matrix = frontmatter?.galleryMatrix || 2;
+const visibleCount = Math.max(1, Number(matrix) * Number(matrix));
+---
+
+<div class="mdx-gallery" data-gallery-matrix={matrix}>
+  {
+    photos && photos.length ? (
+      <div
+        class="grid"
+        style={`grid-template-columns: repeat(${matrix}, 1fr); grid-template-rows: repeat(${matrix}, 1fr);`}
+      >
+        {Array.from({ length: visibleCount }).map((_, i) => {
+          const p = photos[i] || null;
+          return (
+            <div class="grid-item" data-slot-index={i}>
+              {p ? (
+                <img
+                  src={p.src}
+                  alt={p.alt ?? `Photo ${i + 1}`}
+                  loading="lazy"
+                  decoding="async"
+                  data-visible-index={i}
+                />
+              ) : (
+                <div class="placeholder" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      <p>No photos in this album.</p>
+    )
+  }
+
+  {/* Embed the photo list for client script (Astro JSON block) */}
+  <script
+    type="application/json"
+    id="gallery-photos"
+    set:html={JSON.stringify(photos).replace(/</g, "\\u003c")}
+  />
+
+  {/* Inline client script with logs */}
+  <script is:inline>
+    (() => {
+      function init() {
+        console.log("[Gallery] init called, readyState:", document.readyState);
+        const containers = Array.from(
+          document.querySelectorAll(".mdx-gallery")
+        );
+        if (!containers.length) {
+          console.log("[Gallery] No containers found");
+          return;
+        }
+
+        containers.forEach((container, cIdx) => {
+          if (container.dataset.galleryInitialized === "1") {
+            console.log("[Gallery] Container", cIdx, "already initialized");
+            return;
+          }
+
+          console.log("[Gallery] Initializing container", cIdx);
+          const grid = container.querySelector(".grid");
+          if (!grid) {
+            console.log("[Gallery] Missing grid in container", cIdx);
+            return;
+          }
+
+          let photos = [];
+          let dataEl;
+          try {
+            dataEl =
+              container.querySelector(
+                'script[type="application/json"]#gallery-photos'
+              ) || document.getElementById("gallery-photos");
+            if (dataEl) {
+              const raw = (dataEl.textContent || "").trim();
+              console.log("[Gallery] Raw JSON length:", raw.length);
+              photos = JSON.parse(raw);
+              console.log("[Gallery] Photos parsed:", photos.length, "items");
+            } else {
+              console.log("[Gallery] No data element found in container", cIdx);
+            }
+          } catch (e) {
+            console.log("[Gallery] JSON parse error:", e);
+          }
+
+          if (!Array.isArray(photos) || photos.length === 0) {
+            console.log("[Gallery] No valid photos array in container", cIdx);
+            return;
+          }
+
+          const matrix =
+            Number(container.getAttribute("data-gallery-matrix")) || 2;
+          const visibleCount = matrix * matrix;
+          let visibleIndices = Array.from(
+            { length: visibleCount },
+            (_, i) => i % photos.length
+          );
+
+          const slots = Array.from(grid.querySelectorAll("[data-slot-index]"));
+
+          function renderSlot(slotEl, photo) {
+            slotEl.innerHTML = "";
+            if (!photo) {
+              const ph = document.createElement("div");
+              ph.className = "placeholder";
+              slotEl.appendChild(ph);
+              return;
+            }
+            const img = document.createElement("img");
+            img.src = photo.src;
+            img.alt = photo.alt || photo.altText || "";
+            img.loading = "lazy";
+            img.decoding = "async";
+            img.style.width = "100%";
+            img.style.height = "100%";
+            img.style.objectFit = "cover";
+            img.style.display = "block";
+            slotEl.appendChild(img);
+          }
+
+          function renderVisible() {
+            slots.forEach((s, i) => {
+              const photo = photos[visibleIndices[i]] || null;
+              renderSlot(s, photo);
+            });
+            console.log("[Gallery] Rendered indices:", visibleIndices);
+          }
+
+          // initial render
+          renderVisible();
+
+          // Attach click listener to any slot: rotates all images clockwise
+          slots.forEach((slot) => {
+            slot.style.cursor = "pointer";
+            slot.addEventListener("click", () => {
+              // Rotate visibleIndices clockwise
+              const last = visibleIndices.pop();
+              visibleIndices.unshift((last + 1) % photos.length);
+              console.log("[Gallery] Rotated indices:", visibleIndices);
+              renderVisible();
+            });
+          });
+
+          container.dataset.galleryInitialized = "1";
+          console.log("[Gallery] Initialization complete for container", cIdx);
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+      document.addEventListener("astro:after-swap", init);
+    })();
+  </script>
+</div>
+
+<style>
+  .mdx-gallery .grid {
+    display: grid;
+    gap: 0.5rem;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+  }
+  .mdx-gallery .grid .grid-item {
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mdx-gallery img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    aspect-ratio: 1 / 1;
+    background: rgb(var(--color-fill));
+  }
+  .mdx-gallery .placeholder {
+    background: #ececec;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 1 / 1;
+  }
+</style>

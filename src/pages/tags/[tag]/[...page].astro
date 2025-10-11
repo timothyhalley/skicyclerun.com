@@ -1,0 +1,56 @@
+---
+import { type CollectionEntry, getCollection } from "astro:content";
+import TagPosts from "@layouts/TagPosts.astro";
+import getUniqueTags from "@utils/getUniqueTags";
+import getPostsByTag from "@utils/getPostsByTag";
+import getPagination from "@utils/getPagination";
+import { SkiCycleRunConfig } from "skicyclerun.config";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blog");
+  const tags = getUniqueTags(posts);
+
+  const paths = tags.flatMap(({ tag, tagName }) => {
+    const tagPosts = getPostsByTag(posts, tag);
+    const totalPages = Math.ceil(
+      tagPosts.length / SkiCycleRunConfig.postsPerPage
+    );
+
+    console.log(
+      `[tags pagination] ${tag}: ${tagPosts.length} posts, ${totalPages} pages`
+    );
+
+    // Generate paths for pages 2, 3, 4, etc.
+    const pages = Array.from({ length: totalPages - 1 }, (_, i) => {
+      const pageNum = i + 2; // Start from page 2
+      const pagination = getPagination({
+        posts: tagPosts,
+        page: pageNum,
+      });
+
+      return {
+        params: { tag, page: String(pageNum) },
+        props: {
+          tag,
+          tagName,
+          currentPage: pagination.currentPage,
+          totalPages: pagination.totalPages,
+          paginatedPosts: pagination.paginatedPosts,
+        },
+      };
+    });
+
+    console.log(
+      `[tags pagination] ${tag} generated pages:`,
+      pages.map((p) => `/tags/${p.params.tag}/${p.params.page}`)
+    );
+    return pages;
+  });
+
+  return paths;
+}
+
+const { tag, tagName, currentPage, totalPages, paginatedPosts } = Astro.props;
+---
+
+<TagPosts {currentPage} {totalPages} {paginatedPosts} {tag} {tagName} />

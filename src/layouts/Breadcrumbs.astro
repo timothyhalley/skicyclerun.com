@@ -1,0 +1,135 @@
+---
+import BreadcrumbNav from "@components/BreadcrumbNav.astro";
+
+interface StringTitleProp {
+  pageTitle?: string;
+  pageDesc?: string;
+  usePostsGutter?: boolean;
+}
+
+interface ArrayTitleProp {
+  pageTitle?: [string, string];
+  titleTransition?: string;
+  pageDesc?: string;
+  usePostsGutter?: boolean;
+}
+
+export type Props = StringTitleProp | ArrayTitleProp;
+
+const { props } = Astro;
+---
+
+<BreadcrumbNav />
+
+<!-- site-inner aligns to the header's .header-wrapper (max-width:1024px + 1rem padding)
+  Pages can reuse the global .site-inner class to align content to the header left edge. -->
+<div class={"site-inner" + (props.usePostsGutter ? " use-posts" : "")}>
+  {
+    props.pageTitle ? (
+      "titleTransition" in props && Array.isArray(props.pageTitle) ? (
+        <h1>
+          {props.pageTitle[0]}
+          <span transition:name={props.titleTransition}>
+            {props.pageTitle[1]}
+          </span>
+        </h1>
+      ) : (
+        <h1>
+          {typeof props.pageTitle === "string"
+            ? props.pageTitle
+            : props.pageTitle?.join(" ")}
+        </h1>
+      )
+    ) : null
+  }
+  {props.pageDesc ? <p>{props.pageDesc}</p> : null}
+  <main id="main-content" class={props.usePostsGutter ? "posts-gutter" : ""}>
+    <slot />
+  </main>
+</div>
+
+<style>
+  #main-content {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-width: 48rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-bottom: 1rem;
+  }
+  #main-content h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  @media (min-width: 640px) {
+    #main-content h1 {
+      font-size: 1.875rem;
+    }
+  }
+  /* The page title is rendered as a direct child of .site-inner now. On
+     larger screens we offset it 50px from the left edge of the site-inner
+     container so Posts and Tech align to the same header left edge. */
+  /* Page title sizes - keep the project's standard sizes (base + responsive) */
+  .site-inner > h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-left: 0; /* default on small screens */
+  }
+  @media (min-width: 640px) {
+    .site-inner > h1 {
+      font-size: 1.875rem;
+      margin-left: 50px; /* offset the title 50px from the header left edge */
+    }
+  }
+
+  /* Page description (pageDesc) should align to the same left offset as the title */
+  .site-inner > p {
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-style: italic;
+    margin-left: 0; /* default on small screens */
+  }
+  @media (min-width: 640px) {
+    .site-inner > p {
+      margin-left: 50px; /* match title offset */
+    }
+  }
+  #main-content p {
+    margin-bottom: 1.5rem;
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
+
+  /* Utility container used by Posts/Tech pages to create a 100px left inset
+     for the page title and nested content. Pages wrap their content with
+     a .posts-gutter element (see src/pages/posts and src/pages/tech). */
+  .posts-gutter {
+    padding-left: calc(1rem + 50px); /* 1rem base page padding + 50px indent */
+    box-sizing: border-box;
+  }
+
+  /* site-inner: center content to match header .header-wrapper and expose a
+     shared left edge that pages can align to. */
+  :global(.site-inner),
+  .site-inner {
+    max-width: 1024px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    box-sizing: border-box;
+  }
+
+  /* When pages opt into usePostsGutter we visually offset the title inside
+     the site-inner to be 100px from the header left edge on larger screens. */
+  .site-inner #main-content h1 {
+    margin-left: 0; /* default on small screens */
+  }
+  @media (min-width: 640px) {
+    .site-inner.use-posts #main-content h1 {
+      margin-left: 50px;
+    }
+  }
+</style>

@@ -1,19 +1,111 @@
 ---
 import { YouTube } from "astro-embed";
 const { frontmatter } = Astro.props;
+
+// Support both self-hosted videos and YouTube embeds
+const videoSrc = frontmatter.videoSrc; // Path to self-hosted video (e.g., "/videos/my-video.mp4")
+const videoID = frontmatter.videoID;   // YouTube video ID (fallback)
+const posterImage = frontmatter.poster; // Optional: poster image for self-hosted video
 ---
 
-<html>
-  <h1>{frontmatter.title}</h1>
+<div class="video-layout">
+  <h1 class="video-title">{frontmatter.title}</h1>
 
-  <p>{frontmatter.description}</p>
+  <p class="video-description">{frontmatter.description}</p>
 
-  <YouTube id={frontmatter.videoID} />
+  <div class="video-container" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
+    {videoSrc ? (
+      <!-- Self-hosted video with native HTML5 player -->
+      <video 
+        controls 
+        preload="metadata"
+        poster={posterImage}
+        class="self-hosted-video"
+      >
+        <source src={videoSrc} type="video/mp4" />
+        <source src={videoSrc.replace('.mp4', '.webm')} type="video/webm" />
+        Your browser does not support the video tag.
+      </video>
+    ) : videoID ? (
+      <!-- Fallback to YouTube embed if no self-hosted video -->
+      <YouTube id={videoID} />
+    ) : (
+      <p class="error-message">No video source provided</p>
+    )}
+  </div>
+
   <!-- Markdown content is injected here -->
   <slot />
   <!-- Markdown content is injected here -->
-  <h2>Post author: {frontmatter.author}</h2>
-  <h3>Album: {frontmatter.album}</h3>
+</div>
 
+<style>
+  .video-layout {
+    background: rgb(var(--color-fill));
+    color: rgb(var(--color-text-base));
+    display: block !important;
+    visibility: visible !important;
+  }
 
-</html>
+  .video-title {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  .video-description {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  .video-container {
+    /* Theme-aware background for video embed area */
+    background: rgb(var(--color-fill));
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    max-width: 100%;
+    display: flex !important;
+    justify-content: center;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Ensure YouTube embed is visible */
+  .video-container :global(lite-youtube) {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Self-hosted video styling */
+  .self-hosted-video {
+    width: 100%;
+    max-width: 960px;
+    aspect-ratio: 16 / 9;
+    border-radius: 6px;
+    background: rgb(var(--color-fill));
+    display: block;
+  }
+
+  /* Target the YouTube embed iframe container */
+  .video-container :global(.astro-embed) {
+    background: rgb(var(--color-fill)) !important;
+  }
+
+  /* Ensure the video scales properly within its container */
+  .video-container :global(iframe) {
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 6px;
+  }
+
+  /* Override any black backgrounds in the embed wrapper */
+  .video-container :global(lite-youtube) {
+    background-color: rgb(var(--color-fill)) !important;
+  }
+
+  .error-message {
+    color: rgb(var(--color-text-base));
+    font-style: italic;
+  }
+</style>

@@ -6,15 +6,32 @@ import getPostsByTag from "@utils/getPostsByTag";
 import getPageNumbers from "@utils/getPageNumbers";
 import getPagination from "@utils/getPagination";
 
-const posts = await getCollection("blog");
-const tag = Astro.params.tag;
-const filteredPosts = getPostsByTag(posts, tag);
+export async function getStaticPaths() {
+  const posts = await getCollection("blog");
+  const tags = getUniqueTags(posts);
 
-// Add this line to create the pagination object
-const pagination = getPagination({
-  posts: filteredPosts,
-  page: 1, // or use Astro.params.page if you support paginated tag pages
-});
+  return tags.map(({ tag, tagName }) => {
+    const tagPosts = getPostsByTag(posts, tag);
+    const pagination = getPagination({
+      posts: tagPosts,
+      page: 1,
+      isIndex: true,
+    });
+
+    return {
+      params: { tag },
+      props: {
+        tag,
+        tagName,
+        currentPage: pagination.currentPage,
+        totalPages: pagination.totalPages,
+        paginatedPosts: pagination.paginatedPosts,
+      },
+    };
+  });
+}
+
+const { tag, tagName, currentPage, totalPages, paginatedPosts } = Astro.props;
 ---
 
-<TagPosts {...pagination} {tag} />
+<TagPosts {currentPage} {totalPages} {paginatedPosts} {tag} {tagName} />

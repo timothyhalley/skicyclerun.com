@@ -2,7 +2,7 @@
 import LinkButton from "./LinkButton.astro";
 import socialIcons from "@assets/socialIcons";
 
-const URL = Astro.url;
+const URL = encodeURIComponent(Astro.url.toString());
 
 const shareLinks = [
   {
@@ -38,29 +38,48 @@ const shareLinks = [
 ] as const;
 ---
 
-<!-- <div class={`social-icons`}>
+<div class={`social-icons`}>
   <span class="italic">Share this post on:</span>
   <div class="text-center">
     {
-      shareLinks.map(social => (
+      shareLinks.map((social) => (
         <LinkButton
           href={`${social.href + URL}`}
           className="link-button"
           title={social.linkTitle}
         >
-          <Fragment set:html={socialIcons[social.name]} />
+          <span aria-hidden="true" set:html={socialIcons[social.name]} />
           <span class="sr-only">{social.linkTitle}</span>
         </LinkButton>
       ))
     }
   </div>
-</div> -->
+</div>
 
 <style>
   .social-icons {
-    @apply flex flex-col flex-wrap items-center justify-center gap-1 sm:items-start;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+  @media (min-width: 640px) {
+    .social-icons {
+      align-items: flex-start;
+    }
   }
   .link-button {
-    @apply scale-90 p-2 hover:rotate-6 sm:p-1;
+    transform: scale(0.9);
+    padding: 0.5rem;
+  }
+  .link-button:hover {
+    transform: rotate(6deg) scale(0.9);
+  }
+  @media (min-width: 640px) {
+    .link-button {
+      padding: 0.25rem;
+    }
   }
 </style>

@@ -1,59 +1,71 @@
 ---
 // filepath: src/layouts/Posts.astro
-import type { CollectionEntry } from 'astro:content';
-import Layout from '@layouts/Layout.astro';
-import Main from '@layouts/Main.astro';
-import Header from '@components/Header.astro';
-import Footer from '@components/Footer.astro';
-import Pagination from '@components/Pagination.astro';
-import PostCard from '@components/PostCards.astro';
-import { SkiCycleRunConfig } from 'skicyclerun.config';
-import { getPhotoCover } from '@utils/getPhotoCover';
+import type { CollectionEntry } from "astro:content";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import Breadcrumbs from "@layouts/Breadcrumbs.astro";
+import Header from "@components/Header.astro";
+import Pagination from "@components/Pagination.astro";
+import PostCard from "@components/PostCards.astro";
+import { SkiCycleRunConfig } from "skicyclerun.config";
+import { getPhotoCover } from "@utils/getPhotoCover";
+import { getBlogSection } from "@constants/blogTypes";
 
 export interface Props {
   currentPage: number;
   totalPages: number;
-  paginatedPosts: CollectionEntry<'blog'>[];
+  paginatedPosts: CollectionEntry<"blog">[];
+  prevUrl?: string;
+  nextUrl?: string;
 }
 
-const { currentPage, totalPages, paginatedPosts } = Astro.props;
+const { currentPage, totalPages, paginatedPosts, prevUrl, nextUrl } =
+  Astro.props;
+
+// Detect section using the helper function
+const section = getBlogSection(paginatedPosts[0]?.data?.type);
 
 // Fetch cover images for all posts
 const coverImages = await Promise.all(
-  paginatedPosts.map(post => getPhotoCover(post.data.cover ?? 'images/default-cover.png'))
+  paginatedPosts.map((post) =>
+    getPhotoCover(post.data.cover ?? "images/default-cover.png")
+  )
 );
-console.log(`[Posts.astro] Loaded cover images for ${coverImages.length} posts.`);
-// paginatedPosts.forEach(post => {
-//   console.log('[Posts.astro] title:', post.data.title, 'slug:', post.slug, 'frontmatter.slug:', post.data.slug);
-// });
+console.log(
+  `[Posts.astro] Loaded cover images for ${coverImages.length} posts.`
+);
 ---
 
-<Layout title={`Posts | ${SkiCycleRunConfig.title}`}>
-  <Header activeNav='posts' />
-  <Main pageTitle='Posts' pageDesc="All the articles I've posted.">
-    <ul>
+<BaseLayout
+  title={`${section === "tech" ? "Tech" : "Posts"} | ${SkiCycleRunConfig.title}`}
+>
+  <Header activeNav={section} />
+  <Breadcrumbs
+    pageTitle={section === "tech" ? "Tech" : "Posts"}
+    pageDesc={section === "tech"
+      ? "Technical articles and tutorials"
+      : "All the articles I've posted."}
+  >
+    <div class="flex flex-col gap-6">
       {
-        paginatedPosts.map((post, i) => (
+        paginatedPosts.map((post, index) => (
           <PostCard
             title={post.data.title}
             author={post.data.author}
             pubDatetime={post.data.pubDatetime.toISOString()}
             tags={post.data.tags}
             description={post.data.description}
-            cover={coverImages[i] ?? 'images/default-cover.png'}
-            href={`/posts/${post.slug}`}
+            cover={coverImages[index]?.src ?? "images/default-cover.png"}
+            href={`/${section}/${post.slug}`}
           />
         ))
       }
-    </ul>
-  </Main>
+    </div>
 
-  <Pagination
-    {currentPage}
-    {totalPages}
-    prevUrl={`/posts${currentPage - 1 !== 1 ? '/' + (currentPage - 1) : ''}`}
-    nextUrl={`/posts/${currentPage + 1}`}
-  />
-
-  <Footer noMarginTop={totalPages > 1} />
-</Layout>
+    <Pagination
+      {currentPage}
+      {totalPages}
+      prevUrl={prevUrl || ""}
+      nextUrl={nextUrl || ""}
+    />
+  </Breadcrumbs>
+</BaseLayout>

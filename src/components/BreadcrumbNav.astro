@@ -1,0 +1,135 @@
+---
+// Remove current url path and remove trailing slash if exists (Astro.url is static-safe)
+const currentUrlPath = Astro.url.pathname.replace(/\/+$/, "");
+
+// Get url array from path
+// eg: /tags/tailwindcss => ['tags', 'tailwindcss']
+const breadcrumbList = currentUrlPath.split("/").slice(1);
+
+// Build cumulative hrefs for each breadcrumb segment
+const segments = currentUrlPath.split("/").filter(Boolean);
+const items = segments.map((seg, idx) => {
+  const href = "/" + segments.slice(0, idx + 1).join("/");
+  return { seg, href };
+});
+
+// Humanize labels while keeping cumulative hrefs
+function labelFor(index: number): string {
+  const s = items[index]?.seg ?? "";
+  // Posts pagination: /posts/[page]
+  // Posts and Tech pagination: /posts/[page] or /tech/[page]
+  if (index === 0 && (s === "posts" || s === "tech")) {
+    const page = Number(items[1]?.seg || 1);
+    const label = s.charAt(0).toUpperCase() + s.slice(1);
+    return `${label} (page ${page || 1})`;
+  }
+  // Tags pagination: /tags/[tag]/[page]
+  if (index === 0 && s === "tags") {
+    const tag = decodeURIComponent(items[1]?.seg || "");
+    const page = Number(items[2]?.seg || 1);
+    return `${tag} ${page <= 1 ? "" : "(page " + page + ")"}`.trim();
+  }
+  return decodeURIComponent(s);
+}
+
+// if breadcrumb is Home > Tags > [tag] > [page] <etc>
+// replace [tag] > [page] with [tag] (page number)
+breadcrumbList[0] === "tags" &&
+  !isNaN(Number(breadcrumbList[2])) &&
+  breadcrumbList.splice(
+    1,
+    3,
+    `${breadcrumbList[1]} ${
+      Number(breadcrumbList[2]) === 1 ? "" : "(page " + breadcrumbList[2] + ")"
+    }`
+  );
+---
+
+<nav aria-label="breadcrumb">
+  <div data-site-centered class="site-inner py-2">
+    <ul class="flex items-center gap-2 whitespace-nowrap overflow-x-auto">
+      <li class="inline-flex items-center gap-2">
+        <a href="/" class="hover:underline">Home</a>
+        <span aria-hidden="true" class="opacity-60">»</span>
+      </li>
+      {
+        items.length > 0 &&
+          items.map((item, index) =>
+            index + 1 === items.length ? (
+              <li class="inline-flex items-center gap-2">
+                <span
+                  class={`${index > 0 ? "lowercase" : "capitalize"} text-sm font-medium`}
+                  aria-current="page"
+                >
+                  {labelFor(index)}
+                </span>
+              </li>
+            ) : (
+              <li class="inline-flex items-center gap-2">
+                <a href={item.href} class="hover:underline text-sm opacity-90">
+                  {labelFor(index)}
+                </a>
+                <span aria-hidden="true" class="opacity-60">
+                  »
+                </span>
+              </li>
+            )
+          )
+      }
+    </ul>
+  </div>
+</nav>
+
+<style>
+  /* Fallback styling when Tailwind utilities are not available or overridden.
+     Using explicit container + inline-flex rules to make this component resilient. */
+  nav[aria-label="breadcrumb"] > div {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  nav[aria-label="breadcrumb"] ul {
+    display: flex !important;
+    gap: 0.25rem !important; /* tighter gap */
+    align-items: center !important;
+    justify-content: flex-start !important;
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow-x: auto !important;
+  }
+
+  nav[aria-label="breadcrumb"] ul li {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+    flex: 0 0 auto !important; /* prevent stretching */
+  }
+
+  nav[aria-label="breadcrumb"] ul li a {
+    opacity: 0.9 !important;
+    color: inherit !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline-block !important;
+  }
+
+  nav[aria-label="breadcrumb"] ul li span {
+    opacity: 0.6;
+  }
+
+  /* Strong fallback for page centering if external/global styles override utility classes.
+     Using an attribute selector with !important ensures the component's container remains centered
+     and preserves left/right padding. */
+  [data-site-centered],
+  .site-inner {
+    max-width: 1024px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+</style>

@@ -1,13 +1,28 @@
-# Ignore everything
-/*
+# Build output
+dist/
+.astro/
 
-# Except these files & folders
-!/src
-!/public
-!/.github
-!tsconfig.json
-!astro.config.ts
-!package.json
-!.prettierrc
-!.eslintrc.js
-!README.md
+# Dependencies
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Dead code folder
+.deadCode/
+
+# Environment files
+.env
+.env.*
+
+# Generated files
+*.min.js
+*.min.css
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -7,7 +7,7 @@
 }
 
 .article code:not(pre code) {
-  @apply text-sm;
+  font-size: 0.875rem;
   font-family: var(--code-font) !important;
   border-radius: 4px;
   color: var(--primary-color) !important;
@@ -48,7 +48,7 @@
 .article h4 > a,
 .article h5 > a,
 .article h6 > a {
-  @apply m-2;
+  margin: 0.5rem;
 }
 
 .article li::marker {
@@ -60,14 +60,17 @@
 }
 
 .article blockquote {
-  @apply py-0.5 pl-3 pr-3 lg:pl-4;
+  padding-top: 0.125rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
   font-style: normal !important;
   border-radius: 0.25rem;
   background-color: var(--primary-color-transparent) !important;
 }
 
 .article blockquote blockquote {
-  @apply my-1;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
 }
 
 .article blockquote p {
@@ -97,12 +100,14 @@
 }
 
 .article hr {
-  @apply my-6;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
   border-color: var(--primary-color-lighten) !important;
 }
 
 .article pre {
-  @apply my-3;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
   overflow: hidden !important;
 }
 

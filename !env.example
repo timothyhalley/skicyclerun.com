@@ -1,0 +1,39 @@
+# SkiCycleRun.dev Environment Variables
+# Copy this file to .env and fill in your actual values
+
+# Site Configuration
+# SITE_URL influences sitemap and canonical tags during build/preview
+SKICYCLERUN_URL=https://localhost:4321
+PUBLIC_SKICYCLERUN_API=https://api.skicyclerun.com/dev/
+
+# API and auth settings (legacy - for compatibility)
+PUBLIC_API_BASE_URL=api.skicyclerun.com/dev
+COGNITO_DOMAIN=https://your-cognito-domain.auth.region.amazoncognito.com
+COGNITO_USER_POOL_ID=your_user_pool_id
+COGNITO_USER_POOL_CLIENT_ID=your_client_id
+COGNITO_REDIRECT_URI=https://localhost:4321/
+COGNITO_LOGOUT_REDIRECT_URI=https://localhost:4321/
+COGNITO_SCOPES=openid email phone profile
+
+# Cognito Configuration (PUBLIC_ prefix for client-side access)
+# These are exposed to the browser - that's intentional and safe
+PUBLIC_COGNITO_USER_POOL_ID=your_user_pool_id_here
+PUBLIC_COGNITO_CLIENT_ID=your_client_id_here
+PUBLIC_COGNITO_DOMAIN=your-cognito-domain.auth.region.amazoncognito.com
+PUBLIC_COGNITO_REGION=us-west-2
+PUBLIC_COGNITO_SCOPES=openid,email,profile,phone
+PUBLIC_COGNITO_REDIRECT_URI=/
+PUBLIC_COGNITO_LOGOUT_URI=/
+
+# AWS Configuration (Server-side only - never expose with PUBLIC_ prefix)
+AWS_REGION=us-west-2
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here
+S3_BUCKET_NAME=your_bucket_name
+CLOUDFRONT_DISTRIBUTION_ID=your_distribution_id
+
+# Security Note:
+# - PUBLIC_ variables are exposed to the browser (intentional for auth)
+# - Never add PUBLIC_ prefix to AWS credentials or secrets
+# - Cognito User Pool ID and Client ID are public (visible in browser)
+# - The actual secret is the User Pool Client Secret (not used in this app)

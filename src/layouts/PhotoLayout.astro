@@ -1,0 +1,117 @@
+---
+import { getAlbumPhotos } from "@components/Library.astro";
+import MDXCarousel3 from "./MDXCarousel3.astro";
+import MDXHeroView from "./MDXHeroView.astro";
+import MDXGalleryView from "./MDXGalleryView.astro";
+
+const { frontmatter } = Astro.props;
+const album = frontmatter?.album;
+if (!album) throw new Error("PhotoLayout requires frontmatter.album to be set");
+
+const photos = await getAlbumPhotos(album);
+if (!photos || photos.length === 0) {
+  // Render a friendly fallback instead of throwing to avoid breaking the page
+  console.warn(`Album \"${album}\" returned no photos`);
+}
+
+// viewMode: 'hero' | 'gallery' | 'carousel'
+// No server-side reactive view; selection is handled on the client for a simple, progressive enhancement UX.
+---
+
+<article class="photo-layout">
+  <header class="photo-header">
+    {
+      frontmatter.title && (
+        <h1 class="text-3xl font-bold">{frontmatter.title}</h1>
+      )
+    }
+    {
+      frontmatter.description && (
+        <p class="text-skin-muted mt-2">{frontmatter.description}</p>
+      )
+    }
+  </header>
+
+  <nav class="photo-controls mb-4" aria-label="Photo view selector">
+    <label>
+      <input type="radio" name="photo-view" value="hero" checked /> Hero
+    </label>
+    <label>
+      <input type="radio" name="photo-view" value="gallery" /> Gallery
+    </label>
+    <label>
+      <input type="radio" name="photo-view" value="carousel" /> Carousel
+    </label>
+  </nav>
+
+  <section class="photo-view">
+    <div id="photo-hero">
+      <MDXHeroView photos={photos} frontmatter={frontmatter} />
+    </div>
+    <div id="photo-gallery" style="display:none">
+      <MDXGalleryView photos={photos} frontmatter={frontmatter} />
+    </div>
+    <div id="photo-carousel" style="display:none">
+      <MDXCarousel3 photos={photos} />
+    </div>
+  </section>
+
+  <!-- Render page MDX content inside the master layout -->
+  <slot />
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const radios = Array.from(
+        document.querySelectorAll('input[name="photo-view"]')
+      );
+      const sections = {
+        hero: document.getElementById("photo-hero"),
+        gallery: document.getElementById("photo-gallery"),
+        carousel: document.getElementById("photo-carousel"),
+      };
+      function update() {
+        const checked = document.querySelector(
+          'input[name="photo-view"]:checked'
+        );
+        const value = checked ? checked.getAttribute("value") : "hero";
+        Object.keys(sections).forEach((k) => {
+          const el = sections[k];
+          if (!el) return;
+          el.style.display = k === value ? "" : "none";
+        });
+      }
+      radios.forEach((r) => r.addEventListener("change", update));
+      // initialize
+      update();
+    });
+  </script>
+</article>
+
+<style>
+  .photo-layout {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+  .photo-header {
+    margin-bottom: 0.5rem;
+  }
+  .photo-controls {
+    margin-bottom: 0.5rem;
+  }
+  .photo-controls label {
+    margin-right: 1rem;
+  }
+
+  /* Keep the photo view area a fixed viewport so hero/gallery/carousel share same box */
+  .photo-view > div {
+    width: 100%;
+    max-width: 1024px;
+    margin-left: auto;
+    margin-right: auto;
+    aspect-ratio: 1 / 1; /* square viewport to match prior layout */
+    background: rgb(var(--color-fill));
+    position: relative;
+    overflow: hidden;
+  }
+</style>
