@@ -2,8 +2,6 @@
 
 A modern, high-performance blog and travel documentation platform built with Astro, featuring advanced authentication, interactive media galleries, and comprehensive content management.
 
-[![SkiCycleRun Lighthouse Score](@svg_imgs/lighthouse-score.svg)](https://pagespeed.web.dev/analysis/https-skicyclerun-com/9wb9dytc6d?form_factor=desktop)
-
 ## ✨ Features
 
 ### 🌐 Core Platform
@@ -302,6 +300,8 @@ This project is licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/lic
 - **Documentation**: [Astro Docs](https://docs.astro.build)
 - **Community**: [Astro Discord](https://astro.build/chat)
 
----
+## 🔍 SEO & Performance
+
+## [![SkiCycleRun Lighthouse Score](src/assets/images/lighthouse-score.png)](https://pagespeed.web.dev/analysis/https-skicyclerun-com/ly6yl3o0pj?form_factor=mobile)
 
 Built with ❤️ by [Tim H](https://github.com/timothyhalley) • Powered by [Astro](https://astro.build)
