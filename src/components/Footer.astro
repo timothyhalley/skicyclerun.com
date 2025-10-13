@@ -326,7 +326,7 @@ const { noMarginTop = false } = Astro.props;
     const el = document.getElementById("footer-auth-info");
     const userEl = document.getElementById("user-info");
     if (!el) {
-      debugError('ui', "[Footer] Could not find footer-auth-info element");
+      debugError("ui", "[Footer] Could not find footer-auth-info element");
       return;
     }
 
@@ -334,7 +334,7 @@ const { noMarginTop = false } = Astro.props;
     const currentYear = new Date().getFullYear();
 
     debugLog(
-      'ui',
+      "ui",
       "[Footer] updateFooterAuth called, compact:",
       compact,
       "year:",
@@ -343,7 +343,7 @@ const { noMarginTop = false } = Astro.props;
 
     try {
       const state = await getAuthState();
-      debugLog('auth', "[Footer] Auth state:", state);
+      debugLog("auth", "[Footer] Auth state:", state);
 
       if (state.signedIn) {
         const userEmail = state.email || "signed-in user";
@@ -357,7 +357,7 @@ const { noMarginTop = false } = Astro.props;
           compact,
         });
 
-        debugLog('auth', "[Footer] Signed in, displaying user info:", txt);
+        debugLog("auth", "[Footer] Signed in, displaying user info:", txt);
 
         el.classList.add("hidden");
         if (userEl) {
@@ -371,19 +371,19 @@ const { noMarginTop = false } = Astro.props;
         }
       } else {
         // Not signed in - show copyright
-        debugLog('auth', "[Footer] Not signed in, showing copyright");
+        debugLog("auth", "[Footer] Not signed in, showing copyright");
         if (userEl) userEl.classList.add("hidden");
         const copyrightText = formatCopyright(currentYear, compact);
-        debugLog('ui', "[Footer] Copyright text:", copyrightText);
+        debugLog("ui", "[Footer] Copyright text:", copyrightText);
         el.textContent = copyrightText;
         el.classList.remove("hidden");
       }
     } catch (error) {
       // On error, show copyright as fallback
-      debugError('auth', "[Footer] Error in updateFooterAuth:", error);
+      debugError("auth", "[Footer] Error in updateFooterAuth:", error);
       if (userEl) userEl.classList.add("hidden");
       const copyrightText = formatCopyright(currentYear, compact);
-      debugLog('ui', "[Footer] Fallback copyright text:", copyrightText);
+      debugLog("ui", "[Footer] Fallback copyright text:", copyrightText);
       el.textContent = copyrightText;
       el.classList.remove("hidden");
     }
