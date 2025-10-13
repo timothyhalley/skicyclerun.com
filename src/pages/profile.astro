@@ -143,11 +143,11 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
 
 <script is:inline define:vars={{ statueImageSrc: EasterIslandStatue.src }}>
   (function () {
-    console.log("[Profile] Script initializing...");
+    debugLog('auth', "[Profile] Script initializing...");
 
     async function getAuthState() {
-      console.log("[Profile] getAuthState called");
-      console.log(
+      debugLog('auth', "[Profile] getAuthState called");
+      debugLog('auth',
         "[Profile] window.__authBridge exists:",
         !!window.__authBridge
       );
@@ -155,17 +155,17 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
         window.__authBridge &&
         typeof window.__authBridge.getState === "function"
       ) {
-        console.log("[Profile] Calling bridge getState");
+        debugLog('auth', "[Profile] Calling bridge getState");
         const state = await window.__authBridge.getState();
-        console.log("[Profile] Bridge getState result:", state);
+        debugLog('auth', "[Profile] Bridge getState result:", state);
         return state;
       }
-      console.log("[Profile] No auth bridge available");
+      debugLog('auth', "[Profile] No auth bridge available");
       return null;
     }
 
     async function fetchUserProfile(email, token) {
-      console.log("[Profile] fetchUserProfile called with:", {
+      debugLog('api', "[Profile] fetchUserProfile called with:", {
         email,
         hasToken: !!token,
       });
@@ -175,30 +175,30 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
         };
         if (token) {
           headers["Authorization"] = `Bearer ${token}`;
-          console.log("[Profile] Added Authorization header with Bearer token");
+          debugLog('api', "[Profile] Added Authorization header with Bearer token");
         } else {
-          console.warn("[Profile] No token provided for API call");
+          debugWarn('api', "[Profile] No token provided for API call");
         }
 
         const url = `https://api.skicyclerun.com/dev/profile?email=${encodeURIComponent(email)}`;
-        console.log("[Profile] Making API request to:", url);
-        console.log("[Profile] Request headers:", headers);
+        debugLog('api', "[Profile] Making API request to:", url);
+        debugLog('api', "[Profile] Request headers:", headers);
 
         const res = await fetch(url, { headers });
-        console.log("[Profile] API response status:", res.status);
-        console.log("[Profile] API response ok:", res.ok);
+        debugLog('api', "[Profile] API response status:", res.status);
+        debugLog('api', "[Profile] API response ok:", res.ok);
 
         if (!res.ok) {
           const errorText = await res.text();
-          console.error("[Profile] API error response:", errorText);
+          debugError('api', "[Profile] API error response:", errorText);
           throw new Error(`Profile fetch failed: ${res.status} - ${errorText}`);
         }
 
         const data = await res.json();
-        console.log("[Profile] API success response:", data);
+        debugLog('api', "[Profile] API success response:", data);
         return data;
       } catch (err) {
-        console.error("[Profile] API error:", err);
+        debugError('api', "[Profile] API error:", err);
         return null;
       }
     }
@@ -271,7 +271,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
     }
 
     async function loadProfile() {
-      console.log("[Profile] loadProfile called");
+      debugLog('auth', "[Profile] loadProfile called");
       const loading = document.getElementById("profile-loading");
       const notAuth = document.getElementById("profile-not-authenticated");
       const content = document.getElementById("profile-content");
@@ -280,12 +280,12 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
       const errorLogoutBtn = document.getElementById("error-logout-btn");
 
       try {
-        console.log("[Profile] Getting auth state...");
+        debugLog('auth', "[Profile] Getting auth state...");
         const authState = await getAuthState();
-        console.log("[Profile] Auth state received:", authState);
+        debugLog('auth', "[Profile] Auth state received:", authState);
 
         if (!authState || !authState.signedIn || !authState.email) {
-          console.log(
+          debugLog('auth',
             "[Profile] User not authenticated, showing not-auth section"
           );
           loading.style.display = "none";
@@ -297,7 +297,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
 
         const email = authState.email;
         const token = authState.idToken || authState.accessToken;
-        console.log(
+        debugLog('auth',
           "[Profile] User authenticated - Email:",
           email,
           "Has token:",
@@ -305,22 +305,22 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
         );
 
         if (token) {
-          console.log(
+          debugLog('auth',
             "[Profile] Token type:",
             authState.idToken ? "idToken" : "accessToken"
           );
-          console.log(
+          debugLog('auth',
             "[Profile] Token preview:",
             token.substring(0, 50) + "..."
           );
         }
 
-        console.log("[Profile] Calling fetchUserProfile...");
+        debugLog('api', "[Profile] Calling fetchUserProfile...");
         const profile = await fetchUserProfile(email, token);
-        console.log("[Profile] fetchUserProfile result:", profile);
+        debugLog('api', "[Profile] fetchUserProfile result:", profile);
 
         if (!profile || !profile.email) {
-          console.error("[Profile] Invalid profile data received");
+          debugError('api', "[Profile] Invalid profile data received");
           throw new Error("Invalid profile");
         }
 
@@ -351,7 +351,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
         error.style.display = "none";
         logoutBtn.style.display = "inline-block";
       } catch (err) {
-        console.error("Profile load error:", err);
+        debugError('auth', "Profile load error:", err);
         loading.style.display = "none";
         content.style.display = "none";
         notAuth.style.display = "none";
@@ -370,7 +370,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
           try {
             await window.__authBridge?.logout?.();
           } catch (error) {
-            console.error("Logout error:", error);
+            debugError('auth', "Logout error:", error);
           }
         });
       });
@@ -380,11 +380,11 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
         "#profile-not-authenticated [data-auth-btn]"
       );
       if (signInBtn) {
-        console.log("[Profile] Setting up Sign In button click handler");
+        debugLog('auth', "[Profile] Setting up Sign In button click handler");
         signInBtn.addEventListener("click", async (e) => {
           e.preventDefault();
           e.stopPropagation();
-          console.log("[Profile] Sign In button clicked");
+          debugLog('auth', "[Profile] Sign In button clicked");
 
           try {
             // Prefer bridge login
@@ -392,13 +392,13 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
               window.__authBridge &&
               typeof window.__authBridge.login === "function"
             ) {
-              console.log("[Profile] Using authBridge.login()");
+              debugLog('auth', "[Profile] Using authBridge.login()");
               await window.__authBridge.login();
               return;
             }
 
             // Fallback: construct Hosted UI URL
-            console.log("[Profile] Using fallback Hosted UI URL");
+            debugLog('auth', "[Profile] Using fallback Hosted UI URL");
             const domain = signInBtn.getAttribute("data-cognito-domain");
             const clientId = signInBtn.getAttribute("data-client-id");
             const scopes =
@@ -411,26 +411,26 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
               url.searchParams.set("response_type", "code");
               url.searchParams.set("redirect_uri", origin);
               url.searchParams.set("scope", scopes);
-              console.log("[Profile] Redirecting to:", url.toString());
+              debugLog('auth', "[Profile] Redirecting to:", url.toString());
               window.location.assign(url.toString());
             } else {
-              console.error("[Profile] Missing domain or clientId");
+              debugError('auth', "[Profile] Missing domain or clientId");
             }
           } catch (error) {
-            console.error("[Profile] Sign in error:", error);
+            debugError('auth', "[Profile] Sign in error:", error);
           }
         });
       }
     }
 
     function init() {
-      console.log("[Profile] init() called");
-      console.log("[Profile] Document ready state:", document.readyState);
-      console.log(
+      debugLog('auth', "[Profile] init() called");
+      debugLog('auth', "[Profile] Document ready state:", document.readyState);
+      debugLog('auth',
         "[Profile] localStorage available:",
         typeof localStorage !== "undefined"
       );
-      console.log(
+      debugLog('auth',
         "[Profile] window.__authBridge available:",
         !!window.__authBridge
       );
@@ -439,7 +439,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
       if (typeof localStorage !== "undefined") {
         const idToken = localStorage.getItem("cognito_id_token");
         const accessToken = localStorage.getItem("cognito_access_token");
-        console.log("[Profile] Direct localStorage check:", {
+        debugLog('auth', "[Profile] Direct localStorage check:", {
           hasIdToken: !!idToken,
           hasAccessToken: !!accessToken,
           idTokenPreview: idToken ? idToken.substring(0, 30) + "..." : null,

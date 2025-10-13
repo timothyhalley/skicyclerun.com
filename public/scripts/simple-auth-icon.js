@@ -68,27 +68,27 @@
   }
 
   async function updateAuthIcon() {
-    console.log("🔑 [UPDATE] updateAuthIcon called");
+    debugLog('auth', "🔑 [UPDATE] updateAuthIcon called");
 
     const loginIcon = document.getElementById("login-svg");
     const logoutIcon = document.getElementById("logout-svg");
     const authButton = document.querySelector("[data-auth-btn]");
 
-    console.log("🔑 [UPDATE] Elements found:", {
+    debugLog('auth', "🔑 [UPDATE] Elements found:", {
       loginIcon: !!loginIcon,
       logoutIcon: !!logoutIcon,
       authButton: !!authButton,
     });
 
     if (!authButton || !loginIcon || !logoutIcon) {
-      console.warn("🔑 [UPDATE] Missing required elements, aborting");
+      debugWarn('auth', "🔑 [UPDATE] Missing required elements, aborting");
       return;
     }
 
     const session = await getAuthSession();
     const isAuthenticated = !!session?.signedIn;
 
-    console.log("🔑 [UPDATE] Auth session:", {
+    debugLog('auth', "🔑 [UPDATE] Auth session:", {
       isAuthenticated,
       hasUser: !!session?.user,
       email: session?.user?.email,
@@ -96,7 +96,7 @@
     });
 
     if (isAuthenticated) {
-      console.log("🔑 [UPDATE] Setting authenticated state");
+      debugLog('auth', "🔑 [UPDATE] Setting authenticated state");
       loginIcon.style.cssText = "display: none !important;";
       logoutIcon.style.cssText = "display: inline !important;";
       authButton.setAttribute("data-auth-state", "authenticated");
@@ -111,7 +111,7 @@
         );
       } catch {}
     } else {
-      console.log("🔑 [UPDATE] Setting unauthenticated state");
+      debugLog('auth', "🔑 [UPDATE] Setting unauthenticated state");
       loginIcon.style.cssText = "display: inline !important;";
       logoutIcon.style.cssText = "display: none !important;";
       authButton.setAttribute("data-auth-state", "unauthenticated");
@@ -126,7 +126,7 @@
       } catch {}
     }
 
-    console.log(
+    debugLog('auth',
       "🔑 [UPDATE] Auth icon updated:",
       isAuthenticated ? "Authenticated" : "Not authenticated",
     );
@@ -135,16 +135,16 @@
   function setupAuthButton() {
     const authButton = document.querySelector("[data-auth-btn]");
 
-    console.log("🔑 [DEBUG] setupAuthButton called");
-    console.log("🔑 [DEBUG] authButton found:", !!authButton);
+    debugLog('auth', "🔑 [DEBUG] setupAuthButton called");
+    debugLog('auth', "🔑 [DEBUG] authButton found:", !!authButton);
 
     if (!authButton) {
-      console.warn("🔑 [DEBUG] No [data-auth-btn] element found in DOM");
+      debugWarn('auth', "🔑 [DEBUG] No [data-auth-btn] element found in DOM");
       return;
     }
 
-    console.log("🔑 [DEBUG] authButton element:", authButton);
-    console.log("🔑 [DEBUG] authButton data-attributes:", {
+    debugLog('auth', "🔑 [DEBUG] authButton element:", authButton);
+    debugLog('auth', "🔑 [DEBUG] authButton data-attributes:", {
       "data-cognito-domain": authButton.getAttribute("data-cognito-domain"),
       "data-client-id": authButton.getAttribute("data-client-id"),
       "data-scopes": authButton.getAttribute("data-scopes"),
@@ -155,28 +155,28 @@
     const replacement = authButton.cloneNode(true);
     authButton.parentNode.replaceChild(replacement, authButton);
 
-    console.log("🔑 [DEBUG] Button replaced, adding new click listener");
+    debugLog('auth', "🔑 [DEBUG] Button replaced, adding new click listener");
 
     replacement.addEventListener("click", async (e) => {
-      console.log("🔑 [CLICK] ========== AUTH BUTTON CLICKED ==========");
+      debugLog('auth', "🔑 [CLICK] ========== AUTH BUTTON CLICKED ==========");
       e.preventDefault();
       e.stopPropagation();
 
       // Wait for auth bridge to be ready (max 2 seconds)
-      console.log("🔑 [CLICK] Waiting for auth bridge...");
+      debugLog('auth', "🔑 [CLICK] Waiting for auth bridge...");
       let attempts = 0;
       while (!window.__authBridge && attempts < 20) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         attempts++;
       }
 
-      console.log("🔑 [CLICK] Auth bridge wait complete. Attempts:", attempts);
-      console.log("🔑 [CLICK] Auth bridge available:", !!window.__authBridge);
+      debugLog('auth', "🔑 [CLICK] Auth bridge wait complete. Attempts:", attempts);
+      debugLog('auth', "🔑 [CLICK] Auth bridge available:", !!window.__authBridge);
 
       const current = window.__userSession || (await getAuthSession());
       const isAuthenticated = !!current?.signedIn;
 
-      console.log("🔑 [CLICK] Current auth state:", {
+      debugLog('auth', "🔑 [CLICK] Current auth state:", {
         isAuthenticated,
         hasUserSession: !!window.__userSession,
         currentSession: current,
@@ -186,73 +186,73 @@
       try {
         const bridge = window.__authBridge;
         if (bridge) {
-          console.log("🔑 [CLICK] Auth bridge found:", {
+          debugLog('auth', "🔑 [CLICK] Auth bridge found:", {
             hasLogin: typeof bridge.login === "function",
             hasLogout: typeof bridge.logout === "function",
             hasGetState: typeof bridge.getState === "function",
           });
 
           if (isAuthenticated && typeof bridge.logout === "function") {
-            console.log("🔑 [CLICK] Calling bridge.logout()...");
+            debugLog('auth', "🔑 [CLICK] Calling bridge.logout()...");
             await bridge.logout();
-            console.log("🔑 [CLICK] bridge.logout() completed");
+            debugLog('auth', "🔑 [CLICK] bridge.logout() completed");
             return;
           }
           if (!isAuthenticated && typeof bridge.login === "function") {
-            console.log("🔑 [CLICK] Calling bridge.login()...");
+            debugLog('auth', "🔑 [CLICK] Calling bridge.login()...");
             await bridge.login();
-            console.log("🔑 [CLICK] bridge.login() completed");
+            debugLog('auth', "🔑 [CLICK] bridge.login() completed");
             return;
           }
 
-          console.warn("🔑 [CLICK] Bridge exists but missing required method");
+          debugWarn('auth', "🔑 [CLICK] Bridge exists but missing required method");
         } else {
-          console.warn(
+          debugWarn('auth',
             "🔑 [CLICK] No auth bridge available, falling back to Hosted UI URL",
           );
         }
       } catch (err) {
-        console.error("🔑 [CLICK] Bridge error:", err);
+        debugError('auth', "🔑 [CLICK] Bridge error:", err);
       }
 
       // Fallback: compute Hosted UI URL directly
-      console.log("🔑 [CLICK] Computing Hosted UI URL...");
+      debugLog('auth', "🔑 [CLICK] Computing Hosted UI URL...");
       const url = computeHostedUiUrl(isAuthenticated /* logout? */);
-      console.log("🔑 [CLICK] Computed URL:", url);
+      debugLog('auth', "🔑 [CLICK] Computed URL:", url);
 
       if (url) {
-        console.log("🔑 [CLICK] Redirecting to:", url);
+        debugLog('auth', "🔑 [CLICK] Redirecting to:", url);
         window.location.assign(url);
         return;
       }
 
-      console.error(
+      debugError('auth',
         "🔑 [CLICK] FAILED: Unable to compute Hosted UI URL (missing data attributes)",
       );
-      console.error("🔑 [CLICK] Button data attributes:", {
+      debugError('auth', "🔑 [CLICK] Button data attributes:", {
         domain: replacement.getAttribute("data-cognito-domain"),
         clientId: replacement.getAttribute("data-client-id"),
         scopes: replacement.getAttribute("data-scopes"),
       });
     });
 
-    console.log("🔑 [DEBUG] Click listener attached successfully");
+    debugLog('auth', "🔑 [DEBUG] Click listener attached successfully");
   }
 
   function init() {
-    console.log("🔑 [INIT] Simple auth icon initializing...");
-    console.log("🔑 [INIT] Document ready state:", document.readyState);
-    console.log("🔑 [INIT] Auth bridge available:", !!window.__authBridge);
+    debugLog('auth', "🔑 [INIT] Simple auth icon initializing...");
+    debugLog('auth', "🔑 [INIT] Document ready state:", document.readyState);
+    debugLog('auth', "🔑 [INIT] Auth bridge available:", !!window.__authBridge);
 
     const authButton = document.querySelector("[data-auth-btn]");
-    console.log("🔑 [INIT] Auth button found:", !!authButton);
+    debugLog('auth', "🔑 [INIT] Auth button found:", !!authButton);
 
     if (authButton) {
-      console.log(
+      debugLog('auth',
         "🔑 [INIT] Auth button data-cognito-domain:",
         authButton.getAttribute("data-cognito-domain"),
       );
-      console.log(
+      debugLog('auth',
         "🔑 [INIT] Auth button data-client-id:",
         authButton.getAttribute("data-client-id"),
       );
@@ -261,36 +261,36 @@
     updateAuthIcon();
     setupAuthButton();
 
-    console.log("🔑 [INIT] Setting up event listeners...");
+    debugLog('auth', "🔑 [INIT] Setting up event listeners...");
 
     document.addEventListener("DOMContentLoaded", () => {
-      console.log("🔑 [EVENT] DOMContentLoaded fired");
+      debugLog('auth', "🔑 [EVENT] DOMContentLoaded fired");
       updateAuthIcon();
       setupAuthButton();
     });
     document.addEventListener("astro:page-load", () => {
-      console.log("🔑 [EVENT] astro:page-load fired");
+      debugLog('auth', "🔑 [EVENT] astro:page-load fired");
       setTimeout(updateAuthIcon, 10);
       setTimeout(setupAuthButton, 20);
     });
     document.addEventListener("astro:after-swap", () => {
-      console.log("🔑 [EVENT] astro:after-swap fired");
+      debugLog('auth', "🔑 [EVENT] astro:after-swap fired");
       setTimeout(updateAuthIcon, 10);
       setTimeout(setupAuthButton, 20);
     });
     window.addEventListener("focus", () => {
-      console.log("🔑 [EVENT] window focus");
+      debugLog('auth', "🔑 [EVENT] window focus");
       updateAuthIcon();
     });
     document.addEventListener("visibilitychange", () => {
-      console.log(
+      debugLog('auth',
         "🔑 [EVENT] visibilitychange, state:",
         document.visibilityState,
       );
       if (document.visibilityState === "visible") updateAuthIcon();
     });
 
-    console.log("🔑 [INIT] Initialization complete");
+    debugLog('auth', "🔑 [INIT] Initialization complete");
   }
 
   init();

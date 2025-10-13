@@ -1,5 +1,6 @@
 // Client-side auth helpers using AWS SDK for Cognito directly
 import { cognitoConfig, getRedirectUri, getLogoutUri } from "@config/cognito";
+import { DebugConsole } from "@utils/DebugConsole";
 
 export type AuthState = {
   signedIn: boolean;
@@ -38,7 +39,7 @@ function getStoredTokens(): {
   refreshToken?: string;
 } {
   if (typeof window === "undefined") {
-    console.log("[ClientAuth] getStoredTokens: window undefined");
+    DebugConsole.auth("[ClientAuth] getStoredTokens: window undefined");
     return {};
   }
   try {
@@ -47,14 +48,14 @@ function getStoredTokens(): {
       accessToken: localStorage.getItem(TOKEN_KEYS.accessToken) || undefined,
       refreshToken: localStorage.getItem(TOKEN_KEYS.refreshToken) || undefined,
     };
-    console.log("[ClientAuth] getStoredTokens result:", {
+    DebugConsole.auth("[ClientAuth] getStoredTokens result:", {
       hasIdToken: !!tokens.idToken,
       hasAccessToken: !!tokens.accessToken,
       hasRefreshToken: !!tokens.refreshToken,
     });
     return tokens;
   } catch (e) {
-    console.error("[ClientAuth] getStoredTokens error:", e);
+    DebugConsole.error("[ClientAuth] getStoredTokens error:", e);
     return {};
   }
 }
@@ -92,10 +93,10 @@ function isTokenExpired(token: string): boolean {
 }
 
 export async function getAuthState(): Promise<AuthState> {
-  console.log("[ClientAuth] getAuthState called");
+  DebugConsole.auth("[ClientAuth] getAuthState called");
   try {
     const tokens = getStoredTokens();
-    console.log("[ClientAuth] Stored tokens:", {
+    DebugConsole.auth("[ClientAuth] Stored tokens:", {
       hasIdToken: !!tokens.idToken,
       hasAccessToken: !!tokens.accessToken,
       hasRefreshToken: !!tokens.refreshToken,
@@ -104,21 +105,21 @@ export async function getAuthState(): Promise<AuthState> {
 
     const { idToken } = tokens;
     if (!idToken) {
-      console.log("[ClientAuth] No idToken found");
+      DebugConsole.auth("[ClientAuth] No idToken found");
       clearTokens();
       return { signedIn: false };
     }
 
     if (isTokenExpired(idToken)) {
-      console.log("[ClientAuth] idToken is expired");
+      DebugConsole.auth("[ClientAuth] idToken is expired");
       clearTokens();
       return { signedIn: false };
     }
 
     const payload = parseJWT(idToken);
-    console.log("[ClientAuth] JWT payload:", payload);
+    DebugConsole.auth("[ClientAuth] JWT payload:", payload);
     if (!payload) {
-      console.log("[ClientAuth] Failed to parse JWT payload");
+      DebugConsole.auth("[ClientAuth] Failed to parse JWT payload");
       clearTokens();
       return { signedIn: false };
     }
@@ -131,7 +132,7 @@ export async function getAuthState(): Promise<AuthState> {
       idToken,
       accessToken: tokens.accessToken,
     };
-    console.log("[ClientAuth] Final auth state:", {
+    DebugConsole.auth("[ClientAuth] Final auth state:", {
       ...authState,
       idToken: authState.idToken
         ? `${authState.idToken.substring(0, 20)}...`
@@ -142,7 +143,7 @@ export async function getAuthState(): Promise<AuthState> {
     });
     return authState;
   } catch (e) {
-    console.error("[ClientAuth] getAuthState error:", e);
+    DebugConsole.error("[ClientAuth] getAuthState error:", e);
     return { signedIn: false };
   }
 }
@@ -224,7 +225,7 @@ export async function handleHostedUiRedirect() {
     url.searchParams.delete("state");
     window.history.replaceState({}, document.title, url.toString());
   } catch (error) {
-    console.error("Error handling auth redirect:", error);
+    DebugConsole.error("Error handling auth redirect:", error);
     clearTokens();
   }
 }

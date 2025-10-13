@@ -1,0 +1,67 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import { DebugConsole } from "@utils/DebugConsole";
+
+// Test server-side debug logging
+DebugConsole.log("Debug test page loading (server-side)");
+DebugConsole.auth("Testing auth logger");
+DebugConsole.api("Testing API logger");
+---
+
+<BaseLayout title="Debug Console Test">
+  <main class="main-wrapper">
+    <h1>Debug Console Test</h1>
+    <p>Check your browser console to see debug output.</p>
+    <p>
+      Debug mode: {
+        import.meta.env.PUBLIC_DEBUG_OUTPUT === "true"
+          ? "✅ ENABLED"
+          : "❌ DISABLED"
+      }
+    </p>
+
+    <div style="margin-top: 2rem;">
+      <button
+        id="testBtn"
+        style="padding: 1rem; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;"
+      >
+        Test Client-Side Debug
+      </button>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  import { DebugConsole } from "@utils/DebugConsole";
+
+  DebugConsole.log("Client-side script loaded");
+
+  const btn = document.getElementById("testBtn");
+  btn?.addEventListener("click", () => {
+    DebugConsole.log("Button clicked!");
+    DebugConsole.auth("Testing auth category");
+    DebugConsole.api("Testing API category");
+    DebugConsole.ui("Testing UI category");
+    DebugConsole.nav("Testing nav category");
+    DebugConsole.warn("Testing warning");
+    DebugConsole.error("Testing error (this is not a real error!)");
+  });
+</script>
+
+<style>
+  .main-wrapper {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+  }
+
+  h1 {
+    color: #333;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+  }
+</style>

@@ -86,6 +86,16 @@ const socialImageURL = new URL(
 
     <meta name="theme-color" content="" />
 
+    <!-- Debug state for inline scripts -->
+    <meta
+      name="debug-enabled"
+      content={import.meta.env.PUBLIC_DEBUG_OUTPUT === "true"
+        ? "true"
+        : "false"}
+    />
+
+    <!-- Load debug helper for inline scripts (loads before inline scripts run) -->
+    <script is:inline src="/scripts/debug-helper.js"></script>
     <script src="/toggle-theme.js" defer></script>
   </head>
   <body>
@@ -96,6 +106,14 @@ const socialImageURL = new URL(
     <script is:inline>
       // Handle OAuth redirect and token exchange
       (async function () {
+        // Use global debug helpers (loaded from debug-helper.js)
+        const debug = window.debugLog
+          ? (cat, ...args) => window.debugLog(cat, ...args)
+          : () => {};
+        const debugError = window.debugError
+          ? (cat, ...args) => window.debugError(cat, ...args)
+          : () => {};
+
         const TOKEN_KEYS = {
           idToken: "cognito_id_token",
           accessToken: "cognito_access_token",
@@ -143,9 +161,9 @@ const socialImageURL = new URL(
                 TOKEN_KEYS.refreshToken,
                 tokens.refreshToken
               );
-            console.log("[AuthBridge] Tokens stored successfully");
+            debug("auth", "Tokens stored successfully");
           } catch (e) {
-            console.error("[AuthBridge] Failed to store tokens:", e);
+            debugError("auth", "Failed to store tokens:", e);
           }
         }
 
@@ -180,7 +198,7 @@ const socialImageURL = new URL(
             redirect_uri: redirectUri,
           });
 
-          console.log("[AuthBridge] Exchanging code for tokens...");
+          debug("auth", "Exchanging code for tokens...");
           const response = await fetch(tokenUrl, {
             method: "POST",
             headers: {
@@ -200,7 +218,7 @@ const socialImageURL = new URL(
           }
 
           const data = await response.json();
-          console.log("[AuthBridge] Token exchange successful");
+          debug("auth", "Token exchange successful");
           return data;
         }
 
@@ -210,13 +228,11 @@ const socialImageURL = new URL(
             const code = url.searchParams.get("code");
 
             if (!code) {
-              console.log("[AuthBridge] No authorization code found in URL");
+              debug("auth", "No authorization code found in URL");
               return;
             }
 
-            console.log(
-              "[AuthBridge] Authorization code found, exchanging for tokens..."
-            );
+            debug("auth", "Authorization code found, exchanging for tokens...");
             const redirectUri = window.location.origin + "/";
             const tokenResponse = await exchangeCodeForTokens(
               code,
@@ -229,7 +245,7 @@ const socialImageURL = new URL(
                 accessToken: tokenResponse.access_token,
                 refreshToken: tokenResponse.refresh_token,
               });
-              console.log("[AuthBridge] Tokens stored, cleaning URL");
+              debug("auth", "Tokens stored, cleaning URL");
             }
 
             // Clean the URL
@@ -312,7 +328,7 @@ const socialImageURL = new URL(
               : null;
           },
         };
-        console.log("[AuthBridge] window.__authBridge setup complete");
+        debug("auth", "window.__authBridge setup complete");
       })();
     </script>
     <!-- Load auth icon script from public folder (external, defer to avoid inline CSP) -->
