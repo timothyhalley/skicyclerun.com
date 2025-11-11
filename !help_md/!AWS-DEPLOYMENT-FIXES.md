@@ -4,13 +4,15 @@
 
 ### 1. ✅ Album Photos API Not Called in Production
 
-**Problem:**  
+#### Problem: Album Photos API Not Called
+
 Photos were falling back to local images instead of calling AWS API Gateway/Lambda in production.
 
-**Root Cause:**  
+#### Root Cause: Production Mode Check
+
 `Library.astro` had a check `if (import.meta.env.MODE === "production" || album === "local")` that forced local images for ALL production builds.
 
-**Fix:**
+#### Fix: Remove Production Mode Check
 
 ```diff
 - if (import.meta.env.MODE === "production" || album === "local") {
@@ -19,7 +21,7 @@ Photos were falling back to local images instead of calling AWS API Gateway/Lamb
 
 Changed condition to only use local images when explicitly requested (`album: "local"`), not for all production builds.
 
-**Result:**
+#### Result: API Calls Working
 
 - ✅ API calls now work in production AWS environment
 - ✅ Photos load from S3 via API Gateway/Lambda
@@ -29,10 +31,11 @@ Changed condition to only use local images when explicitly requested (`album: "l
 
 ### 2. ✅ Duplicate Date Display on Protected Content
 
-**Problem:**  
+#### Problem: Duplicate Date Display
+
 Tech posts showed date twice:
 
-```
+```text
 Jan 15, 1983
 Checking authentication...
 
@@ -40,12 +43,13 @@ RatFor Language
 Jan 15, 1983  <-- duplicate
 ```
 
-**Root Cause:**
+#### Root Cause: Duplicate Date Rendering
 
 - `TechPostLayout.astro` renders date in `.datetime-wrapper`
 - ProtectedContentWrapper reveals content which includes another date
 
-**Fix:**  
+#### Fix: Hide Datetime Wrapper
+
 Added datetime hiding in `ProtectedContentWrapper.astro`:
 
 ```javascript
@@ -56,7 +60,7 @@ if (datetimeWrapper && authRequired) {
 }
 ```
 
-**Result:**
+#### Result: Single Date Display
 
 - ✅ Date only shows once in TechPostLayout
 - ✅ No duplicate when content is revealed after auth check
@@ -65,20 +69,22 @@ if (datetimeWrapper && authRequired) {
 
 ### 3. ✅ Slow "Checking authentication..." Message
 
-**Problem:**  
+#### Problem: Slow Authentication Check
+
 PCW took 6 attempts before showing content.
 
-**Root Cause:**  
+#### Root Cause: Too Many Retry Attempts
+
 `MAX_ATTEMPTS = 6` was too high, causing 6 retry cycles before showing content.
 
-**Fix:**
+#### Fix: Reduce MAX_ATTEMPTS
 
 ```diff
 - const MAX_ATTEMPTS = 6; // total attempts including first
 + const MAX_ATTEMPTS = 3; // Reduced for faster auth decision (was 6)
 ```
 
-**Result:**
+#### Result: Faster Auth Decisions
 
 - ✅ Faster auth decisions (3 attempts instead of 6)
 - ✅ Content shows quicker after authentication
@@ -88,21 +94,23 @@ PCW took 6 attempts before showing content.
 
 ### 4. ✅ PCW JavaScript Errors - `attempt` and `authRequired` Undefined
 
-**Problem:**  
+#### Problem: Undefined Variables
+
 Console errors on protected pages:
 
-```
+```text
 ReferenceError: attempt is not defined
 ReferenceError: authRequired is not defined
 ```
 
-**Root Cause:**  
+#### Root Cause: Function Scoping Issues
+
 Function scoping issues in `processWrapper`:
 
 1. `processWrapper(container)` didn't accept `attempt` parameter but code tried to use it
 2. `authRequired` was defined in Astro scope but not accessible in client-side function
 
-**Fix:**
+#### Fix: Add Parameters and Read from DOM
 
 ```diff
 - async function processWrapper(container) {
@@ -121,7 +129,7 @@ Function scoping issues in `processWrapper`:
 +   console.log(`PCW: attempt=${attempt} authRequired=${authRequired}`);
 ```
 
-**Result:**
+#### Result: No JavaScript Errors
 
 - ✅ No more JavaScript errors in console
 - ✅ PCW properly reads auth requirements from DOM
@@ -131,18 +139,20 @@ Function scoping issues in `processWrapper`:
 
 ### 5. ✅ Login Prompt Not Showing - Stuck on "Checking authentication..."
 
-**Problem:**  
+#### Problem: Login Prompt Not Showing
+
 When unauthenticated users access protected content, page shows "Checking authentication..." forever instead of showing the login button.
 
 Console logs show:
 
-```
+```text
 PCW: user not authenticated, showing login prompt
 ```
 
 But UI remains stuck on loading message.
 
-**Root Cause:**  
+#### Root Cause: Early Return Bug
+
 Logic bug in `processWrapper` function - early return when `prevVisible === false`:
 
 ```javascript
@@ -156,7 +166,8 @@ if (prevVisible === false) {
 
 This check was meant to prevent redundant DOM updates, but on first load `prevVisible` is `false` by default, so the login UI never shows.
 
-**Fix:**  
+#### Fix: Remove prevVisible Check
+
 Removed the `prevVisible` check and always update the UI when user is not authenticated or lacks permissions:
 
 ```diff
@@ -174,7 +185,7 @@ Removed the `prevVisible` check and always update the UI when user is not authen
   message.style.display = "block";
 ```
 
-**Result:**
+#### Result: Login Prompt Working
 
 - ✅ Login button shows immediately when user is not authenticated
 - ✅ "Insufficient permissions" message shows when user lacks required groups
@@ -201,12 +212,12 @@ Removed the `prevVisible` check and always update the UI when user is not authen
 
 ## Testing Checklist
 
-After deploying to https://dev.skicyclerun.com:
+After deploying to <https://skicyclerun.com>:
 
-- [ ] Open travel post with album: `https://dev.skicyclerun.com/posts/GenAI-Travel`
+- [ ] Open travel post with album: `https://skicyclerun.com/posts/GenAI-Travel`
 - [ ] Check browser console for API call: `getphotosrandom?bucketName=...`
 - [ ] Verify photos load from S3 (not local `/_astro/` paths)
-- [ ] Open protected tech post: `https://dev.skicyclerun.com/tech/RatFor-Language`
+- [ ] Open protected tech post: `https://skicyclerun.com/tech/RatFor-Language`
 - [ ] Verify date only shows once (no duplicate)
 - [ ] Verify "Checking authentication..." disappears quickly (< 3 seconds)
 - [ ] Sign in and verify content loads correctly
@@ -230,16 +241,16 @@ PUBLIC_SKICYCLERUN_API=https://api.skicyclerun.com/prod/
 
 ## Console Log Analysis
 
-### Before Fix (Local Images):
+### Before Fix (Local Images)
 
-```
+```text
 [Hero] Raw JSON text: [{"src":"/_astro/AstroTestPage.Clzotib6.png",...
 [Hero] Photos parsed: 16 items
 ```
 
-### After Fix (API Images):
+### After Fix (API Images)
 
-```
+```text
 Fetching: https://api.skicyclerun.com/dev/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/travel-genai/&numPhotos=150
 [Hero] Raw JSON text: [{"src":"https://s3.amazonaws.com/skicyclerun.lib/albums/travel-genai/photo1.jpg",...
 [Hero] Photos parsed: 24 items
@@ -269,6 +280,8 @@ Fetching: https://api.skicyclerun.com/dev/getphotosrandom?bucketName=skicyclerun
 
 ---
 
+## Deployment Info
+
 **Last Updated:** October 10, 2025  
-**Deployed To:** https://dev.skicyclerun.com  
+**Deployed To:** <https://skicyclerun.com>  
 **Status:** ✅ Ready for testing

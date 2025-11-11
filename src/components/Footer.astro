@@ -321,20 +321,20 @@ const { noMarginTop = false } = Astro.props;
     formatCopyright,
     isSmallDevice,
   } from "@lib/userDisplay";
+  import { DebugConsole } from "@utils/DebugConsole";
 
   async function updateFooterAuth() {
     const el = document.getElementById("footer-auth-info");
     const userEl = document.getElementById("user-info");
     if (!el) {
-      debugError("ui", "[Footer] Could not find footer-auth-info element");
+      DebugConsole.error("[Footer] Could not find footer-auth-info element");
       return;
     }
 
     const compact = isSmallDevice();
     const currentYear = new Date().getFullYear();
 
-    debugLog(
-      "ui",
+    DebugConsole.ui(
       "[Footer] updateFooterAuth called, compact:",
       compact,
       "year:",
@@ -343,7 +343,7 @@ const { noMarginTop = false } = Astro.props;
 
     try {
       const state = await getAuthState();
-      debugLog("auth", "[Footer] Auth state:", state);
+      DebugConsole.auth("[Footer] Auth state:", state);
 
       if (state.signedIn) {
         const userEmail = state.email || "signed-in user";
@@ -357,7 +357,7 @@ const { noMarginTop = false } = Astro.props;
           compact,
         });
 
-        debugLog("auth", "[Footer] Signed in, displaying user info:", txt);
+        DebugConsole.auth("[Footer] Signed in, displaying user info:", txt);
 
         el.classList.add("hidden");
         if (userEl) {
@@ -371,19 +371,19 @@ const { noMarginTop = false } = Astro.props;
         }
       } else {
         // Not signed in - show copyright
-        debugLog("auth", "[Footer] Not signed in, showing copyright");
+        DebugConsole.auth("[Footer] Not signed in, showing copyright");
         if (userEl) userEl.classList.add("hidden");
         const copyrightText = formatCopyright(currentYear, compact);
-        debugLog("ui", "[Footer] Copyright text:", copyrightText);
+        DebugConsole.ui("[Footer] Copyright text:", copyrightText);
         el.textContent = copyrightText;
         el.classList.remove("hidden");
       }
     } catch (error) {
       // On error, show copyright as fallback
-      debugError("auth", "[Footer] Error in updateFooterAuth:", error);
+      DebugConsole.error("[Footer] Error in updateFooterAuth:", error);
       if (userEl) userEl.classList.add("hidden");
       const copyrightText = formatCopyright(currentYear, compact);
-      debugLog("ui", "[Footer] Fallback copyright text:", copyrightText);
+      DebugConsole.ui("[Footer] Fallback copyright text:", copyrightText);
       el.textContent = copyrightText;
       el.classList.remove("hidden");
     }

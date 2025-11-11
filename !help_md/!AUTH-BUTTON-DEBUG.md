@@ -17,7 +17,7 @@ The issue appears to be that the click handler is not being properly attached to
 
 ### Initialization Logs
 
-```
+```text
 🔑 [INIT] Simple auth icon initializing...
 🔑 [INIT] Document ready state: [state]
 🔑 [INIT] Auth bridge available: [true/false]
@@ -28,7 +28,7 @@ The issue appears to be that the click handler is not being properly attached to
 
 ### Update Icon Logs
 
-```
+```text
 🔑 [UPDATE] updateAuthIcon called
 🔑 [UPDATE] Elements found: {loginIcon, logoutIcon, authButton}
 🔑 [UPDATE] Auth session: {isAuthenticated, hasUser, email, groupCount}
@@ -37,7 +37,7 @@ The issue appears to be that the click handler is not being properly attached to
 
 ### Setup Button Logs
 
-```
+```text
 🔑 [DEBUG] setupAuthButton called
 🔑 [DEBUG] authButton found: [true/false]
 🔑 [DEBUG] authButton element: [element]
@@ -48,7 +48,7 @@ The issue appears to be that the click handler is not being properly attached to
 
 ### Click Handler Logs
 
-```
+```text
 🔑 [CLICK] ========== AUTH BUTTON CLICKED ==========
 🔑 [CLICK] Waiting for auth bridge...
 🔑 [CLICK] Auth bridge wait complete. Attempts: [count]
@@ -65,7 +65,7 @@ The issue appears to be that the click handler is not being properly attached to
 
 ### On Page Load (Not Authenticated)
 
-```
+```text
 🔑 [INIT] Simple auth icon initializing...
 🔑 [INIT] Document ready state: loading
 🔑 [INIT] Auth bridge available: false
@@ -89,7 +89,7 @@ The issue appears to be that the click handler is not being properly attached to
 
 ### On Button Click (Not Authenticated)
 
-```
+```text
 🔑 [CLICK] ========== AUTH BUTTON CLICKED ==========
 🔑 [CLICK] Waiting for auth bridge...
 🔑 [CLICK] Auth bridge wait complete. Attempts: 5
@@ -197,7 +197,7 @@ window.addEventListener("error", (e) => {
 
 ### Event Flow
 
-```
+```text
 1. Page loads
 2. BaseLayout inline script runs → window.__authBridge created
 3. simple-auth-icon.js loads → setupAuthButton() called
@@ -306,7 +306,7 @@ document.querySelector("[data-auth-btn]").click();
 ## Next Steps
 
 1. **Deploy changes** to dev environment
-2. **Open browser console** on https://dev.skicyclerun.com/
+2. **Open browser console** on <https://skicyclerun.com/>
 3. **Look for initialization logs** starting with 🔑
 4. **Click login button** and watch for CLICK logs
 5. **Report findings** with full console log output

@@ -22,7 +22,10 @@ const httpsConfig =
 
 export default defineConfig({
   // Canonical site URL for sitemap/canonicals, from env first
-  site: process.env.SKICYCLERUN_URL ?? env.SKICYCLERUN_URL ?? "https://dev.skicyclerun.com",
+  site:
+    process.env.SKICYCLERUN_URL ??
+    env.SKICYCLERUN_URL ??
+    "https://skicyclerun.com",
   output: "static",
   integrations: [mdx(), sitemap(), react()],
   devToolbar: {
