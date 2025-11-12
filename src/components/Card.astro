@@ -3,114 +3,65 @@ import { slugifyStr } from "@utils/slugify";
 import Datetime from "@components/Datetime.astro";
 
 const { href, frontmatter, secHeading = true } = Astro.props;
-const { title, pubDatetime, modDatetime, description } = frontmatter;
+const { title, pubDatetime, modDatetime, description, ogImage, cover } =
+  frontmatter;
 const viewTransitionName = slugifyStr(title);
+
+// Use cover if available, fallback to ogImage
+const cardImage = cover || ogImage;
 ---
 
-<article class="card-container">
-  <div class="card">
-    <div class="card-content">
-      <h2 class="mb-3">
-        <a
-          href={href}
-          class="text-2xl md:text-3xl lg:text-4xl font-extrabold text-skin-base hover:text-skin-accent"
-          transition:name={viewTransitionName}
-        >
-          {title}
-        </a>
-      </h2>
-      <div class="card-meta">
-        <time datetime={pubDatetime}>
-          {new Date(pubDatetime).toLocaleDateString()}
-        </time>
-        {
-          modDatetime && (
-            <>
-              <span class="date-separator">•</span>
-              <span class="text-xs opacity-70">
-                Updated: {new Date(modDatetime).toLocaleDateString()}
-              </span>
-            </>
-          )
-        }
+<article class="mb-8">
+  <a href={href} class="block no-underline group">
+    <div
+      class="flex flex-row items-start bg-skin-card rounded-lg overflow-hidden translate-y-[3px] border border-skin-line"
+      style="box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);"
+    >
+      <div class="p-6 flex-[3_3_0%] flex flex-col">
+        <h2 class="mb-3">
+          <span
+            class="text-2xl md:text-3xl lg:text-4xl font-extrabold text-skin-base group-hover:text-skin-accent transition-colors"
+            transition:name={viewTransitionName}
+          >
+            {title}
+          </span>
+        </h2>
+        <div class="mb-3 text-skin-muted text-sm flex gap-2 items-center">
+          <time datetime={pubDatetime}>
+            {new Date(pubDatetime).toLocaleDateString()}
+          </time>
+          {
+            modDatetime && (
+              <>
+                <span class="opacity-60">•</span>
+                <span class="text-xs opacity-70">
+                  Updated: {new Date(modDatetime).toLocaleDateString()}
+                </span>
+              </>
+            )
+          }
+        </div>
+        <p class="mb-2 line-clamp-3 text-skin-base leading-relaxed">
+          {description}
+        </p>
       </div>
-      <p class="card-description">
-        {description}
-      </p>
+      {
+        cardImage && (
+          <div class="flex-none w-[clamp(140px,25vw,220px)] aspect-square bg-skin-fill-secondary flex items-center justify-center self-start border-l border-skin-line overflow-hidden">
+            <img
+              src={
+                typeof cardImage === "object" && cardImage && "src" in cardImage
+                  ? cardImage.src
+                  : cardImage
+              }
+              alt={title}
+              loading="lazy"
+              decoding="async"
+              class="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
+            />
+          </div>
+        )
+      }
     </div>
-  </div>
+  </a>
 </article>
-
-<style>
-  .card-container {
-    margin-bottom: 2rem;
-  }
-
-  .card {
-    display: flex;
-    flex-direction: column;
-    background-color: var(--color-card);
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    overflow: hidden;
-    transform: translateY(3px);
-    border: 1px solid var(--color-card-muted);
-    transition:
-      transform 0.3s ease,
-      box-shadow 0.3s ease;
-  }
-
-  .card:hover {
-    transform: translateY(0);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-  }
-
-  .card-content {
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .card-meta {
-    margin-bottom: 0.75rem;
-    color: var(--color-text-muted);
-    font-size: 0.9rem;
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-  }
-
-  .date-separator {
-    opacity: 0.6;
-  }
-
-  .card-description {
-    margin-bottom: 0.5rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    color: var(--color-text-base);
-    line-height: 1.5;
-  }
-
-  /* Defensive rule: ensure anchor title remains large */
-  .card-content h2 a {
-    font-size: 1.5rem !important;
-    line-height: 1.4 !important;
-    font-weight: 800 !important;
-    text-decoration: none !important;
-    transition: color 0.3s ease;
-  }
-
-  /* Increase specificity to outrank prose rules */
-  article.card-container .card .card-content h2 a {
-    font-size: 1.75rem !important;
-  }
-
-  @media (max-width: 768px) {
-    .card-content {
-      padding: 1.25rem;
-    }
-  }
-</style>

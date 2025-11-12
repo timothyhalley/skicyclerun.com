@@ -31,27 +31,22 @@ const coverImages = await Promise.all(
   pageTitle="Posts"
   pageDesc="Travel logs and video content"
   activeNav="posts"
-  usePostsGutter={true}
 >
-  <section class="mt-8">
-    <div class="posts-gutter">
-      <div class="flex flex-col gap-6">
-        {
-          pagination.paginatedPosts.map((post, index) => (
-            <PostCard
-              title={post.data.title}
-              author={post.data.author}
-              pubDatetime={post.data.pubDatetime.toISOString()}
-              tags={post.data.tags}
-              description={post.data.description}
-              cover={coverImages[index]?.src ?? "images/default-cover.png"}
-              href={`/posts/${post.slug}`}
-            />
-          ))
-        }
-      </div>
-    </div>
-  </section>
+  <div class="flex flex-col gap-6">
+    {
+      pagination.paginatedPosts.map((post, index) => (
+        <PostCard
+          title={post.data.title}
+          author={post.data.author}
+          pubDatetime={post.data.pubDatetime.toISOString()}
+          tags={post.data.tags}
+          description={post.data.description}
+          cover={coverImages[index]?.src ?? "images/default-cover.png"}
+          href={`/posts/${post.slug}`}
+        />
+      ))
+    }
+  </div>
 
   <Pagination
     currentPage={pagination.currentPage}

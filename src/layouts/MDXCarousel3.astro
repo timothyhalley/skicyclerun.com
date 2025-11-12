@@ -122,8 +122,10 @@ const {
     // Astro hoisting/bundling (no reliance on document.currentScript) and will
     // work even when carousels are initially hidden.
     (function initCarousels() {
-      function setupCarousel(container) {
-        if (!container || container.dataset.carouselInitialized) return;
+      function setupCarousel(container, forceReinit = false) {
+        if (!container) return;
+        if (container.dataset.carouselInitialized && !forceReinit) return;
+
         const id = container.id;
         const track = container.querySelector(".carousel-track");
         const slides = track
@@ -139,6 +141,15 @@ const {
           // Nothing to do
           container.dataset.carouselInitialized = "1";
           return;
+        }
+
+        // Clear any existing interval if reinitializing
+        if (forceReinit) {
+          const oldIntervalId = container.dataset.carouselInterval;
+          if (oldIntervalId) {
+            clearInterval(Number(oldIntervalId));
+            delete container.dataset.carouselInterval;
+          }
         }
 
         let currentIndex = 0;
@@ -175,6 +186,7 @@ const {
           if (modal && modalImage && src) {
             modalImage.src = src;
             modal.style.display = "flex";
+            console.log("[Carousel] Opening modal with image:", src);
           }
         }
 
@@ -185,42 +197,110 @@ const {
           }
         }
 
-        // Wire buttons
-        prevBtn?.addEventListener("click", (e) => {
-          e.preventDefault();
-          prevSlide();
-        });
-        nextBtn?.addEventListener("click", (e) => {
-          e.preventDefault();
-          nextSlide();
-        });
-        toggleBtn?.addEventListener("click", (e) => {
-          e.preventDefault();
-          setPlaying(!isPlaying);
-        });
-        modal?.addEventListener("click", closeModal);
+        // Remove old event listeners if reinitializing
+        if (forceReinit) {
+          const newPrevBtn = prevBtn?.cloneNode(true);
+          const newNextBtn = nextBtn?.cloneNode(true);
+          const newToggleBtn = toggleBtn?.cloneNode(true);
 
-        slides.forEach((slide) => {
-          slide.addEventListener("click", () => {
-            const src =
-              slide.getAttribute("data-src") || slide.querySelector("img")?.src;
-            openModal(src);
+          if (prevBtn && newPrevBtn)
+            prevBtn.parentNode?.replaceChild(newPrevBtn, prevBtn);
+          if (nextBtn && newNextBtn)
+            nextBtn.parentNode?.replaceChild(newNextBtn, nextBtn);
+          if (toggleBtn && newToggleBtn)
+            toggleBtn.parentNode?.replaceChild(newToggleBtn, toggleBtn);
+
+          // Update references
+          const updatedPrevBtn = document.getElementById(`${id}-prevBtn`);
+          const updatedNextBtn = document.getElementById(`${id}-nextBtn`);
+          const updatedToggleBtn = document.getElementById(`${id}-toggleBtn`);
+
+          // Wire new buttons
+          updatedPrevBtn?.addEventListener("click", (e) => {
+            e.preventDefault();
+            prevSlide();
           });
-        });
+          updatedNextBtn?.addEventListener("click", (e) => {
+            e.preventDefault();
+            nextSlide();
+          });
+          updatedToggleBtn?.addEventListener("click", (e) => {
+            e.preventDefault();
+            setPlaying(!isPlaying);
+          });
+
+          // Clone slides to remove old event listeners
+          slides.forEach((slide, idx) => {
+            const newSlide = slide.cloneNode(true);
+            slide.parentNode?.replaceChild(newSlide, slide);
+            slides[idx] = newSlide; // Update reference
+
+            newSlide.addEventListener("click", () => {
+              const src =
+                newSlide.getAttribute("data-src") ||
+                newSlide.querySelector("img")?.src;
+              console.log(
+                `[Carousel] Clicked slide ${idx}, opening modal with:`,
+                src
+              );
+              openModal(src);
+            });
+          });
+        } else {
+          // Wire buttons (initial setup)
+          prevBtn?.addEventListener("click", (e) => {
+            e.preventDefault();
+            prevSlide();
+          });
+          nextBtn?.addEventListener("click", (e) => {
+            e.preventDefault();
+            nextSlide();
+          });
+          toggleBtn?.addEventListener("click", (e) => {
+            e.preventDefault();
+            setPlaying(!isPlaying);
+          });
+
+          slides.forEach((slide, idx) => {
+            slide.addEventListener("click", () => {
+              const src =
+                slide.getAttribute("data-src") ||
+                slide.querySelector("img")?.src;
+              console.log(
+                `[Carousel] Clicked slide ${idx}, opening modal with:`,
+                src
+              );
+              openModal(src);
+            });
+          });
+        }
+
+        modal?.addEventListener("click", closeModal);
 
         // Start autoplay
         setPlaying(true);
 
         // mark initialized
         container.dataset.carouselInitialized = "1";
+        console.log(`[Carousel] Initialized with ${slides.length} slides`);
       }
 
       function initAll() {
         const containers = Array.from(
           document.querySelectorAll(".carousel-container")
         );
-        containers.forEach(setupCarousel);
+        containers.forEach((c) => setupCarousel(c, false));
       }
+
+      // Listen for reinit events from PhotoLayout
+      document.addEventListener("reinit-carousel", (e) => {
+        const containerId = e.detail?.containerId;
+        if (containerId) {
+          const container = document.getElementById(containerId);
+          console.log(`[Carousel] Reinitializing carousel: ${containerId}`);
+          setupCarousel(container, true);
+        }
+      });
 
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", initAll);

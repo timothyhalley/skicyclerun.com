@@ -32,22 +32,20 @@ const coverImages = await Promise.all(
   pageDesc="Technical articles, tutorials, and insights"
   activeNav="tech"
 >
-  <div class="posts-gutter">
-    <div class="flex flex-col gap-6">
-      {
-        pagination.paginatedPosts.map((post, index) => (
-          <PostCard
-            title={post.data.title}
-            author={post.data.author}
-            pubDatetime={post.data.pubDatetime.toISOString()}
-            tags={post.data.tags}
-            description={post.data.description}
-            cover={coverImages[index]?.src ?? "images/default-cover.png"}
-            href={`/tech/${post.slug}`}
-          />
-        ))
-      }
-    </div>
+  <div class="flex flex-col gap-6">
+    {
+      pagination.paginatedPosts.map((post, index) => (
+        <PostCard
+          title={post.data.title}
+          author={post.data.author}
+          pubDatetime={post.data.pubDatetime.toISOString()}
+          tags={post.data.tags}
+          description={post.data.description}
+          cover={coverImages[index]?.src ?? "images/default-cover.png"}
+          href={`/tech/${post.slug}`}
+        />
+      ))
+    }
   </div>
 
   <Pagination

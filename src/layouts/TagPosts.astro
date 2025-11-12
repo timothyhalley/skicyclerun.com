@@ -35,26 +35,24 @@ const coverImages = await Promise.all(
   pageDesc={`All articles tagged with "${tagName}"`}
   activeNav="tags"
 >
-  <div class="posts-gutter">
-    <div class="flex flex-col gap-6">
-      {
-        paginatedPosts.map((post, index) => (
-          <PostCard
-            title={post.data.title}
-            author={post.data.author}
-            pubDatetime={post.data.pubDatetime.toISOString()}
-            tags={post.data.tags}
-            description={post.data.description}
-            cover={coverImages[index]?.src ?? "images/default-cover.png"}
-            href={
-              post.data.type === "TECH"
-                ? `/tech/${post.data.slug || post.slug}`
-                : `/posts/${post.data.slug || post.slug}`
-            }
-          />
-        ))
-      }
-    </div>
+  <div class="flex flex-col gap-6">
+    {
+      paginatedPosts.map((post, index) => (
+        <PostCard
+          title={post.data.title}
+          author={post.data.author}
+          pubDatetime={post.data.pubDatetime.toISOString()}
+          tags={post.data.tags}
+          description={post.data.description}
+          cover={coverImages[index]?.src ?? "images/default-cover.png"}
+          href={
+            post.data.type === "TECH"
+              ? `/tech/${post.data.slug || post.slug}`
+              : `/posts/${post.data.slug || post.slug}`
+          }
+        />
+      ))
+    }
   </div>
 
   <Pagination

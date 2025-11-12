@@ -350,16 +350,50 @@ if (!photos || photos.length === 0) {
             console.log("[PhotoLayout] Carousel JSON updated");
           }
 
-          const carouselImages = carouselContainer.querySelectorAll("img");
-          carouselImages.forEach((img, i) => {
-            if (photos[i]) {
-              img.src = photos[i].src;
-              img.alt = photos[i].altText || `Photo ${i + 1}`;
+          // Find the carousel track and slides
+          const track = carouselContainer.querySelector(".carousel-track");
+          if (track) {
+            const slides = Array.from(
+              track.querySelectorAll(".carousel-slide")
+            );
+
+            // Update each slide's data-src and image
+            slides.forEach((slide, i) => {
+              if (photos[i]) {
+                slide.setAttribute("data-src", photos[i].src);
+                const img = slide.querySelector("img");
+                if (img) {
+                  img.src = photos[i].src;
+                  img.alt = photos[i].altText || `Photo ${i + 1}`;
+                }
+              }
+            });
+
+            // Reset carousel to first slide and reinitialize
+            if (carouselContainer.dataset.carouselInitialized) {
+              delete carouselContainer.dataset.carouselInitialized;
+
+              // Clear any existing interval
+              const intervalId = carouselContainer.dataset.carouselInterval;
+              if (intervalId) {
+                clearInterval(Number(intervalId));
+                delete carouselContainer.dataset.carouselInterval;
+              }
+
+              // Reset transform
+              track.style.transform = "translateX(0%)";
+
+              // Trigger re-initialization by dispatching event
+              const event = new CustomEvent("reinit-carousel", {
+                detail: { containerId: carouselContainer.id },
+              });
+              document.dispatchEvent(event);
             }
-          });
-          console.log(
-            `[PhotoLayout] Carousel images updated (${carouselImages.length} images)`
-          );
+
+            console.log(
+              `[PhotoLayout] Carousel slides updated with ${slides.length} photos and reinitialized`
+            );
+          }
         }
       }
 

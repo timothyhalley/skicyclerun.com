@@ -4,9 +4,10 @@ import BaseLayout from "@layouts/BaseLayout.astro";
 import Header from "@components/Header.astro";
 import LinkButton from "@components/LinkButton.astro";
 import Hr from "@components/Hr.astro";
-import Card from "@components/Card.astro";
+import PostCard from "@components/PostCards.astro";
 import getSortedPosts from "@utils/getSortedPosts";
 import { SkiCycleRunConfig } from "skicyclerun.config";
+import { getPhotoCover } from "@utils/getPhotoCover";
 
 import MtnTops from "@svg_imgs/mtntops.svg";
 
@@ -18,6 +19,11 @@ const featuredPosts = sortedPosts.filter(
 );
 const recentPosts = sortedPosts.filter(
   ({ data }: { data: any }) => !data.featured
+);
+
+// Resolve cover images for featured posts
+const featuredCoverImages = await Promise.all(
+  featuredPosts.map((post) => getPhotoCover(post.data.cover ?? null))
 );
 
 const socialCount = SkiCycleRunConfig.socials.filter(
@@ -60,31 +66,33 @@ const socialCount = SkiCycleRunConfig.socials.filter(
     {
       featuredPosts.length > 0 && (
         <>
-          <section id="featured" class="mt-1">
-            <h2 class="mb-3 text-2xl md:text-3xl font-bold">Featured Topics</h2>
-            <ul class="featured-list">
-              {featuredPosts.map(({ data, slug }) => (
-                <li>
-                  <Card
-                    href={
-                      data.type === "TECH" || data.type === "BETA"
-                        ? `/tech/${slug}`
-                        : `/posts/${slug}`
-                    }
-                    frontmatter={data}
-                    secHeading={false}
-                  />
-                </li>
+          <section
+            id="featured"
+            class="max-w-screen-lg mx-auto w-full px-4 mt-8"
+          >
+            <h2 class="mb-6 text-2xl md:text-3xl font-bold">Featured Topics</h2>
+            <div class="flex flex-col gap-6">
+              {featuredPosts.map((post, index) => (
+                <PostCard
+                  title={post.data.title}
+                  author={post.data.author}
+                  pubDatetime={post.data.pubDatetime.toISOString()}
+                  tags={post.data.tags}
+                  description={post.data.description}
+                  cover={featuredCoverImages[index]}
+                  href={
+                    post.data.type === "TECH" || post.data.type === "BETA"
+                      ? `/tech/${post.slug}`
+                      : `/posts/${post.slug}`
+                  }
+                />
               ))}
-            </ul>
+            </div>
           </section>
-          {recentPosts.length > 0 && (
-            <div style="margin-top: 10px; margin-bottom: 10px;" />
-          )}
+          {recentPosts.length > 0 && <div class="my-4" />}
         </>
       )
     }
-
     <div class="all-posts-btn-wrapper">
       <LinkButton href="/posts">
         All Posts <svg
@@ -246,19 +254,5 @@ const socialCount = SkiCycleRunConfig.socials.filter(
     margin-top: 1rem;
     margin-bottom: 1rem;
     text-align: center;
-  }
-
-  /* Ensure featured list has explicit separation with clean styling */
-  .featured-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .featured-list li {
-    margin: 0;
   }
 </style>
