@@ -9,7 +9,7 @@ interface Photo {
 
 async function getLocalImages() {
   const imageObject = import.meta.glob<{ default: ImageMetadata }>(
-    "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
+    "/src/assets/images/*.{jpeg,jpg,png,gif,svg}",
   );
   const imageKeys = Object.keys(imageObject);
   return imageKeys;
@@ -18,7 +18,7 @@ async function getLocalImages() {
 async function getLocalPhotos(): Promise<Photo[]> {
   const imagePaths = await getLocalImages();
   const imageModules = import.meta.glob<{ default: ImageMetadata }>(
-    "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
+    "/src/assets/images/*.{jpeg,jpg,png,gif,svg}",
   );
 
   const photos = await Promise.all(
@@ -30,7 +30,7 @@ async function getLocalPhotos(): Promise<Photo[]> {
         altText: `Photo ${i + 1}`,
         sourceType: "local" as const,
       };
-    })
+    }),
   );
   return photos;
 }
@@ -44,7 +44,9 @@ export default function RemotePhotoGallery({ album }: { album: string }) {
   useEffect(() => {
     const fetchPhotos = async () => {
       try {
-        const baseUrl = import.meta.env.PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/dev/";
+        const baseUrl =
+          import.meta.env.PUBLIC_SKICYCLERUN_API ||
+          "https://api.skicyclerun.com/v2/";
         const photoURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=150`;
         const res = await fetch(photoURL);
         const data = await res.json();
@@ -61,12 +63,17 @@ export default function RemotePhotoGallery({ album }: { album: string }) {
           });
           setPhotos(remotePhotos);
         } else {
-          console.warn("⚠️ Unexpected response format from photo API, falling back to local images");
+          console.warn(
+            "⚠️ Unexpected response format from photo API, falling back to local images",
+          );
           const local = await getLocalPhotos();
           setPhotos(local);
         }
       } catch (error) {
-        console.warn("⚠️ Photo API failed, falling back to local images:", error);
+        console.warn(
+          "⚠️ Photo API failed, falling back to local images:",
+          error,
+        );
         const local = await getLocalPhotos();
         setPhotos(local);
       } finally {
@@ -86,30 +93,31 @@ export default function RemotePhotoGallery({ album }: { album: string }) {
 
   const handleImageClick = () => {
     setCycleOffset((prev) => (prev + 1) % photos.length);
-    console.log(`🔄 Cycling photos, new offset: ${(cycleOffset + 1) % photos.length}`);
+    console.log(
+      `🔄 Cycling photos, new offset: ${(cycleOffset + 1) % photos.length}`,
+    );
   };
 
   const toggleView = () => {
     setViewMode((prev) => (prev === "gallery" ? "hero" : "gallery"));
-    console.log(`🧨 Toggled view to: ${viewMode === "gallery" ? "hero" : "gallery"}`);
+    console.log(
+      `🧨 Toggled view to: ${viewMode === "gallery" ? "hero" : "gallery"}`,
+    );
   };
 
   if (loading) {
-    return (
-      <div className="p-4 text-center">Loading photos...</div>
-    );
+    return <div className="p-4 text-center">Loading photos...</div>;
   }
 
   if (photos.length === 0) {
-    return (
-      <div className="p-4 text-center">No photos available</div>
-    );
+    return <div className="p-4 text-center">No photos available</div>;
   }
 
   console.log(`📸 Rendering ${photos.length} photos in ${viewMode} mode`);
 
   // Calculate which photos to display based on cycle offset
-  const getPhotoAtIndex = (index: number) => photos[(cycleOffset + index) % photos.length];
+  const getPhotoAtIndex = (index: number) =>
+    photos[(cycleOffset + index) % photos.length];
 
   return (
     <div className="photo-gallery-container">
@@ -170,7 +178,10 @@ export default function RemotePhotoGallery({ album }: { album: string }) {
       {/* Hero View - 1 large photo */}
       {viewMode === "hero" && (
         <div className="lg:px-32 lg:pt-24 container mx-auto px-5 py-2">
-          <div className="md:-m-2 -m-1 flex flex-wrap cursor-pointer" onClick={handleImageClick}>
+          <div
+            className="md:-m-2 -m-1 flex flex-wrap cursor-pointer"
+            onClick={handleImageClick}
+          >
             {getPhotoAtIndex(0)?.src && (
               <img
                 src={getPhotoAtIndex(0).src}

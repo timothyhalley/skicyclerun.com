@@ -1,4 +1,5 @@
 ---
+import { SkiCycleRunConfig } from "../skicyclerun.config";
 // ImageMetadata is no longer exported from astro in newer versions
 // import type { ImageMetadata } from "astro";
 export function getRndValue(images: any) {
@@ -19,7 +20,10 @@ export async function getImgMeta(imgPath: string) {
   return imgPath;
 }
 
-export async function getAlbumPhotos(album: any): Promise<any[]> {
+export async function getAlbumPhotos(
+  album: any,
+  loraStyle: string = "random"
+): Promise<any[]> {
   try {
     let photos: any[] = [];
 
@@ -46,8 +50,10 @@ export async function getAlbumPhotos(album: any): Promise<any[]> {
       try {
         const baseUrl =
           import.meta.env.PUBLIC_SKICYCLERUN_API ||
-          "https://api.skicyclerun.com/dev/";
-        const photoURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=150`;
+          "https://api.skicyclerun.com/v2/";
+        const loraParam =
+          loraStyle === "random" ? "" : `&loraStyle=${loraStyle}`;
+        const photoURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=${SkiCycleRunConfig.photoApi.buildTimePhotos}${loraParam}`;
         const res = await fetch(photoURL);
         const data = await res.json();
 
@@ -76,10 +82,24 @@ export async function getAlbumPhotos(album: any): Promise<any[]> {
           photos = await getAlbumPhotos("local");
         }
       } catch (apiError) {
+        const loraParam =
+          loraStyle === "random" ? "" : `&loraStyle=${loraStyle}`;
+        console.warn("\n⚠️ Photo API failed, falling back to local images");
         console.warn(
-          "⚠️ Photo API failed, falling back to local images:",
-          apiError
+          "📍 URL:",
+          `${import.meta.env.PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/v2/"}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=${SkiCycleRunConfig.photoApi.buildTimePhotos}${loraParam}`
         );
+        console.warn(
+          "🔴 Error type:",
+          apiError instanceof Error ? apiError.name : typeof apiError
+        );
+        console.warn(
+          "🔴 Error message:",
+          apiError instanceof Error ? apiError.message : String(apiError)
+        );
+        console.warn("📦 Album:", album);
+        console.warn("🎨 LoRA Style:", loraStyle);
+        console.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
         photos = await getAlbumPhotos("local");
       }
     }

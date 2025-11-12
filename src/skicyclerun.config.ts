@@ -18,6 +18,12 @@ export const SkiCycleRunConfig = {
   // maximum photos to request/display in MDXLayout galleries (4x4 => 16)
   galleryMaxPhotos: 16,
 
+  // Photo API configuration
+  photoApi: {
+    buildTimePhotos: 150, // Photos fetched during SSG build
+    dynamicPhotos: 250, // Photos fetched for dynamic "Full Library" mode
+  },
+
   locale: {
     lang: "en",
     langTag: "en-US",

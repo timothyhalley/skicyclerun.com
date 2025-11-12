@@ -4,10 +4,10 @@
 # Site Configuration
 # SITE_URL influences sitemap and canonical tags during build/preview
 SKICYCLERUN_URL=https://localhost:4321
-PUBLIC_SKICYCLERUN_API=https://api.skicyclerun.com/dev/
+PUBLIC_SKICYCLERUN_API=https://api.skicyclerun.com/v2/
 
 # API and auth settings (legacy - for compatibility)
-PUBLIC_API_BASE_URL=api.skicyclerun.com/dev
+PUBLIC_API_BASE_URL=api.skicyclerun.com/v2
 COGNITO_DOMAIN=https://your-cognito-domain.auth.region.amazoncognito.com
 COGNITO_USER_POOL_ID=your_user_pool_id
 COGNITO_USER_POOL_CLIENT_ID=your_client_id

@@ -26,7 +26,7 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
-const API_BASE_URL = "https://api.skicyclerun.com/dev";
+const API_BASE_URL = "https://api.skicyclerun.com/v2";
 
 class ProtectedApiClient {
   private getAuthHeaders(): Record<string, string> {
@@ -45,7 +45,7 @@ class ProtectedApiClient {
 
   private async makeRequest<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<ApiResponse<T>> {
     try {
       const url = `${API_BASE_URL}${endpoint}`;
@@ -118,7 +118,7 @@ class ProtectedApiClient {
     }
 
     return this.makeRequest<PostContent>(
-      `/protected/posts/${encodeURIComponent(slug)}`
+      `/protected/posts/${encodeURIComponent(slug)}`,
     );
   }
 
@@ -126,7 +126,7 @@ class ProtectedApiClient {
    * Check if user has access to a specific post without fetching content
    */
   async checkPostAccess(
-    slug: string
+    slug: string,
   ): Promise<ApiResponse<{ hasAccess: boolean; requiredGroups: string[] }>> {
     if (!slug) {
       return {
@@ -137,7 +137,7 @@ class ProtectedApiClient {
     }
 
     return this.makeRequest<{ hasAccess: boolean; requiredGroups: string[] }>(
-      `/protected/posts/${encodeURIComponent(slug)}/access`
+      `/protected/posts/${encodeURIComponent(slug)}/access`,
     );
   }
 }
@@ -154,13 +154,13 @@ export async function getProtectedPosts(): Promise<ProtectedPost[]> {
   console.warn(
     "Failed to fetch protected posts:",
     response.error,
-    response.message
+    response.message,
   );
   return [];
 }
 
 export async function getProtectedPost(
-  slug: string
+  slug: string,
 ): Promise<PostContent | null> {
   const response = await protectedApi.getProtectedPost(slug);
   if (response.success && response.data) {
@@ -169,7 +169,7 @@ export async function getProtectedPost(
   console.warn(
     `Failed to fetch protected post "${slug}":`,
     response.error,
-    response.message
+    response.message,
   );
   return null;
 }
@@ -188,7 +188,7 @@ export async function hasPostAccess(slug: string): Promise<boolean> {
  */
 export function filterPostsByUserGroups(
   posts: ProtectedPost[],
-  userGroups: string[]
+  userGroups: string[],
 ): ProtectedPost[] {
   return posts.filter((post) => {
     // If no groups required, post is public
@@ -198,7 +198,7 @@ export function filterPostsByUserGroups(
 
     // Check if user has any of the required groups
     return post.requiredGroups.some((requiredGroup) =>
-      userGroups.includes(requiredGroup)
+      userGroups.includes(requiredGroup),
     );
   });
 }

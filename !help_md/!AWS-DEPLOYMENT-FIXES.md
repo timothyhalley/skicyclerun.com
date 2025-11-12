@@ -230,11 +230,11 @@ Make sure your environment variables are set correctly:
 
 ```bash
 # .env (development)
-PUBLIC_SKICYCLERUN_API=https://api.skicyclerun.com/dev/
+PUBLIC_SKICYCLERUN_API=https://api.skicyclerun.com/v2/
 
 # AWS environment (production)
 # Set via CloudFront or Lambda environment variables
-PUBLIC_SKICYCLERUN_API=https://api.skicyclerun.com/prod/
+PUBLIC_SKICYCLERUN_API=https://api.skicyclerun.com/v2/
 ```
 
 ---
@@ -251,7 +251,7 @@ PUBLIC_SKICYCLERUN_API=https://api.skicyclerun.com/prod/
 ### After Fix (API Images)
 
 ```text
-Fetching: https://api.skicyclerun.com/dev/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/travel-genai/&numPhotos=150
+Fetching: https://api.skicyclerun.com/v2/getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/travel-genai/&numPhotos=150
 [Hero] Raw JSON text: [{"src":"https://s3.amazonaws.com/skicyclerun.lib/albums/travel-genai/photo1.jpg",...
 [Hero] Photos parsed: 24 items
 ```

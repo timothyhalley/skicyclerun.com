@@ -7,7 +7,8 @@ export async function fetchProtectedContent({
   idToken: string;
   requiredGroup?: string;
 }) {
-  const base = import.meta.env.PUBLIC_API_BASE_URL || "https://api.skicyclerun.com/dev";
+  const base =
+    import.meta.env.PUBLIC_API_BASE_URL || "https://api.skicyclerun.com/v2";
   if (!base) throw new Error("PUBLIC_API_BASE_URL not set");
 
   const url = new URL("/content", base);

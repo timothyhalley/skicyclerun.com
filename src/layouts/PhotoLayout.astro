@@ -1,4 +1,5 @@
 ---
+import { SkiCycleRunConfig } from "../skicyclerun.config";
 import { getAlbumPhotos } from "@components/Library.astro";
 import MDXCarousel3 from "./MDXCarousel3.astro";
 import MDXHeroView from "./MDXHeroView.astro";
@@ -13,13 +14,10 @@ if (!photos || photos.length === 0) {
   // Render a friendly fallback instead of throwing to avoid breaking the page
   console.warn(`Album \"${album}\" returned no photos`);
 }
-
-// viewMode: 'hero' | 'gallery' | 'carousel'
-// No server-side reactive view; selection is handled on the client for a simple, progressive enhancement UX.
 ---
 
-<article class="photo-layout">
-  <header class="photo-header">
+<article class="photo-layout" data-album={album}>
+  <header class="mb-2">
     {
       frontmatter.title && (
         <h1 class="text-3xl font-bold">{frontmatter.title}</h1>
@@ -32,17 +30,47 @@ if (!photos || photos.length === 0) {
     }
   </header>
 
-  <nav class="photo-controls mb-4" aria-label="Photo view selector">
-    <label>
-      <input type="radio" name="photo-view" value="hero" checked /> Hero
-    </label>
-    <label>
-      <input type="radio" name="photo-view" value="gallery" /> Gallery
-    </label>
-    <label>
-      <input type="radio" name="photo-view" value="carousel" /> Carousel
-    </label>
+  <nav class="mb-2" aria-label="Photo view selector">
+    <div class="flex gap-4">
+      <label class="cursor-pointer">
+        <input type="radio" name="photo-view" value="hero" checked /> Hero
+      </label>
+      <label class="cursor-pointer">
+        <input type="radio" name="photo-view" value="gallery" /> Gallery
+      </label>
+      <label class="cursor-pointer">
+        <input type="radio" name="photo-view" value="carousel" /> Carousel
+      </label>
+    </div>
   </nav>
+
+  <div class="mb-3 flex items-center gap-3">
+    <label class="cursor-pointer">
+      <input type="checkbox" id="use-dynamic" />
+      <span class="font-medium"
+        >Full Image Library <span class="text-sm text-skin-muted italic"
+          >(slower)</span
+        ></span
+      >
+    </label>
+    <span class="text-skin-muted mx-2">·</span>
+    <label for="lora-style" class="font-medium text-sm">Art Style:</label>
+    <select
+      id="lora-style"
+      disabled
+      class="px-3 py-1 rounded border border-skin-line bg-skin-fill text-skin-base cursor-not-allowed disabled:opacity-50"
+    >
+      <option value="random" selected>Random Mix</option>
+      <option value="Afremov">Afremov</option>
+      <option value="Gorillaz">Gorillaz</option>
+      <option value="Origami">Origami</option>
+      <option value="PencilDrawing">Pencil Drawing</option>
+      <option value="FractalGeometry">Fractal Geometry</option>
+    </select>
+    <span class="text-xs text-skin-muted italic"
+      >Filter images by artistic style</span
+    >
+  </div>
 
   <section class="photo-view">
     <div id="photo-hero">
@@ -56,31 +84,345 @@ if (!photos || photos.length === 0) {
     </div>
   </section>
 
+  <div id="dynamic-loading" style="display:none" class="dynamic-loading">
+    <p>Loading full image library from API...</p>
+    <div class="spinner"></div>
+  </div>
+
   <!-- Render page MDX content inside the master layout -->
   <slot />
 
-  <script>
+  <script
+    define:vars={{
+      dynamicPhotosCount: SkiCycleRunConfig.photoApi.dynamicPhotos,
+    }}
+  >
     document.addEventListener("DOMContentLoaded", function () {
       const radios = Array.from(
         document.querySelectorAll('input[name="photo-view"]')
       );
+      const dynamicCheckbox = document.getElementById("use-dynamic");
+      const loraSelect = document.getElementById("lora-style");
+      const album = document
+        .querySelector(".photo-layout")
+        ?.getAttribute("data-album");
+      const loadingEl = document.getElementById("dynamic-loading");
+
       const sections = {
         hero: document.getElementById("photo-hero"),
         gallery: document.getElementById("photo-gallery"),
         carousel: document.getElementById("photo-carousel"),
       };
-      function update() {
+
+      let dynamicPhotosLoaded = false;
+      let dynamicPhotos = [];
+      let currentLoraStyle = "random"; // Default
+
+      async function loadDynamicPhotos(loraStyle = "random") {
+        // Reset cache if style changed
+        if (currentLoraStyle !== loraStyle) {
+          console.log(
+            `[PhotoLayout] LoRA style changed from ${currentLoraStyle} to ${loraStyle} - invalidating cache`
+          );
+          dynamicPhotosLoaded = false;
+          currentLoraStyle = loraStyle;
+        }
+
+        if (dynamicPhotosLoaded) {
+          console.log(
+            `[PhotoLayout] Using cached photos for style: ${loraStyle}`
+          );
+          return dynamicPhotos;
+        }
+
+        if (!album) return [];
+
+        try {
+          if (loadingEl) loadingEl.style.display = "flex";
+
+          const baseUrl =
+            window.PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/v2/";
+          const loraParam =
+            loraStyle === "random" ? "" : `&loraStyle=${loraStyle}`;
+          const photoURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=${dynamicPhotosCount}${loraParam}`;
+
+          console.log(`[PhotoLayout] Fetching photos from API: ${photoURL}`);
+          const res = await fetch(photoURL);
+          const data = await res.json();
+
+          if (Array.isArray(data) && data.length > 0) {
+            dynamicPhotos = data.map((p, i) => {
+              const src = typeof p === "string" ? p : p?.src;
+              return {
+                src,
+                altText: p?.altText || `Photo ${i + 1}`,
+                sourceType: "remote",
+              };
+            });
+            dynamicPhotosLoaded = true;
+            console.log(
+              `✅ Loaded ${dynamicPhotos.length} photos from API with style: ${loraStyle}`
+            );
+          } else {
+            console.warn("No photos returned from API");
+          }
+
+          if (loadingEl) loadingEl.style.display = "none";
+          return dynamicPhotos;
+        } catch (error) {
+          console.error("Failed to load dynamic photos:", error);
+          if (loadingEl) {
+            loadingEl.innerHTML =
+              '<p class="error">Failed to load photos from API</p>';
+            setTimeout(() => {
+              if (loadingEl) loadingEl.style.display = "none";
+            }, 3000);
+          }
+          return [];
+        }
+      }
+
+      function updateViewContent(photos) {
+        console.log(
+          `[PhotoLayout] Updating view content with ${photos.length} photos`
+        );
+
+        // Update Hero view
+        const heroContainer = sections.hero;
+        if (heroContainer && photos.length > 0) {
+          // Update the JSON data that Hero view uses for navigation
+          const heroJsonScript = heroContainer.querySelector(
+            'script[type="application/json"]#hero-photos'
+          );
+          if (heroJsonScript) {
+            heroJsonScript.textContent = JSON.stringify(photos).replace(
+              /</g,
+              "\\u003c"
+            );
+            console.log("[PhotoLayout] Hero JSON updated");
+          }
+
+          const heroImg = heroContainer.querySelector("img");
+          if (heroImg && photos[0]) {
+            heroImg.src = photos[0].src;
+            heroImg.alt = photos[0].altText || "Photo";
+            heroImg.dataset.currentIndex = "0"; // Reset to first image
+            console.log("[PhotoLayout] Hero image updated to:", photos[0].src);
+          }
+
+          // Remove old event listeners by cloning the image element
+          if (heroImg) {
+            const heroFigure = heroContainer.querySelector(
+              "figure[data-photos-json]"
+            );
+            if (heroFigure) {
+              delete heroFigure.dataset.heroInitialized;
+
+              // Clone image to remove all event listeners
+              const newImg = heroImg.cloneNode(true);
+              heroImg.parentNode?.replaceChild(newImg, heroImg);
+
+              // Re-attach click handler with new photos array
+              newImg.addEventListener("click", () => {
+                let idx = Number(newImg.dataset.currentIndex) || 0;
+                idx = (idx + 1) % photos.length;
+                newImg.dataset.currentIndex = String(idx);
+                const p = photos[idx];
+                if (p) {
+                  newImg.src = p.src;
+                  newImg.alt = p.altText || `Photo ${idx + 1}`;
+                  console.log(
+                    `[PhotoLayout] Hero clicked - showing photo ${idx + 1}/${photos.length}`
+                  );
+                }
+              });
+              console.log(
+                "[PhotoLayout] Hero click handler reattached with new photos"
+              );
+            }
+          }
+        }
+
+        // Update Gallery view - find all gallery images
+        const galleryContainer = sections.gallery;
+        if (galleryContainer && photos.length > 0) {
+          const galleryDiv = galleryContainer.querySelector(".mdx-gallery");
+          if (galleryDiv) {
+            // Remove initialization flag to force re-initialization
+            delete galleryDiv.dataset.galleryInitialized;
+
+            // Update the JSON data for gallery
+            const galleryJsonScript = galleryContainer.querySelector(
+              'script[type="application/json"]#gallery-photos'
+            );
+            if (galleryJsonScript) {
+              galleryJsonScript.textContent = JSON.stringify(photos).replace(
+                /</g,
+                "\\u003c"
+              );
+              console.log("[PhotoLayout] Gallery JSON updated");
+            }
+
+            // Get gallery grid and recreate the click handlers
+            const grid = galleryDiv.querySelector(".grid");
+            if (grid) {
+              const matrix =
+                Number(galleryDiv.getAttribute("data-gallery-matrix")) || 2;
+              const visibleCount = matrix * matrix;
+              let visibleIndices = Array.from(
+                { length: visibleCount },
+                (_, i) => i % photos.length
+              );
+
+              const slots = Array.from(
+                grid.querySelectorAll("[data-slot-index]")
+              );
+
+              function renderSlot(slotEl, photo) {
+                slotEl.innerHTML = "";
+                if (!photo) {
+                  const ph = document.createElement("div");
+                  ph.className = "placeholder";
+                  slotEl.appendChild(ph);
+                  return;
+                }
+                const img = document.createElement("img");
+                img.src = photo.src;
+                img.alt = photo.alt || photo.altText || "";
+                img.loading = "lazy";
+                img.decoding = "async";
+                img.style.width = "100%";
+                img.style.height = "100%";
+                img.style.objectFit = "cover";
+                img.style.display = "block";
+                slotEl.appendChild(img);
+              }
+
+              function renderVisible() {
+                slots.forEach((s, i) => {
+                  const photo = photos[visibleIndices[i]] || null;
+                  renderSlot(s, photo);
+                });
+              }
+
+              // Initial render with new photos
+              renderVisible();
+
+              // Remove old click handlers by cloning each slot
+              slots.forEach((slot, idx) => {
+                const newSlot = slot.cloneNode(true);
+                slot.parentNode?.replaceChild(newSlot, slot);
+                slots[idx] = newSlot; // Update reference
+
+                // Re-attach click handler with new photos array
+                newSlot.style.cursor = "pointer";
+                newSlot.addEventListener("click", () => {
+                  // Rotate visibleIndices clockwise
+                  const last = visibleIndices.pop();
+                  visibleIndices.unshift((last + 1) % photos.length);
+                  console.log(
+                    `[PhotoLayout] Gallery rotated indices:`,
+                    visibleIndices
+                  );
+                  renderVisible();
+                });
+              });
+
+              console.log(
+                `[PhotoLayout] Gallery reinitialized with ${photos.length} photos`
+              );
+            }
+          }
+        }
+
+        // Update Carousel view
+        const carouselContainer = sections.carousel;
+        if (carouselContainer) {
+          // Update the JSON data for carousel
+          const carouselJsonScript = carouselContainer.querySelector(
+            'script[type="application/json"]'
+          );
+          if (carouselJsonScript) {
+            carouselJsonScript.textContent = JSON.stringify(photos).replace(
+              /</g,
+              "\\u003c"
+            );
+            console.log("[PhotoLayout] Carousel JSON updated");
+          }
+
+          const carouselImages = carouselContainer.querySelectorAll("img");
+          carouselImages.forEach((img, i) => {
+            if (photos[i]) {
+              img.src = photos[i].src;
+              img.alt = photos[i].altText || `Photo ${i + 1}`;
+            }
+          });
+          console.log(
+            `[PhotoLayout] Carousel images updated (${carouselImages.length} images)`
+          );
+        }
+      }
+
+      async function update() {
         const checked = document.querySelector(
           'input[name="photo-view"]:checked'
         );
         const value = checked ? checked.getAttribute("value") : "hero";
+        const useDynamic = dynamicCheckbox?.checked || false;
+
+        // Show/hide views based on radio selection
         Object.keys(sections).forEach((k) => {
           const el = sections[k];
           if (!el) return;
           el.style.display = k === value ? "" : "none";
         });
+
+        // If dynamic is checked, load and update photos
+        if (useDynamic && !dynamicPhotosLoaded) {
+          const loraStyle = loraSelect?.value || "random";
+          const photos = await loadDynamicPhotos(loraStyle);
+          if (photos.length > 0) {
+            updateViewContent(photos);
+          }
+        } else if (useDynamic && dynamicPhotosLoaded) {
+          // Already loaded, just ensure content is updated
+          updateViewContent(dynamicPhotos);
+        }
+        // If unchecked, the original static photos remain (page would need reload to reset)
       }
+
       radios.forEach((r) => r.addEventListener("change", update));
+
+      // Handle checkbox change - enable/disable dropdown
+      dynamicCheckbox?.addEventListener("change", function () {
+        if (loraSelect) {
+          loraSelect.disabled = !dynamicCheckbox.checked;
+          loraSelect.className = dynamicCheckbox.checked
+            ? "px-3 py-1 rounded border border-skin-line bg-skin-fill text-skin-base cursor-pointer"
+            : "px-3 py-1 rounded border border-skin-line bg-skin-fill text-skin-base cursor-not-allowed disabled:opacity-50";
+        }
+        update();
+      });
+
+      // Handle LoRA style changes
+      loraSelect?.addEventListener("change", async function () {
+        const useDynamic = dynamicCheckbox?.checked || false;
+        console.log(
+          `[PhotoLayout] LoRA style changed to: ${loraSelect.value}, useDynamic: ${useDynamic}`
+        );
+        if (useDynamic) {
+          const loraStyle = loraSelect.value;
+          console.log(
+            `[PhotoLayout] Loading dynamic photos with style: ${loraStyle}`
+          );
+          const photos = await loadDynamicPhotos(loraStyle);
+          console.log(`[PhotoLayout] Loaded ${photos.length} photos`);
+          if (photos.length > 0) {
+            updateViewContent(photos);
+          }
+        }
+      });
+
       // initialize
       update();
     });
@@ -93,15 +435,6 @@ if (!photos || photos.length === 0) {
     margin: 0 auto;
     padding: 0 1rem;
   }
-  .photo-header {
-    margin-bottom: 0.5rem;
-  }
-  .photo-controls {
-    margin-bottom: 0.5rem;
-  }
-  .photo-controls label {
-    margin-right: 1rem;
-  }
 
   /* Keep the photo view area a fixed viewport so hero/gallery/carousel share same box */
   .photo-view > div {
@@ -109,9 +442,41 @@ if (!photos || photos.length === 0) {
     max-width: 1024px;
     margin-left: auto;
     margin-right: auto;
-    aspect-ratio: 1 / 1; /* square viewport to match prior layout */
+    aspect-ratio: 1 / 1;
     background: rgb(var(--color-fill));
     position: relative;
     overflow: hidden;
+  }
+
+  /* Loading overlay */
+  .dynamic-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    gap: 1rem;
+    padding: 2rem;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(var(--color-text-base), 0.1);
+    border-left-color: rgb(var(--color-accent));
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .error {
+    color: rgb(var(--color-text-muted));
+    text-align: center;
+    padding: 2rem;
   }
 </style>

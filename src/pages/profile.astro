@@ -184,7 +184,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
           debugWarn("api", "[Profile] No token provided for API call");
         }
 
-        const url = `https://api.skicyclerun.com/dev/profile?email=${encodeURIComponent(email)}`;
+        const url = `https://api.skicyclerun.com/v2/profile?email=${encodeURIComponent(email)}`;
         debugLog("api", "[Profile] Making API request to:", url);
         debugLog("api", "[Profile] Request headers:", headers);
 
