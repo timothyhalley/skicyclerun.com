@@ -46,26 +46,18 @@ if (frontmatter.background) {
 <BaseLayout title={`${frontmatter.title} | ${SkiCycleRunConfig.title}`}>
   <Header activeNav="about" />
   <Breadcrumbs pageTitle={frontmatter.title} pageDesc={frontmatter.description}>
-    <section
-      id="about"
-      class={`prose max-w-none mb-28 prose-img:border-0 relative ${BackgroundSvg ? "has-background" : ""}`}
-    >
+    <div class="relative w-full">
       {
         BackgroundSvg && (
-          <div class="absolute inset-0 z-0 flex items-center justify-center overflow-hidden pointer-events-none">
-            <BackgroundSvg class="w-4/5 h-auto opacity-[0.14] grayscale contrast-[65%] mix-blend-multiply dark:invert dark:contrast-75 dark:mix-blend-normal dark:opacity-[0.14]" />
+          <div class="fixed inset-0 z-0 flex items-center justify-center overflow-hidden pointer-events-none">
+            <BackgroundSvg class="w-full h-full opacity-[0.08] grayscale contrast-50 dark:invert dark:opacity-[0.06]" />
           </div>
         )
       }
-      {
-        BackgroundSvg && (
-          <div class="absolute inset-0 z-[1] bg-skin-fill/35 dark:bg-black/[0.18] pointer-events-none" />
-        )
-      }
-      <div class="relative z-[2] leading-relaxed mt-6">
+      <article class="prose prose-lg prose-headings:font-semibold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-p:my-4 prose-a:text-skin-accent prose-a:underline max-w-none relative z-10 leading-relaxed text-skin-base">
         <slot />
-      </div>
-    </section>
+      </article>
+    </div>
   </Breadcrumbs>
 </BaseLayout>
 
