@@ -73,20 +73,11 @@ if (!photos || photos.length === 0) {
     </section>
   </div>
 
-  <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
-    <label class="cursor-pointer flex items-center gap-2">
-      <input type="checkbox" id="use-dynamic" class="cursor-pointer" />
-      <span class="font-medium"
-        >Full Image Library <span class="text-skin-muted italic">(slower)</span
-        ></span
-      >
-    </label>
-    <span class="text-skin-muted">·</span>
+  <div class="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm">
     <label for="lora-style" class="font-medium">Art Style:</label>
     <select
       id="lora-style"
-      disabled
-      class="px-3 py-1.5 rounded border border-skin-line bg-skin-fill text-skin-base cursor-not-allowed disabled:opacity-50"
+      class="px-3 py-1.5 rounded border border-skin-line bg-skin-fill text-skin-base cursor-pointer"
     >
       <option value="random" selected>Random Mix</option>
       <option value="Afremov">Afremov</option>
@@ -95,9 +86,14 @@ if (!photos || photos.length === 0) {
       <option value="PencilDrawing">Pencil Drawing</option>
       <option value="FractalGeometry">Fractal Geometry</option>
     </select>
-    <span class="text-xs text-skin-muted italic"
-      >Filter images by artistic style</span
-    >
+    <span class="text-skin-muted">·</span>
+    <label class="cursor-pointer flex items-center gap-2">
+      <input type="checkbox" id="use-dynamic" class="cursor-pointer" />
+      <span class="font-medium"
+        >Full Image Library <span class="text-skin-muted italic">(slower)</span
+        ></span
+      >
+    </label>
   </div>
 
   <div id="dynamic-loading" style="display:none" class="dynamic-loading">
@@ -153,7 +149,91 @@ if (!photos || photos.length === 0) {
 
       let dynamicPhotosLoaded = false;
       let dynamicPhotos = [];
+      let staticPhotos = []; // Store original static photos
       let currentLoraStyle = "random"; // Default
+
+      // Get initial static photos from the page (try all views)
+      function getStaticPhotos() {
+        // Try hero view first
+        for (const [viewName, viewDiv] of Object.entries(sections)) {
+          if (viewDiv) {
+            const scriptTag = viewDiv.querySelector(
+              'script[type="application/json"]'
+            );
+            if (scriptTag) {
+              try {
+                const photos = JSON.parse(scriptTag.textContent || "[]");
+                if (photos.length > 0) {
+                  console.log(
+                    `[PhotoLayout] Found ${photos.length} static photos in ${viewName} view`
+                  );
+                  return photos;
+                }
+              } catch (e) {
+                console.warn(
+                  `[PhotoLayout] Failed to parse static photos from ${viewName}:`,
+                  e
+                );
+              }
+            }
+          }
+        }
+        console.warn("[PhotoLayout] No static photos found in any view");
+        return [];
+      }
+
+      // Filter static photos by art style
+      function filterStaticPhotosByStyle(photos, style) {
+        console.log(
+          `[PhotoLayout] filterStaticPhotosByStyle called with ${photos.length} photos, style: ${style}`
+        );
+
+        if (style === "random" || !style) {
+          console.log(
+            "[PhotoLayout] No filtering - showing all photos (random)"
+          );
+          return photos;
+        }
+
+        const filtered = photos.filter((photo) => {
+          // First check for explicit loraStyle property
+          let loraStyle =
+            photo.loraStyle ||
+            photo.lora_style ||
+            photo.LoraStyle ||
+            photo.style;
+
+          // If no property, extract from filename
+          // Format: IMG_####_StyleName_########.webp
+          if (!loraStyle && photo.src) {
+            const filename = photo.src.split("/").pop(); // Get filename
+            const match = filename.match(/_([A-Za-z]+)_\d+\./); // Match _StyleName_digits.
+            if (match && match[1]) {
+              loraStyle = match[1];
+            }
+          }
+
+          const matches = loraStyle === style;
+          console.log(
+            `[PhotoLayout] Photo: ${photo.src.split("/").pop()}, extracted style: ${loraStyle}, matches ${style}: ${matches}`
+          );
+          return matches;
+        });
+
+        console.log(
+          `[PhotoLayout] Filtered ${photos.length} photos to ${filtered.length} for style: ${style}`
+        );
+
+        // If filtering resulted in no photos, return all photos instead of empty array
+        if (filtered.length === 0) {
+          console.warn(
+            `[PhotoLayout] No photos match style "${style}", returning all photos instead`
+          );
+          return photos;
+        }
+
+        return filtered;
+      }
 
       async function loadDynamicPhotos(loraStyle = "random") {
         // Reset cache if style changed
@@ -165,9 +245,9 @@ if (!photos || photos.length === 0) {
           currentLoraStyle = loraStyle;
         }
 
-        if (dynamicPhotosLoaded) {
+        if (dynamicPhotosLoaded && dynamicPhotos.length > 0) {
           console.log(
-            `[PhotoLayout] Using cached photos for style: ${loraStyle}`
+            `[PhotoLayout] Using cached dynamic photos for style: ${loraStyle}`
           );
           return dynamicPhotos;
         }
@@ -435,11 +515,18 @@ if (!photos || photos.length === 0) {
       }
 
       async function update() {
+        console.log("[PhotoLayout] update() called");
+
         const checked = document.querySelector(
           'input[name="photo-view"]:checked'
         );
         const value = checked ? checked.getAttribute("value") : "gallery";
         const useDynamic = dynamicCheckbox?.checked || false;
+        const loraStyle = loraSelect?.value || "random";
+
+        console.log(
+          `[PhotoLayout] Current view: ${value}, useDynamic: ${useDynamic}, loraStyle: ${loraStyle}`
+        );
 
         // Show/hide views based on radio selection
         Object.keys(sections).forEach((k) => {
@@ -448,54 +535,75 @@ if (!photos || photos.length === 0) {
           el.style.display = k === value ? "" : "none";
         });
 
-        // If dynamic is checked, load and update photos
-        if (useDynamic && !dynamicPhotosLoaded) {
-          const loraStyle = loraSelect?.value || "random";
+        if (useDynamic) {
+          // Full Image Library checked - load from API
+          console.log("[PhotoLayout] Loading dynamic photos from API...");
           const photos = await loadDynamicPhotos(loraStyle);
           if (photos.length > 0) {
             updateViewContent(photos);
           }
-        } else if (useDynamic && dynamicPhotosLoaded) {
-          // Already loaded, just ensure content is updated
-          updateViewContent(dynamicPhotos);
+        } else {
+          // Full Image Library unchecked - filter static photos by art style
+          console.log("[PhotoLayout] Using static photos, will filter...");
+          if (staticPhotos.length === 0) {
+            console.log("[PhotoLayout] staticPhotos empty, loading now...");
+            staticPhotos = getStaticPhotos();
+          }
+          console.log(
+            `[PhotoLayout] Have ${staticPhotos.length} static photos before filtering`
+          );
+
+          const filteredPhotos = filterStaticPhotosByStyle(
+            staticPhotos,
+            loraStyle
+          );
+          console.log(
+            `[PhotoLayout] After filtering: ${filteredPhotos.length} photos`
+          );
+
+          if (filteredPhotos.length > 0) {
+            console.log(
+              "[PhotoLayout] Calling updateViewContent with filtered photos..."
+            );
+            updateViewContent(filteredPhotos);
+          } else {
+            console.warn("[PhotoLayout] No filtered photos to display!");
+          }
         }
-        // If unchecked, the original static photos remain (page would need reload to reset)
       }
 
       radios.forEach((r) => r.addEventListener("change", update));
 
-      // Handle checkbox change - enable/disable dropdown
-      dynamicCheckbox?.addEventListener("change", function () {
-        if (loraSelect) {
-          loraSelect.disabled = !dynamicCheckbox.checked;
-          loraSelect.className = dynamicCheckbox.checked
-            ? "px-3 py-1 rounded border border-skin-line bg-skin-fill text-skin-base cursor-pointer"
-            : "px-3 py-1 rounded border border-skin-line bg-skin-fill text-skin-base cursor-not-allowed disabled:opacity-50";
-        }
-        update();
-      });
+      // Handle checkbox change - toggles between static filtered and dynamic API photos
+      dynamicCheckbox?.addEventListener("change", update);
 
-      // Handle LoRA style changes
+      // Handle LoRA style changes - always triggers update (filters static or loads dynamic)
       loraSelect?.addEventListener("change", async function () {
-        const useDynamic = dynamicCheckbox?.checked || false;
         console.log(
-          `[PhotoLayout] LoRA style changed to: ${loraSelect.value}, useDynamic: ${useDynamic}`
+          "[PhotoLayout] Art style dropdown changed to:",
+          loraSelect.value
         );
-        if (useDynamic) {
-          const loraStyle = loraSelect.value;
-          console.log(
-            `[PhotoLayout] Loading dynamic photos with style: ${loraStyle}`
-          );
-          const photos = await loadDynamicPhotos(loraStyle);
-          console.log(`[PhotoLayout] Loaded ${photos.length} photos`);
-          if (photos.length > 0) {
-            updateViewContent(photos);
-          }
-        }
+        await update();
       });
 
-      // initialize
-      update();
+      // Initialize static photos AFTER DOM is ready
+      console.log("[PhotoLayout] Starting initialization...");
+
+      // Small delay to ensure all views are rendered
+      setTimeout(() => {
+        staticPhotos = getStaticPhotos();
+        console.log(
+          `[PhotoLayout] Initialized with ${staticPhotos.length} static photos`
+        );
+
+        if (staticPhotos.length > 0) {
+          // Log some sample data to verify structure
+          console.log("[PhotoLayout] Sample photo structure:", staticPhotos[0]);
+        }
+
+        // Apply initial view and filter
+        update();
+      }, 100);
     });
   </script>
 </article>
