@@ -19,7 +19,8 @@ const first = photos && photos.length ? photos[0] : null;
         loading="lazy"
         decoding="async"
         data-current-index={0}
-        style="cursor: pointer; width: 100%; height: 100%; object-fit: contain; aspect-ratio: 1 / 1; display: block; background: rgb(var(--color-fill));"
+        class="hero-image"
+        style="cursor: pointer; width: 100%; height: 100%; object-fit: contain; aspect-ratio: 1 / 1; display: block; background: rgb(var(--color-fill)); transition: transform 0.2s ease, filter 0.2s ease;"
       />
       {frontmatter.title && (
         <figcaption class="mt-2 text-sm text-skin-muted">
@@ -147,5 +148,15 @@ const first = photos && photos.length ? photos[0] : null;
     object-fit: contain;
     display: block;
     background: rgb(var(--color-fill));
+  }
+  
+  /* Hover effect to indicate clickability */
+  .hero-image:hover {
+    transform: scale(1.02);
+    filter: brightness(1.05);
+  }
+  
+  .hero-image:active {
+    transform: scale(0.98);
   }
 </style>

@@ -1,21 +1,7 @@
 ---
 const { frontmatter } = Astro.props;
-const { title, description, author, pubDatetime: pubDatetimeRaw } = frontmatter;
-import Datetime from "@components/Datetime.astro";
-
-// Convert string date to Date object
-const pubDatetime = pubDatetimeRaw ? new Date(pubDatetimeRaw) : undefined;
-console.log("Pub Date:", pubDatetime);
+const { title, description, author } = frontmatter;
 ---
-
-<!-- Date on right side (matches PostDetails.astro datetime-wrapper) -->
-<div class="datetime-wrapper">
-  {
-    pubDatetime && (
-      <Datetime pubDatetime={pubDatetime} size="lg" className="my-1" />
-    )
-  }
-</div>
 
 <!-- Title and Description (matches PostDetails.astro structure) -->
 <div class="header-wrapper">
@@ -48,18 +34,6 @@ console.log("Pub Date:", pubDatetime);
 }
 
 <style>
-  .datetime-wrapper {
-    max-width: 1024px;
-    margin: 0 auto;
-    width: 100%;
-    /* Use flex so the Datetime component stays on one line and right-justified */
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-
   .header-wrapper {
     max-width: 1024px;
     margin: 0 auto;

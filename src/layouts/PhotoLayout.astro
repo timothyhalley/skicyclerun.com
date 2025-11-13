@@ -30,35 +30,63 @@ if (!photos || photos.length === 0) {
     }
   </header>
 
-  <nav class="mb-2" aria-label="Photo view selector">
-    <div class="flex gap-4">
-      <label class="cursor-pointer">
-        <input type="radio" name="photo-view" value="hero" checked /> Hero
-      </label>
-      <label class="cursor-pointer">
-        <input type="radio" name="photo-view" value="gallery" /> Gallery
-      </label>
-      <label class="cursor-pointer">
-        <input type="radio" name="photo-view" value="carousel" /> Carousel
-      </label>
+  <div class="relative mb-2">
+    <!-- Click hint tooltip - positioned on same line as radio controls, centered -->
+    <div
+      id="click-hint"
+      class="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 transition-opacity duration-500 animate-bounce"
+      style="z-index: 30; pointer-events: none;"
+    >
+      <div
+        class="bg-skin-accent text-skin-inverted text-base font-medium px-3 py-1.5 rounded-full shadow-lg whitespace-nowrap border border-skin-line"
+      >
+        👇 Tap photo
+      </div>
     </div>
-  </nav>
 
-  <div class="mb-3 flex items-center gap-3">
-    <label class="cursor-pointer">
-      <input type="checkbox" id="use-dynamic" />
+    <nav class="flex justify-end" aria-label="Photo view selector">
+      <div class="flex gap-4">
+        <label class="cursor-pointer">
+          <input type="radio" name="photo-view" value="hero" /> Hero
+        </label>
+        <label class="cursor-pointer">
+          <input type="radio" name="photo-view" value="gallery" checked /> Gallery
+        </label>
+        <label class="cursor-pointer">
+          <input type="radio" name="photo-view" value="carousel" /> Carousel
+        </label>
+      </div>
+    </nav>
+  </div>
+
+  <div class="relative">
+    <section class="photo-view relative">
+      <div id="photo-hero" style="display:none">
+        <MDXHeroView photos={photos} frontmatter={frontmatter} />
+      </div>
+      <div id="photo-gallery">
+        <MDXGalleryView photos={photos} frontmatter={frontmatter} />
+      </div>
+      <div id="photo-carousel" style="display:none">
+        <MDXCarousel3 photos={photos} />
+      </div>
+    </section>
+  </div>
+
+  <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+    <label class="cursor-pointer flex items-center gap-2">
+      <input type="checkbox" id="use-dynamic" class="cursor-pointer" />
       <span class="font-medium"
-        >Full Image Library <span class="text-sm text-skin-muted italic"
-          >(slower)</span
+        >Full Image Library <span class="text-skin-muted italic">(slower)</span
         ></span
       >
     </label>
-    <span class="text-skin-muted mx-2">·</span>
-    <label for="lora-style" class="font-medium text-sm">Art Style:</label>
+    <span class="text-skin-muted">·</span>
+    <label for="lora-style" class="font-medium">Art Style:</label>
     <select
       id="lora-style"
       disabled
-      class="px-3 py-1 rounded border border-skin-line bg-skin-fill text-skin-base cursor-not-allowed disabled:opacity-50"
+      class="px-3 py-1.5 rounded border border-skin-line bg-skin-fill text-skin-base cursor-not-allowed disabled:opacity-50"
     >
       <option value="random" selected>Random Mix</option>
       <option value="Afremov">Afremov</option>
@@ -71,18 +99,6 @@ if (!photos || photos.length === 0) {
       >Filter images by artistic style</span
     >
   </div>
-
-  <section class="photo-view">
-    <div id="photo-hero">
-      <MDXHeroView photos={photos} frontmatter={frontmatter} />
-    </div>
-    <div id="photo-gallery" style="display:none">
-      <MDXGalleryView photos={photos} frontmatter={frontmatter} />
-    </div>
-    <div id="photo-carousel" style="display:none">
-      <MDXCarousel3 photos={photos} />
-    </div>
-  </section>
 
   <div id="dynamic-loading" style="display:none" class="dynamic-loading">
     <p>Loading full image library from API...</p>
@@ -107,12 +123,33 @@ if (!photos || photos.length === 0) {
         .querySelector(".photo-layout")
         ?.getAttribute("data-album");
       const loadingEl = document.getElementById("dynamic-loading");
+      const clickHint = document.getElementById("click-hint");
 
       const sections = {
         hero: document.getElementById("photo-hero"),
         gallery: document.getElementById("photo-gallery"),
         carousel: document.getElementById("photo-carousel"),
       };
+
+      // Hide click hint after first interaction or after 15 seconds
+      // Hide click hint after first interaction or after 3 seconds
+      let hintDismissed = false;
+      const dismissHint = () => {
+        if (!hintDismissed && clickHint) {
+          hintDismissed = true;
+          clickHint.style.opacity = "0";
+          setTimeout(() => {
+            clickHint.style.display = "none";
+          }, 500);
+        }
+      };
+
+      // Auto-dismiss hint after 3 seconds
+      setTimeout(dismissHint, 3000);
+      // Dismiss on any click in photo view area
+      document
+        .querySelector(".photo-view")
+        ?.addEventListener("click", dismissHint, { once: true });
 
       let dynamicPhotosLoaded = false;
       let dynamicPhotos = [];
@@ -401,7 +438,7 @@ if (!photos || photos.length === 0) {
         const checked = document.querySelector(
           'input[name="photo-view"]:checked'
         );
-        const value = checked ? checked.getAttribute("value") : "hero";
+        const value = checked ? checked.getAttribute("value") : "gallery";
         const useDynamic = dynamicCheckbox?.checked || false;
 
         // Show/hide views based on radio selection
