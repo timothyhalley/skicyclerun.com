@@ -7,13 +7,13 @@ export const SkiCycleRunConfig = {
   author: "Tim H",
   title: "SkiCycleRun",
   description: "Adventures, Technology and Interests",
-  ogImage: "/src/assets/images/hikeclimb.svg",
+  ogImage: "SkiCycleRun.svg",
   lightAndDarkMode: true,
   loginAndLogout: true,
   postsPerPage: 5,
   blogType: BLOG_TYPES[3], // "GENERAL"
   scheduledPostMargin: 15 * 60 * 1000,
-  version: "2025-08-01-0000",
+  version: "2025-11-16-0101",
   maxWidth: 1024,
   // maximum photos to request/display in MDXLayout galleries (4x4 => 16)
   galleryMaxPhotos: 16,
