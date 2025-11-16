@@ -386,10 +386,7 @@ if (!photos || photos.length === 0) {
               const matrix =
                 Number(galleryDiv.getAttribute("data-gallery-matrix")) || 2;
               const visibleCount = matrix * matrix;
-              let visibleIndices = Array.from(
-                { length: visibleCount },
-                (_, i) => i % photos.length
-              );
+              let startIndex = 0; // Track where the current window begins
 
               const slots = Array.from(
                 grid.querySelectorAll("[data-slot-index]")
@@ -417,7 +414,8 @@ if (!photos || photos.length === 0) {
 
               function renderVisible() {
                 slots.forEach((s, i) => {
-                  const photo = photos[visibleIndices[i]] || null;
+                  const photo =
+                    photos[(startIndex + i) % photos.length] || null;
                   renderSlot(s, photo);
                 });
               }
@@ -434,12 +432,10 @@ if (!photos || photos.length === 0) {
                 // Re-attach click handler with new photos array
                 newSlot.style.cursor = "pointer";
                 newSlot.addEventListener("click", () => {
-                  // Rotate visibleIndices clockwise
-                  const last = visibleIndices.pop();
-                  visibleIndices.unshift((last + 1) % photos.length);
+                  // Advance the gallery window by the full visible count
+                  startIndex = (startIndex + visibleCount) % photos.length;
                   console.log(
-                    `[PhotoLayout] Gallery rotated indices:`,
-                    visibleIndices
+                    `[PhotoLayout] Gallery advanced by ${visibleCount}, startIndex now ${startIndex}`
                   );
                   renderVisible();
                 });
