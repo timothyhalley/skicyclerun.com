@@ -19,7 +19,7 @@ export class SearchEngine {
       console.debug(
         "[search] Loaded",
         this.allPosts.length,
-        "posts for search"
+        "posts for search",
       );
       this.isLoading = false;
     } catch (err) {
@@ -45,13 +45,13 @@ export class SearchEngine {
           post.searchFields.includes(t) ||
           post.searchFields.split(/\s+/).some((w) => w.startsWith(t))
         );
-      })
+      }),
     );
 
     console.debug(
       "[search] Found",
       filtered.length,
-      "results for q='" + query + "'"
+      "results for q='" + query + "'",
     );
 
     return filtered;
@@ -60,7 +60,7 @@ export class SearchEngine {
   paginatePosts(
     posts: SearchPost[],
     page: number,
-    pageSize = 10
+    pageSize = 10,
   ): {
     items: SearchPost[];
     currentPage: number;
@@ -77,10 +77,10 @@ export class SearchEngine {
   renderResultsHTML(
     posts: SearchPost[],
     currentPage: number,
-    totalPages: number
+    totalPages: number,
   ): string {
     let html =
-      '<ul id="search-results" class="mt-6 mx-auto max-w-[48rem] list-none p-0 pt-4">';
+      '<ul id="search-results" class="mt-6 mx-auto max-w-3xl list-none p-0 pt-4">';
 
     posts.forEach((post) => {
       const title = post.title || "Untitled";
@@ -125,7 +125,7 @@ export class SearchEngine {
     // Add pagination if needed
     if (totalPages > 1) {
       html +=
-        '<div class="mx-auto mt-8 pt-6 border-t border-skin-line flex justify-between items-center max-w-[48rem]">';
+        '<div class="mx-auto mt-8 pt-6 border-t border-skin-line flex justify-between items-center max-w-3xl">';
       if (currentPage > 1) {
         html += `<button class="pagination-prev px-5 py-2 rounded-md bg-skin-accent text-skin-inverted font-medium hover:opacity-90 transition-opacity">← Previous</button>`;
       } else {
