@@ -1,4 +1,4 @@
-# robots.txt for skicyclerun.dev
+# robots.txt for skicyclerun.com
 # Balance SEO with crawler control
 
 # Allow major search engines (good for SEO)

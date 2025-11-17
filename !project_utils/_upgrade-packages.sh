@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Aggressive package upgrade script for skicyclerun.dev
+# Aggressive package upgrade script for skicyclerun.com
 # This script upgrades all packages to their latest versions
 
 set -e  # Exit on error

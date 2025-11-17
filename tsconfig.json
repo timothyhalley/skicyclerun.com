@@ -5,7 +5,8 @@
     "src/**/*.tsx",
     "src/**/*.astro",
     "src/types/**/*.d.ts",
-    "*.d.ts"
+    "*.d.ts",
+    "scripts/update-version.ts"
   ],
   "exclude": ["dist", "node_modules", "src/scripts/**/*.js"],
   "compilerOptions": {
@@ -45,7 +46,8 @@
       "@styles/*": ["src/styles/*"],
       "@types/*": ["src/types/*"],
       "@utils/*": ["src/utils/*"],
-      "@svg_imgs/*": ["src/assets/svg_imgs/*"]
+      "@svg_imgs/*": ["src/assets/svg_imgs/*"],
+      "@version": ["version.json"]
     }
   }
 }

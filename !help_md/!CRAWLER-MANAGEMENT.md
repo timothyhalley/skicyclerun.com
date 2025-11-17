@@ -124,7 +124,7 @@ Watch for:
 
 ```bash
 # Check syntax
-curl https://skicyclerun.dev/robots.txt
+curl https://skicyclerun.com/robots.txt
 
 # Google's testing tool
 https://www.google.com/webmasters/tools/robots-testing-tool
@@ -143,7 +143,7 @@ Monitor server logs for:
 Update the sitemap URL in `robots.txt` to match your domain:
 
 ```
-Sitemap: https://skicyclerun.dev/sitemap-index.xml
+Sitemap: https://skicyclerun.com/sitemap-index.xml
 ```
 
 Make sure your sitemap is generated and accessible!

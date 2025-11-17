@@ -98,7 +98,8 @@ const socialImageURL = new URL(
     <script is:inline src="/scripts/debug-helper.js"></script>
     <script src="/toggle-theme.js" defer></script>
   </head>
-  <body>
+  <body data-site-version={SkiCycleRunConfig.version}>
+    <span class="sr-only">Version {SkiCycleRunConfig.version}</span>
     {
       /** Global, minimal auth icon handler (uses localStorage tokens, toggles #auth-btn icons) */
     }
@@ -334,6 +335,9 @@ const socialImageURL = new URL(
     <!-- Load auth icon script from public folder (external, defer to avoid inline CSP) -->
     <script src="/scripts/simple-auth-icon.js" defer></script>
     <slot />
+    <p class="mt-8 px-4 text-xs text-skin-muted text-right">
+      v{SkiCycleRunConfig.version}
+    </p>
     <Footer />
   </body>
 </html>

@@ -4,7 +4,7 @@
 
 This script performs a **clean file migration** (not a git merge) from your DEV repository to your PROD repository.
 
-- **DEV** (`~/Projects/skicyclerun.dev`) - Heavy upgrades, testing, concept changes
+- **DEV** (`~/Projects/skicyclerun.com`) - Heavy upgrades, testing, concept changes
 - **PROD** (`~/Projects/skicyclerun.com`) - Minor changes, stable production code
 
 ## Quick Start
@@ -119,7 +119,7 @@ This operation will:
   • Update 8 modified files in PROD
   • Delete 3 files from PROD
 
-Source:      /Users/timothyhalley/Projects/skicyclerun.dev
+Source:      /Users/timothyhalley/Projects/skicyclerun.com
 Destination: /Users/timothyhalley/Projects/skicyclerun.com
 
 Continue with migration? [y/N]: y
@@ -250,7 +250,7 @@ sudo apt-get install rsync
 **Solution:** Don't use this script. Manually copy specific files:
 
 ```bash
-cp ~/Projects/skicyclerun.dev/src/components/NewComponent.astro \
+cp ~/Projects/skicyclerun.com/src/components/NewComponent.astro \
    ~/Projects/skicyclerun.com/src/components/
 ```
 
@@ -297,7 +297,7 @@ jobs:
       - name: Checkout DEV
         uses: actions/checkout@v3
         with:
-          repository: timothyhalley/skicyclerun.dev
+          repository: timothyhalley/skicyclerun.com
           path: dev
 
       - name: Checkout PROD

@@ -1,7 +1,7 @@
 {
-  "name": "skicyclerun.dev",
+  "name": "skicyclerun.com",
   "type": "module",
-  "version": "0.0.1",
+  "version": "2025-11-16 V04.013",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
@@ -9,7 +9,10 @@
     "sync": "astro sync",
     "format:check": "prettier --plugin-search-dir=. --check .",
     "format": "prettier --plugin-search-dir=. --write .",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "version:bump": "tsx scripts/update-version.ts",
+    "version:bump:major": "tsx scripts/update-version.ts --major",
+    "version:bump:date": "tsx scripts/update-version.ts --date"
   },
   "dependencies": {
     "@astrojs/check": "0.9.4",

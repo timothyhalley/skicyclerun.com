@@ -148,7 +148,7 @@ This operation will:
   • Update 8 modified files in PROD
   • Delete 3 files from PROD
 
-Source:      /Users/timothyhalley/Projects/skicyclerun.dev
+Source:      /Users/timothyhalley/Projects/skicyclerun.com
 Destination: /Users/timothyhalley/Projects/skicyclerun.com
 
 This is NOT a git merge - it's a clean file copy!
@@ -275,7 +275,7 @@ cat rsync-preview.txt
 
 ```bash
 # See what changed in DEV since last migration
-cd ~/Projects/skicyclerun.dev
+cd ~/Projects/skicyclerun.com
 git log --oneline -10
 
 # Then use --diff-only to see file-level changes
