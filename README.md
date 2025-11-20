@@ -115,7 +115,7 @@ PUBLIC_USER_POOL_CLIENT_ID=your_client_id
 PUBLIC_AWS_REGION=us-west-2
 
 # API Configuration
-PUBLIC_API_BASE_URL=https://your-api-gateway-url.execute-api.region.amazonaws.com
+PUBLIC_SKICYCLERUN_API=https://your-api-gateway-url.execute-api.region.amazonaws.com
 
 # Site Configuration
 SKICYCLERUN_URL=https://localhost:4321
@@ -267,8 +267,15 @@ Production requires these environment variables:
 SKICYCLERUN_URL=https://skicyclerun.com
 PUBLIC_USER_POOL_ID=your_production_pool_id
 PUBLIC_USER_POOL_CLIENT_ID=your_production_client_id
-PUBLIC_API_BASE_URL=https://your-production-api.amazonaws.com
+PUBLIC_SKICYCLERUN_API=https://your-production-api.amazonaws.com
+AWS_REGION=us-west-2
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here
+S3_BUCKET_NAME=your_static_site_bucket
+CLOUDFRONT_DISTRIBUTION_ID=your_distribution_id
 ```
+
+The AWS values above are only consumed during deployment: the GitHub Actions workflow injects them into `aws s3 sync` (to upload the generated `dist/` contents to the static hosting bucket) and `aws cloudfront create-invalidation` (to flush the CDN cache).
 
 ### AWS CloudFront
 

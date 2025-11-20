@@ -70,7 +70,7 @@ The issue appears to be that the click handler is not being properly attached to
 🔑 [INIT] Document ready state: loading
 🔑 [INIT] Auth bridge available: false
 🔑 [INIT] Auth button found: true
-🔑 [INIT] Auth button data-cognito-domain: us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com
+🔑 [INIT] Auth button data-cognito-domain: auth.skicyclerun.com
 🔑 [INIT] Auth button data-client-id: hsrpdhl5sellv9n3dotako1tm
 🔑 [UPDATE] updateAuthIcon called
 🔑 [UPDATE] Elements found: {loginIcon: true, logoutIcon: true, authButton: true}

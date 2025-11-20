@@ -59,7 +59,7 @@ Cognito settings are managed in `src/config/cognito.ts`:
 export const cognitoConfig = {
   userPoolId: "us-west-2_UqZZY2Hbw",
   clientId: "hsrpdhl5sellv9n3dotako1tm",
-  domain: "us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com",
+  domain: "auth.skicyclerun.com",
   region: "us-west-2",
   scopes: ["openid", "email", "profile", "phone"],
   redirectUri: "/",
@@ -310,15 +310,15 @@ Critical environment variables for different deployments:
 
 ```bash
 # Cognito Configuration
-COGNITO_DOMAIN=https://us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com
-COGNITO_USER_POOL_ID=us-west-2_UqZZY2Hbw
-COGNITO_USER_POOL_CLIENT_ID=hsrpdhl5sellv9n3dotako1tm
-COGNITO_REDIRECT_URI=https://localhost:4321/
-COGNITO_LOGOUT_REDIRECT_URI=https://localhost:4321/
-COGNITO_SCOPES=openid email phone profile
+PUBLIC_COGNITO_DOMAIN=https://us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com
+PUBLIC_COGNITO_USER_POOL_ID=us-west-2_UqZZY2Hbw
+PUBLIC_COGNITO_CLIENT_ID=hsrpdhl5sellv9n3dotako1tm
+PUBLIC_COGNITO_REDIRECT_URI=/
+PUBLIC_COGNITO_LOGOUT_URI=/
+PUBLIC_COGNITO_SCOPES=openid,email,profile,phone
 
 # API Configuration
-PUBLIC_API_BASE_URL=api.skicyclerun.com/v2
+PUBLIC_SKICYCLERUN_API=https://api.skicyclerun.com/v2/
 ```
 
 ## Performance Optimization

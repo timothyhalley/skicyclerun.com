@@ -188,6 +188,20 @@ const { activeNav } = Astro.props;
     min-width: 0;
   }
 
+  #menu-wrapper .actions > li {
+    display: flex;
+    align-items: center;
+  }
+
+  #menu-wrapper .actions > li > a,
+  #menu-wrapper .actions > li > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    line-height: 1;
+  }
+
   .actions svg {
     height: 1.5rem;
     width: 1.5rem;

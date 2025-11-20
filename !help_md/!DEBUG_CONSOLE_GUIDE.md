@@ -133,7 +133,7 @@ if (isDebug) {
 
 ### Production shows debug output
 
-1. Verify GitHub secret `DEBUG_OUTPUT` is set to `false`
+1. Verify t `DEBUG_OUTPUT` is set to `false`
 2. Check workflow injects `PUBLIC_DEBUG_OUTPUT` correctly
 3. Rebuild and redeploy
 

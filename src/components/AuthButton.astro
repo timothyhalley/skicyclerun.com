@@ -1,23 +1,58 @@
 ---
+import { cognitoConfig } from "@config/cognito";
+
 export interface Props {
   enabled: boolean;
 }
 
 const { enabled } = Astro.props;
+const cognitoDomain = cognitoConfig.domain;
+const cognitoClientId = cognitoConfig.clientId;
+const cognitoScopes = cognitoConfig.scopes.join(" ");
 ---
 
 {enabled && (
-  <li>
-  <button data-auth-btn type="button" class="focus-outline p-2 text-skin-base" aria-label="Account" title="Login" data-auth-state="unauthenticated" data-cognito-domain="us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com" data-client-id="hsrpdhl5sellv9n3dotako1tm" data-scopes="openid email profile phone">
+  <li class="actions-item">
+    <button
+      data-auth-btn
+      type="button"
+      class="focus-outline p-2 text-skin-base"
+      aria-label="Account"
+      title="Login"
+      data-auth-state="unauthenticated"
+      data-cognito-domain={cognitoDomain}
+      data-client-id={cognitoClientId}
+      data-scopes={cognitoScopes}
+    >
       <!-- Login icon (visible when not authenticated) -->
-      <svg xmlns="http://www.w3.org/2000/svg" id="login-svg" class="icon-login" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        id="login-svg"
+        class="icon-login"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <path stroke="none" d="M0 0h24v24H0z" fill="none" />
         <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" />
         <path d="M20 12h-13l3 -3m0 6l-3 -3" />
       </svg>
 
       <!-- Logout icon (hidden by default, shown when authenticated) -->
-  <svg xmlns="http://www.w3.org/2000/svg" id="logout-svg" class="icon-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        id="logout-svg"
+        class="icon-logout"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <path stroke="none" d="M0 0h24v24H0z" fill="none" />
         <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" />
         <path d="M7 12h14l-3 -3m0 6l3 -3" />

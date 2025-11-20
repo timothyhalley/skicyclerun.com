@@ -8,8 +8,7 @@ export async function fetchProtectedContent({
   requiredGroup?: string;
 }) {
   const base =
-    import.meta.env.PUBLIC_API_BASE_URL || "https://api.skicyclerun.com/v2";
-  if (!base) throw new Error("PUBLIC_API_BASE_URL not set");
+    import.meta.env.PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/v2/";
 
   const url = new URL("/content", base);
   url.searchParams.set("slug", slug);

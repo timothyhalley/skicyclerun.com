@@ -72,7 +72,7 @@ See `MIGRATION-COMPLETE.md` for detailed results.
 export const cognitoConfig = {
   userPoolId: "us-west-2_UqZZY2Hbw",
   clientId: "hsrpdhl5sellv9n3dotako1tm",
-  domain: "us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com",
+  domain: "auth.skicyclerun.com",
   region: "us-west-2",
   scopes: ["openid", "email", "profile", "phone"],
   redirectUri: "/",
@@ -109,7 +109,7 @@ export const cognitoConfig = {
 # Cognito Configuration
 PUBLIC_COGNITO_USER_POOL_ID=us-west-2_UqZZY2Hbw
 PUBLIC_COGNITO_CLIENT_ID=hsrpdhl5sellv9n3dotako1tm
-PUBLIC_COGNITO_DOMAIN=us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com
+PUBLIC_COGNITO_DOMAIN=auth.skicyclerun.com
 PUBLIC_COGNITO_REGION=us-west-2
 PUBLIC_COGNITO_SCOPES=openid,email,profile,phone
 PUBLIC_COGNITO_REDIRECT_URI=/

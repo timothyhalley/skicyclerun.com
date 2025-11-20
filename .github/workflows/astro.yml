@@ -5,9 +5,9 @@
 name: Deploy SkiCycleRun (astro site) to AWS S3 Static Host
 
 env:
-  AWS_S3_SKICYCLERUN: skicyclerun.com
-  AWS_CLOUDFRONT_ID: EG2MWPWJ56AVU
-  
+  AWS_S3_SKICYCLERUN: ${{ vars.S3_BUCKET_NAME }}
+  AWS_CLOUDFRONT_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+
 on:
   # Runs on pushes targeting the default branch
   push:
@@ -28,27 +28,45 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        
+
+      - name: Write environment file
+        run: |
+          cat <<'EOF' > .env
+          SKICYCLERUN_URL=${{ vars.SKICYCLERUN_URL }}
+          PUBLIC_SKICYCLERUN_API=${{ vars.PUBLIC_SKICYCLERUN_API }}
+          PUBLIC_COGNITO_USER_POOL_ID=${{ vars.PUBLIC_COGNITO_USER_POOL_ID }}
+          PUBLIC_COGNITO_CLIENT_ID=${{ vars.PUBLIC_COGNITO_CLIENT_ID }}
+          PUBLIC_COGNITO_DOMAIN=${{ vars.PUBLIC_COGNITO_DOMAIN }}
+          PUBLIC_COGNITO_REGION=${{ vars.PUBLIC_COGNITO_REGION }}
+          PUBLIC_COGNITO_SCOPES=${{ vars.PUBLIC_COGNITO_SCOPES }}
+          PUBLIC_COGNITO_REDIRECT_URI=${{ vars.PUBLIC_COGNITO_REDIRECT_URI }}
+          PUBLIC_COGNITO_LOGOUT_URI=${{ vars.PUBLIC_COGNITO_LOGOUT_URI }}
+          AWS_REGION=${{ vars.AWS_REGION }}
+          S3_BUCKET_NAME=${{ vars.S3_BUCKET_NAME }}
+          CLOUDFRONT_DISTRIBUTION_ID=${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+          PUBLIC_DEBUG_OUTPUT=${{ vars.PUBLIC_DEBUG_OUTPUT }}
+          EOF
+
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
           node-version: 20
-      
+
       - name: setup
-  
-        run: | 
+
+        run: |
           npm install
           npm run build
-      
+
       - name: Set up AWS CLI
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      
+          aws-region: ${{ vars.AWS_REGION }}
+
       - name: deploy to s3
         run: aws s3 sync ./dist/ s3://$AWS_S3_SKICYCLERUN/
-      
+
       - name: invalidate cloudfront cache
         run: aws cloudfront create-invalidation --distribution-id $AWS_CLOUDFRONT_ID --paths "/*" "/"

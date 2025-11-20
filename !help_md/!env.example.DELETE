@@ -7,7 +7,6 @@ SKICYCLERUN_URL=https://localhost:4321
 PUBLIC_SKICYCLERUN_API=https://api.skicyclerun.com/v2/
 
 # API and auth settings (legacy - for compatibility)
-PUBLIC_API_BASE_URL=api.skicyclerun.com/v2
 COGNITO_DOMAIN=https://your-cognito-domain.auth.region.amazoncognito.com
 COGNITO_USER_POOL_ID=your_user_pool_id
 COGNITO_USER_POOL_CLIENT_ID=your_client_id
@@ -25,7 +24,11 @@ PUBLIC_COGNITO_SCOPES=openid,email,profile,phone
 PUBLIC_COGNITO_REDIRECT_URI=/
 PUBLIC_COGNITO_LOGOUT_URI=/
 
-# AWS Configuration (Server-side only - never expose with PUBLIC_ prefix)
+# AWS Deployment Configuration (used by GitHub Actions to publish the site)
+# These values stay server-side and are injected into the deploy workflow for:
+# - `aws s3 sync` to push the built site to the static hosting bucket
+# - `aws cloudfront create-invalidation` to clear the CDN cache after deploys
+# Never add PUBLIC_ prefixes to these credentials or identifiers.
 AWS_REGION=us-west-2
 AWS_ACCESS_KEY_ID=your_access_key_here
 AWS_SECRET_ACCESS_KEY=your_secret_key_here

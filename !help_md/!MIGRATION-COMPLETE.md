@@ -17,7 +17,7 @@ Added PUBLIC\_ prefixed variables for client-side access:
 ```bash
 PUBLIC_COGNITO_USER_POOL_ID=us-west-2_UqZZY2Hbw
 PUBLIC_COGNITO_CLIENT_ID=hsrpdhl5sellv9n3dotako1tm
-PUBLIC_COGNITO_DOMAIN=us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com
+PUBLIC_COGNITO_DOMAIN=auth.skicyclerun.com
 PUBLIC_COGNITO_REGION=us-west-2
 PUBLIC_COGNITO_SCOPES=openid,email,profile,phone
 PUBLIC_COGNITO_REDIRECT_URI=/
@@ -34,9 +34,7 @@ export const cognitoConfig: CognitoConfig = {
     import.meta.env.PUBLIC_COGNITO_USER_POOL_ID || "us-west-2_UqZZY2Hbw",
   clientId:
     import.meta.env.PUBLIC_COGNITO_CLIENT_ID || "hsrpdhl5sellv9n3dotako1tm",
-  domain:
-    import.meta.env.PUBLIC_COGNITO_DOMAIN ||
-    "us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com",
+  domain: import.meta.env.PUBLIC_COGNITO_DOMAIN || "auth.skicyclerun.com",
   region: import.meta.env.PUBLIC_COGNITO_REGION || "us-west-2",
   scopes: import.meta.env.PUBLIC_COGNITO_SCOPES?.split(",") || [
     "openid",

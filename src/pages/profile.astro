@@ -5,6 +5,11 @@ import Header from "@components/Header.astro";
 import ProfileLayout from "@layouts/ProfileLayout.astro";
 import AuthButton from "@components/AuthButton.astro";
 import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
+import { cognitoConfig } from "@config/cognito";
+
+const cognitoDomain = cognitoConfig.domain;
+const cognitoClientId = cognitoConfig.clientId;
+const cognitoScopes = cognitoConfig.scopes.join(" ");
 ---
 
 <BaseLayout title="User Profile">
@@ -55,9 +60,9 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
                 data-auth-btn
                 type="button"
                 data-auth-state="unauthenticated"
-                data-cognito-domain="us-west-2uqzzy2hbw.auth.us-west-2.amazoncognito.com"
-                data-client-id="hsrpdhl5sellv9n3dotako1tm"
-                data-scopes="openid email profile phone"
+                data-cognito-domain={cognitoDomain}
+                data-client-id={cognitoClientId}
+                data-scopes={cognitoScopes}
                 class="sign-in-btn inline-flex items-center gap-2 px-4 py-2 rounded-md text-white hover:opacity-90 transition-opacity cursor-pointer"
                 aria-label="Sign In"
                 title="Sign In"
