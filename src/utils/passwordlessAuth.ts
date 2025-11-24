@@ -149,16 +149,20 @@ export async function startPasswordlessAuth(
   // CRITICAL FIX: USER_AUTH flow returns EMAIL_OTP for non-existent users WITHOUT sending email!
   // We must try SignUp first to handle new users properly.
   // Strategy: Try SignUp first, if user exists (UsernameExistsException), then InitiateAuth
-  
+
   // First, try creating new user (this sends verification email)
   try {
-    DebugConsole.auth("[PasswordlessAuth] Attempting SignUp for potential new user");
-    
+    DebugConsole.auth(
+      "[PasswordlessAuth] Attempting SignUp for potential new user",
+    );
+
     await createNewUser(normalizedEmail, options.phoneNumber);
 
     // New user created successfully - they need to verify their account first
-    DebugConsole.auth("[PasswordlessAuth] New user created, verification email sent");
-    
+    DebugConsole.auth(
+      "[PasswordlessAuth] New user created, verification email sent",
+    );
+
     return {
       username: normalizedEmail,
       email: normalizedEmail,
@@ -171,10 +175,16 @@ export async function startPasswordlessAuth(
   } catch (signUpError: any) {
     // User already exists - proceed with normal auth flow
     if (signUpError.name === "UsernameExistsException") {
-      DebugConsole.auth("[PasswordlessAuth] User exists, proceeding with InitiateAuth");
+      DebugConsole.auth(
+        "[PasswordlessAuth] User exists, proceeding with InitiateAuth",
+      );
     } else {
       // Unexpected error during SignUp
-      DebugConsole.auth("[PasswordlessAuth] SignUp error:", signUpError.name, signUpError.message);
+      DebugConsole.auth(
+        "[PasswordlessAuth] SignUp error:",
+        signUpError.name,
+        signUpError.message,
+      );
       throw signUpError;
     }
   }
@@ -266,7 +276,7 @@ export async function startPasswordlessAuth(
       DebugConsole.auth(
         "[PasswordlessAuth] User exists but not confirmed, resending verification code",
       );
-      
+
       // Resend confirmation code
       try {
         await client.send(
@@ -275,12 +285,15 @@ export async function startPasswordlessAuth(
             Username: normalizedEmail,
           }),
         );
-        
+
         DebugConsole.auth("[PasswordlessAuth] Verification code resent");
       } catch (resendError: any) {
-        DebugConsole.error("[PasswordlessAuth] Failed to resend code:", resendError);
+        DebugConsole.error(
+          "[PasswordlessAuth] Failed to resend code:",
+          resendError,
+        );
       }
-      
+
       return {
         username: normalizedEmail,
         email: normalizedEmail,
@@ -293,7 +306,7 @@ export async function startPasswordlessAuth(
 
     // Note: UserNotFoundException should never happen here because we tried SignUp first
     // If it does, it's an unexpected state - log and throw
-    
+
     // Unexpected error
     DebugConsole.error("[PasswordlessAuth] Unexpected auth error:", error);
     DebugConsole.error("[PasswordlessAuth] Error name:", error.name);
