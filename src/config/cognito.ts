@@ -10,35 +10,38 @@ export interface CognitoConfig {
   logoutUri: string;
 }
 
+function requireEnv(name: string, value?: string): string {
+  if (!value) {
+    throw new Error(
+      `CRITICAL CONFIG ERROR: Missing environment variable ${name}. Check your .env file.`,
+    );
+  }
+  return value;
+}
+
 export const cognitoConfig: CognitoConfig = {
-  userPoolId:
-    import.meta.env.PUBLIC_COGNITO_USER_POOL_ID || "us-west-2_UqZZY2Hbw",
-  clientId:
-    import.meta.env.PUBLIC_COGNITO_CLIENT_ID || "hsrpdhl5sellv9n3dotako1tm",
-  domain: import.meta.env.PUBLIC_COGNITO_DOMAIN || "auth.skicyclerun.com",
-  region: import.meta.env.PUBLIC_COGNITO_REGION || "us-west-2",
-  scopes: import.meta.env.PUBLIC_COGNITO_SCOPES?.split(",") || [
-    "openid",
-    "email",
-    "profile",
-    "phone",
-  ],
+  userPoolId: requireEnv(
+    "PUBLIC_COGNITO_USER_POOL_ID",
+    import.meta.env.PUBLIC_COGNITO_USER_POOL_ID,
+  ),
+  clientId: requireEnv(
+    "PUBLIC_COGNITO_CLIENT_ID",
+    import.meta.env.PUBLIC_COGNITO_CLIENT_ID,
+  ),
+  domain: requireEnv(
+    "PUBLIC_COGNITO_DOMAIN",
+    import.meta.env.PUBLIC_COGNITO_DOMAIN,
+  ),
+  region: requireEnv(
+    "PUBLIC_COGNITO_REGION",
+    import.meta.env.PUBLIC_COGNITO_REGION,
+  ),
+  scopes: (
+    import.meta.env.PUBLIC_COGNITO_SCOPES || "openid,email,profile,phone"
+  ).split(","),
   redirectUri: import.meta.env.PUBLIC_COGNITO_REDIRECT_URI || "/", // Relative path, will be combined with origin
   logoutUri: import.meta.env.PUBLIC_COGNITO_LOGOUT_URI || "/", // Relative path, will be combined with origin
 };
-
-// Validation - warn if environment variables are missing
-if (typeof window === "undefined") {
-  // Server-side validation only
-  if (!import.meta.env.PUBLIC_COGNITO_USER_POOL_ID) {
-    console.warn(
-      "[Cognito] PUBLIC_COGNITO_USER_POOL_ID not set, using fallback",
-    );
-  }
-  if (!import.meta.env.PUBLIC_COGNITO_CLIENT_ID) {
-    console.warn("[Cognito] PUBLIC_COGNITO_CLIENT_ID not set, using fallback");
-  }
-}
 
 // Helper to get full URLs
 export function getRedirectUri(): string {

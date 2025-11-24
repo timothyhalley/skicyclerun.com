@@ -5,7 +5,30 @@
 // ensure you've run `npm run sync` (or `astro sync`) and are using the
 // workspace TypeScript version in VS Code.
 
-// Aaugment to allow JSON import if not already declared
+interface ImportMetaEnv {
+  readonly PUBLIC_COGNITO_USER_POOL_ID: string;
+  readonly PUBLIC_COGNITO_CLIENT_ID: string;
+  readonly PUBLIC_COGNITO_DOMAIN: string;
+  readonly PUBLIC_COGNITO_REGION: string;
+  readonly PUBLIC_COGNITO_SCOPES: string;
+  readonly PUBLIC_COGNITO_REDIRECT_URI: string;
+  readonly PUBLIC_COGNITO_LOGOUT_URI: string;
+  readonly PUBLIC_COGNITO_TIMEZONE_ATTRIBUTE?: string;
+  readonly PUBLIC_COGNITO_TIMEZONE_VALUE?: string;
+  readonly PUBLIC_COGNITO_TIMEZONE_REQUIRED?: string;
+  readonly PUBLIC_COGNITO_DEFAULT_OTP_LENGTH?: string;
+  readonly PUBLIC_COGNITO_OTP_LENGTH?: string;
+  readonly PUBLIC_AUTH_METHODS?: string;
+  readonly PUBLIC_DEFAULT_TIMEZONE?: string;
+  readonly PUBLIC_DEBUG_OUTPUT?: string;
+  // Add other PUBLIC_ variables here as needed
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
+// Augment to allow JSON import if not already declared
 declare module "*.json" {
   const value: any;
   export default value;

@@ -21,20 +21,22 @@ Because GitHub Actions does not read your local `.env`, you must add the require
 
 If you want the CI build to render using your production Cognito and site settings, store the remaining values from `!env.example` as **Actions variables** (not secrets). Variables are available as `${{ vars.NAME }}` in workflows, which prevents leaking them in the repository while still keeping them editable.
 
-| Variable Name                 | `.env` key                    | Notes                                                                                                     |
-| ----------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `SKICYCLERUN_URL`             | `SKICYCLERUN_URL`             | Canonical site URL that powers sitemaps and canonical meta tags.                                          |
-| `PUBLIC_SKICYCLERUN_API`      | `PUBLIC_SKICYCLERUN_API`      | Base API URL surfaced in the UI.                                                                          |
-| `PUBLIC_COGNITO_USER_POOL_ID` | `PUBLIC_COGNITO_USER_POOL_ID` | Exposed to the browser; required so the header button and profile page point at the correct pool.         |
-| `PUBLIC_COGNITO_CLIENT_ID`    | `PUBLIC_COGNITO_CLIENT_ID`    | Exposed to the browser.                                                                                   |
-| `PUBLIC_COGNITO_DOMAIN`       | `PUBLIC_COGNITO_DOMAIN`       | Use your custom domain (for example `auth.skicyclerun.com`).                                              |
-| `PUBLIC_COGNITO_REGION`       | `PUBLIC_COGNITO_REGION`       | Region slug, e.g. `us-west-2`.                                                                            |
-| `PUBLIC_COGNITO_SCOPES`       | `PUBLIC_COGNITO_SCOPES`       | Comma-separated scopes such as `openid,email,profile,phone`.                                              |
-| `PUBLIC_COGNITO_REDIRECT_URI` | `PUBLIC_COGNITO_REDIRECT_URI` | Path or absolute URL for the hosted UI redirect.                                                          |
-| `PUBLIC_COGNITO_LOGOUT_URI`   | `PUBLIC_COGNITO_LOGOUT_URI`   | Path or absolute URL used on logout.                                                                      |
-| `AWS_REGION`                  | `AWS_REGION`                  | Keep consistent with the bucket and Cognito resources (`us-west-2`).                                      |
-| `S3_BUCKET_NAME`              | `S3_BUCKET_NAME`              | Deployment only: passed to `aws s3 sync` so the workflow can publish `dist/` to your static site bucket.  |
-| `CLOUDFRONT_DISTRIBUTION_ID`  | `CLOUDFRONT_DISTRIBUTION_ID`  | Deployment only: injected into `aws cloudfront create-invalidation` to purge the CDN cache after uploads. |
+| Variable Name                       | `.env` key                          | Notes                                                                                                          |
+| ----------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `SKICYCLERUN_URL`                   | `SKICYCLERUN_URL`                   | Canonical site URL that powers sitemaps and canonical meta tags.                                               |
+| `PUBLIC_SKICYCLERUN_API`            | `PUBLIC_SKICYCLERUN_API`            | Base API URL surfaced in the UI.                                                                               |
+| `PUBLIC_COGNITO_USER_POOL_ID`       | `PUBLIC_COGNITO_USER_POOL_ID`       | Exposed to the browser; required so the header button and profile page point at the correct pool.              |
+| `PUBLIC_COGNITO_CLIENT_ID`          | `PUBLIC_COGNITO_CLIENT_ID`          | Exposed to the browser.                                                                                        |
+| `PUBLIC_COGNITO_DOMAIN`             | `PUBLIC_COGNITO_DOMAIN`             | Use your custom domain (for example `auth.skicyclerun.com`).                                                   |
+| `PUBLIC_COGNITO_REGION`             | `PUBLIC_COGNITO_REGION`             | Region slug, e.g. `us-west-2`.                                                                                 |
+| `PUBLIC_COGNITO_SCOPES`             | `PUBLIC_COGNITO_SCOPES`             | Comma-separated scopes such as `openid,email,profile,phone`.                                                   |
+| `PUBLIC_COGNITO_REDIRECT_URI`       | `PUBLIC_COGNITO_REDIRECT_URI`       | Path or absolute URL for the hosted UI redirect.                                                               |
+| `PUBLIC_COGNITO_LOGOUT_URI`         | `PUBLIC_COGNITO_LOGOUT_URI`         | Path or absolute URL used on logout.                                                                           |
+| `PUBLIC_AUTH_METHODS`               | `PUBLIC_AUTH_METHODS`               | Comma-separated sign-in modes (`EMAIL_OTP`, `SMS_OTP`, `PASSWORD`) that the UI should offer in priority order. |
+| `PUBLIC_COGNITO_DEFAULT_OTP_LENGTH` | `PUBLIC_COGNITO_DEFAULT_OTP_LENGTH` | Optional: sets the UI’s expected passwordless OTP length (4–8 digits) when Cognito doesn’t send a hint.        |
+| `AWS_REGION`                        | `AWS_REGION`                        | Keep consistent with the bucket and Cognito resources (`us-west-2`).                                           |
+| `S3_BUCKET_NAME`                    | `S3_BUCKET_NAME`                    | Deployment only: passed to `aws s3 sync` so the workflow can publish `dist/` to your static site bucket.       |
+| `CLOUDFRONT_DISTRIBUTION_ID`        | `CLOUDFRONT_DISTRIBUTION_ID`        | Deployment only: injected into `aws cloudfront create-invalidation` to purge the CDN cache after uploads.      |
 
 ## 4. Writing the `.env` file inside the workflow
 
@@ -51,12 +53,14 @@ Add the following step **before** `npm run build` so the workflow writes the `.e
     PUBLIC_COGNITO_DOMAIN=${{ vars.PUBLIC_COGNITO_DOMAIN }}
     PUBLIC_COGNITO_REGION=${{ vars.PUBLIC_COGNITO_REGION }}
     PUBLIC_COGNITO_SCOPES=${{ vars.PUBLIC_COGNITO_SCOPES }}
-        PUBLIC_COGNITO_REDIRECT_URI=${{ vars.PUBLIC_COGNITO_REDIRECT_URI }}
-        PUBLIC_COGNITO_LOGOUT_URI=${{ vars.PUBLIC_COGNITO_LOGOUT_URI }}
+    PUBLIC_COGNITO_REDIRECT_URI=${{ vars.PUBLIC_COGNITO_REDIRECT_URI }}
+    PUBLIC_COGNITO_LOGOUT_URI=${{ vars.PUBLIC_COGNITO_LOGOUT_URI }}
+    PUBLIC_AUTH_METHODS=${{ vars.PUBLIC_AUTH_METHODS }}
+    PUBLIC_COGNITO_DEFAULT_OTP_LENGTH=${{ vars.PUBLIC_COGNITO_DEFAULT_OTP_LENGTH }}
     AWS_REGION=${{ vars.AWS_REGION }}
     S3_BUCKET_NAME=${{ vars.S3_BUCKET_NAME }}
     CLOUDFRONT_DISTRIBUTION_ID=${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
-        PUBLIC_DEBUG_OUTPUT=${{ vars.PUBLIC_DEBUG_OUTPUT }}
+    PUBLIC_DEBUG_OUTPUT=${{ vars.PUBLIC_DEBUG_OUTPUT }}
     EOF
 ```
 

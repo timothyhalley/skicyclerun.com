@@ -152,11 +152,19 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
 
     async function getAuthState() {
       debugLog("auth", "[Profile] getAuthState called");
-      debugLog(
-        "auth",
-        "[Profile] window.__authBridge exists:",
-        !!window.__authBridge
-      );
+
+      // Try passwordless auth first
+      if (
+        window.__passwordlessAuth &&
+        typeof window.__passwordlessAuth.getState === "function"
+      ) {
+        debugLog("auth", "[Profile] Calling passwordless auth getState");
+        const state = await window.__passwordlessAuth.getState();
+        debugLog("auth", "[Profile] Passwordless auth state result:", state);
+        return state;
+      }
+
+      // Fallback to old auth bridge (for backward compatibility)
       if (
         window.__authBridge &&
         typeof window.__authBridge.getState === "function"
@@ -166,7 +174,8 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
         debugLog("auth", "[Profile] Bridge getState result:", state);
         return state;
       }
-      debugLog("auth", "[Profile] No auth bridge available");
+
+      debugLog("auth", "[Profile] No auth available");
       return null;
     }
 
@@ -174,6 +183,7 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
       debugLog("api", "[Profile] fetchUserProfile called with:", {
         email,
         hasToken: !!token,
+        tokenPreview: token ? token.substring(0, 50) + "..." : "none",
       });
       try {
         const headers = {
@@ -183,19 +193,32 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
           headers["Authorization"] = `Bearer ${token}`;
           debugLog(
             "api",
-            "[Profile] Added Authorization header with Bearer token"
+            "[Profile] ✅ Added Authorization header with Bearer token (length:",
+            token.length,
+            ")"
           );
         } else {
-          debugWarn("api", "[Profile] No token provided for API call");
+          debugError("api", "[Profile] ❌ NO TOKEN provided for API call!");
         }
 
+        // API endpoint requires email query param to match against token
         const url = `https://api.skicyclerun.com/v2/profile?email=${encodeURIComponent(email)}`;
-        debugLog("api", "[Profile] Making API request to:", url);
-        debugLog("api", "[Profile] Request headers:", headers);
+        debugLog("api", "[Profile] 🚀 Making API request to:", url);
+        debugLog("api", "[Profile] 📤 Request headers:", headers);
 
-        const res = await fetch(url, { headers });
-        debugLog("api", "[Profile] API response status:", res.status);
-        debugLog("api", "[Profile] API response ok:", res.ok);
+        const res = await fetch(url, {
+          method: "GET",
+          headers,
+          mode: "cors", // Explicitly set CORS mode
+          credentials: "omit", // Don't send cookies (using Authorization header)
+        });
+        debugLog("api", "[Profile] 📥 API response status:", res.status);
+        debugLog("api", "[Profile] 📥 API response ok:", res.ok);
+        debugLog("api", "[Profile] 📥 Response headers:", {
+          contentType: res.headers.get("content-type"),
+          corsOrigin: res.headers.get("access-control-allow-origin"),
+          corsCredentials: res.headers.get("access-control-allow-credentials"),
+        });
 
         if (!res.ok) {
           const errorText = await res.text();
@@ -205,7 +228,20 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
 
         const data = await res.json();
         debugLog("api", "[Profile] API success response:", data);
-        return data;
+
+        // Transform API response to expected format
+        return {
+          sub: data.sub,
+          email: data.email,
+          emailVerified: data.emailVerified,
+          phone: data.phone,
+          phoneVerified: data.phoneVerified,
+          geo: data.location, // API returns 'location', map to 'geo'
+          groups: data.groups || [],
+          memberSince: data.memberSince,
+          lastLogin: data.lastLogin,
+          userStatus: data.userStatus,
+        };
       } catch (err) {
         debugError("api", "[Profile] API error:", err);
         return null;
@@ -213,25 +249,68 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
     }
 
     function renderUserCard({
-      name,
       email,
+      emailVerified,
       phone,
+      phoneVerified,
       geo,
       groups,
       lastLogin,
       memberSince,
+      userStatus,
     }) {
       const container = document.getElementById("user-card-container");
-      // Use the statue image URL passed from Astro scope
       const statueUrl = statueImageSrc;
+      const name = email.split("@")[0];
+
+      // Format dates as YYYY-MM-DD HH:MM in local time
+      const formatDateTime = (dateStr) => {
+        if (!dateStr) return null;
+        const d = new Date(dateStr);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const hours = String(d.getHours()).padStart(2, "0");
+        const minutes = String(d.getMinutes()).padStart(2, "0");
+        return year + "-" + month + "-" + day + " " + hours + ":" + minutes;
+      };
+
+      const formattedLastLogin = formatDateTime(lastLogin) || "Current session";
+      const formattedMemberSince = formatDateTime(memberSince) || "Unknown";
+      const groupsDisplay = groups?.length ? groups : ["User"];
+      const emailStatus = emailVerified ? "✓ Verified" : "Unverified";
+      const phoneStatus = phone
+        ? phoneVerified
+          ? "✓ Verified"
+          : "Unverified"
+        : "Not provided";
+      const statusBadge =
+        userStatus === "CONFIRMED"
+          ? '<span class="px-3 py-1 rounded-full text-sm bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 font-medium">Active</span>'
+          : '<span class="px-3 py-1 rounded-full text-sm bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 font-medium">' +
+            userStatus +
+            "</span>";
+
+      const groupBadges = groupsDisplay
+        .map(
+          (g) =>
+            '<span class="px-3 py-1 rounded-full text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium">' +
+            g +
+            "</span>"
+        )
+        .join("");
+
       container.innerHTML = `
         <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 p-6 rounded-lg shadow-lg">
           <div class="flex items-center gap-4 mb-6">
             <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center p-2">
               <img src="${statueUrl}" alt="${name}" class="w-full h-full object-contain" />
             </div>
-            <div>
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">${name}</h2>
+            <div class="flex-1">
+              <div class="flex items-center gap-3">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">${name}</h2>
+                ${statusBadge}
+              </div>
               <p class="text-gray-600 dark:text-gray-300">${email}</p>
             </div>
           </div>
@@ -240,13 +319,19 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
             <div class="space-y-4">
               <h3 class="font-semibold text-gray-900 dark:text-white border-b pb-2">Contact Information</h3>
               <div class="space-y-3">
-                <div class="flex justify-between">
+                <div class="flex justify-between items-center">
                   <span class="text-gray-600 dark:text-gray-400">Email:</span>
-                  <span class="font-medium text-gray-900 dark:text-white">${email}</span>
+                  <div class="text-right">
+                    <div class="font-medium text-gray-900 dark:text-white">${email}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">${emailStatus}</div>
+                  </div>
                 </div>
-                <div class="flex justify-between">
+                <div class="flex justify-between items-center">
                   <span class="text-gray-600 dark:text-gray-400">Phone:</span>
-                  <span class="font-medium text-gray-900 dark:text-white">${phone || "Not provided"}</span>
+                  <div class="text-right">
+                    <div class="font-medium text-gray-900 dark:text-white">${phone || "Not provided"}</div>
+                    ${phone ? `<div class="text-xs text-gray-500 dark:text-gray-400">${phoneStatus}</div>` : ""}
+                  </div>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-gray-600 dark:text-gray-400">Location:</span>
@@ -260,16 +345,16 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
               <div class="space-y-3">
                 <div class="flex justify-between">
                   <span class="text-gray-600 dark:text-gray-400">Member Since:</span>
-                  <span class="font-medium text-gray-900 dark:text-white">${memberSince || "Unknown"}</span>
+                  <span class="font-medium text-gray-900 dark:text-white text-sm">${formattedMemberSince}</span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-gray-600 dark:text-gray-400">Last Login:</span>
-                  <span class="font-medium text-gray-900 dark:text-white">${lastLogin || "Current session"}</span>
+                  <span class="font-medium text-gray-900 dark:text-white text-sm">${formattedLastLogin}</span>
                 </div>
-                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-start">
                   <span class="text-gray-600 dark:text-gray-400">Groups:</span>
-                  <div class="flex flex-wrap gap-2 justify-end">
-                    ${groups.map((g) => `<span class="px-3 py-1 rounded-full text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium">${g}</span>`).join("")}
+                  <div class="flex flex-wrap gap-2 justify-end max-w-xs">
+                    ${groupBadges}
                   </div>
                 </div>
               </div>
@@ -306,6 +391,7 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
         }
 
         const email = authState.email;
+        // Use ID token (Cognito authorizer expects ID tokens, not access tokens)
         const token = authState.idToken || authState.accessToken;
         debugLog(
           "auth",
@@ -337,25 +423,16 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
           throw new Error("Invalid profile");
         }
 
-        const name = profile.name || email.split("@")[0];
-        const phone = profile.phone;
-        const geo = profile.geo;
-        const groups = profile.groups?.length ? profile.groups : ["User"];
-        const lastLogin = profile.lastLogin
-          ? new Date(profile.lastLogin).toLocaleDateString()
-          : null;
-        const memberSince = profile.createdAt
-          ? new Date(profile.createdAt).toLocaleDateString()
-          : null;
-
         renderUserCard({
-          name,
-          email,
-          phone,
-          geo,
-          groups,
-          lastLogin,
-          memberSince,
+          email: profile.email,
+          emailVerified: profile.emailVerified,
+          phone: profile.phone,
+          phoneVerified: profile.phoneVerified,
+          geo: profile.geo,
+          groups: profile.groups,
+          lastLogin: profile.lastLogin,
+          memberSince: profile.memberSince,
+          userStatus: profile.userStatus,
         });
 
         loading.style.display = "none";
@@ -381,7 +458,22 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
         btn.addEventListener("click", async (e) => {
           e.preventDefault();
           try {
-            await window.__authBridge?.logout?.();
+            // Try passwordless auth first
+            if (
+              window.__passwordlessAuth &&
+              typeof window.__passwordlessAuth.clearSession === "function"
+            ) {
+              debugLog("auth", "[Profile] Logging out via passwordless auth");
+              window.__passwordlessAuth.clearSession();
+              // Redirect to home after logout
+              setTimeout(() => {
+                window.location.href = "/";
+              }, 500);
+            } else if (window.__authBridge?.logout) {
+              // Fallback to old auth bridge
+              debugLog("auth", "[Profile] Logging out via auth bridge");
+              await window.__authBridge.logout();
+            }
           } catch (error) {
             debugError("auth", "Logout error:", error);
           }
@@ -400,7 +492,17 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
           debugLog("auth", "[Profile] Sign In button clicked");
 
           try {
-            // Prefer bridge login
+            // Try passwordless auth first
+            if (
+              window.__passwordlessAuth &&
+              typeof window.__passwordlessAuth.open === "function"
+            ) {
+              debugLog("auth", "[Profile] Opening passwordless auth dialog");
+              window.__passwordlessAuth.open();
+              return;
+            }
+
+            // Fallback to bridge login
             if (
               window.__authBridge &&
               typeof window.__authBridge.login === "function"
@@ -436,13 +538,34 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
       }
     }
 
-    function init() {
+    async function waitForAuth(maxAttempts = 20, delayMs = 50) {
+      for (let i = 0; i < maxAttempts; i++) {
+        if (window.__passwordlessAuth || window.__authBridge) {
+          debugLog("auth", `[Profile] Auth available after ${i} attempts`);
+          return true;
+        }
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+      debugWarn("auth", "[Profile] Auth not available after max attempts");
+      return false;
+    }
+
+    async function init() {
       debugLog("auth", "[Profile] init() called");
       debugLog("auth", "[Profile] Document ready state:", document.readyState);
       debugLog(
         "auth",
         "[Profile] localStorage available:",
         typeof localStorage !== "undefined"
+      );
+
+      // Wait for auth to be available
+      await waitForAuth();
+
+      debugLog(
+        "auth",
+        "[Profile] window.__passwordlessAuth available:",
+        !!window.__passwordlessAuth
       );
       debugLog(
         "auth",
@@ -470,6 +593,17 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
     } else {
       init();
     }
+
+    // Listen for auth changes (login/logout)
+    document.addEventListener("auth-changed", (e) => {
+      debugLog("auth", "[Profile] Auth changed event:", e.detail);
+      setTimeout(loadProfile, 200);
+    });
+
+    document.addEventListener("auth:state-change", (e) => {
+      debugLog("auth", "[Profile] Auth state change event:", e.detail);
+      setTimeout(loadProfile, 200);
+    });
 
     window.addEventListener("focus", () => {
       setTimeout(loadProfile, 100);

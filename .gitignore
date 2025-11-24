@@ -23,8 +23,14 @@ pnpm-debug.log*
 
 # project files
 .deadCode/
+.debug/
 
 # Certificate files
 *.crt
 *.pem
 *.key
+
+# Debug and temporary files
+*.json.tmp
+*_output.json
+*_debug.txt

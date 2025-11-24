@@ -6,6 +6,7 @@ import "@styles/prose-fix.css"; // Import our prose fix for Tailwind v4
 import "@styles/auth-styles.css"; // Import auth-related styles
 import "@styles/searchbar.css"; // Import search-related styles
 import Footer from "@components/Footer.astro";
+import PasswordlessAuthDialog from "@components/PasswordlessAuthDialog";
 
 export interface Props {
   title?: string;
@@ -131,34 +132,6 @@ const authBridgeVars = {
           accessToken: "cognito_access_token",
           refreshToken: "cognito_refresh_token",
         };
-        const COGNITO_CONFIG = cognito;
-        const AUTH_SCOPES = Array.isArray(COGNITO_CONFIG.scopes)
-          ? COGNITO_CONFIG.scopes
-          : typeof COGNITO_CONFIG.scopes === "string" &&
-              COGNITO_CONFIG.scopes.length > 0
-            ? COGNITO_CONFIG.scopes.split(/[\s,]+/).filter(Boolean)
-            : ["openid", "email", "profile", "phone"];
-
-        function resolveHostedUri(path, fallback) {
-          const target =
-            typeof path === "string" && path.length > 0 ? path : fallback;
-          if (!target) {
-            return window.location.origin + "/";
-          }
-          return target.startsWith("http")
-            ? target
-            : window.location.origin +
-                (target.startsWith("/") ? target : `/${target}`);
-        }
-
-        const DEFAULT_REDIRECT_URI = resolveHostedUri(
-          COGNITO_CONFIG.redirectUri,
-          "/"
-        );
-        const DEFAULT_LOGOUT_URI = resolveHostedUri(
-          COGNITO_CONFIG.logoutUri,
-          "/"
-        );
 
         function parseJWT(token) {
           try {
@@ -184,29 +157,15 @@ const authBridgeVars = {
           return Date.now() >= payload.exp * 1000;
         }
 
-        function storeTokens(tokens) {
-          try {
-            if (tokens.idToken)
-              localStorage.setItem(TOKEN_KEYS.idToken, tokens.idToken);
-            if (tokens.accessToken)
-              localStorage.setItem(TOKEN_KEYS.accessToken, tokens.accessToken);
-            if (tokens.refreshToken)
-              localStorage.setItem(
-                TOKEN_KEYS.refreshToken,
-                tokens.refreshToken
-              );
-            debug("auth", "Tokens stored successfully");
-          } catch (e) {
-            debugError("auth", "Failed to store tokens:", e);
-          }
-        }
-
         function clearTokens() {
           try {
             Object.values(TOKEN_KEYS).forEach((key) =>
               localStorage.removeItem(key)
             );
-          } catch {}
+            debug("auth", "Tokens cleared");
+          } catch (e) {
+            debugError("auth", "Failed to clear tokens:", e);
+          }
         }
 
         function getStoredTokens() {
@@ -220,85 +179,6 @@ const authBridgeVars = {
             };
           } catch {
             return {};
-          }
-        }
-
-        async function exchangeCodeForTokens(code, redirectUri) {
-          const tokenUrl = `https://${COGNITO_CONFIG.domain}/oauth2/token`;
-          const body = new URLSearchParams({
-            grant_type: "authorization_code",
-            client_id: COGNITO_CONFIG.clientId,
-            code: code,
-            redirect_uri: redirectUri,
-          });
-
-          debug("auth", "Exchanging code for tokens...");
-          const response = await fetch(tokenUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: body.toString(),
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(
-              "[AuthBridge] Token exchange failed:",
-              response.status,
-              errorText
-            );
-            throw new Error("Failed to exchange code for tokens");
-          }
-
-          const data = await response.json();
-          debug("auth", "Token exchange successful");
-          return data;
-        }
-
-        async function handleHostedUiRedirect() {
-          try {
-            const url = new URL(window.location.href);
-            const code = url.searchParams.get("code");
-
-            if (!code) {
-              debug("auth", "No authorization code found in URL");
-              return;
-            }
-
-            debug("auth", "Authorization code found, exchanging for tokens...");
-            const redirectUri = DEFAULT_REDIRECT_URI;
-            const tokenResponse = await exchangeCodeForTokens(
-              code,
-              redirectUri
-            );
-
-            if (tokenResponse.id_token) {
-              storeTokens({
-                idToken: tokenResponse.id_token,
-                accessToken: tokenResponse.access_token,
-                refreshToken: tokenResponse.refresh_token,
-              });
-              debug("auth", "Tokens stored, cleaning URL");
-            }
-
-            // Clean the URL
-            url.searchParams.delete("code");
-            url.searchParams.delete("state");
-            window.history.replaceState({}, document.title, url.toString());
-
-            // Trigger auth state update
-            setTimeout(() => {
-              if (window.updateAuthIcon) window.updateAuthIcon();
-              document.dispatchEvent(
-                new CustomEvent("auth-changed", {
-                  detail: { authenticated: true },
-                })
-              );
-            }, 100);
-          } catch (error) {
-            console.error("[AuthBridge] Error handling auth redirect:", error);
-            clearTokens();
           }
         }
 
@@ -320,34 +200,30 @@ const authBridgeVars = {
           };
         }
 
-        function loginHosted(redirectUri) {
-          const ru = redirectUri || DEFAULT_REDIRECT_URI;
-          const url = new URL(
-            `https://${COGNITO_CONFIG.domain}/oauth2/authorize`
-          );
-          url.searchParams.set("client_id", COGNITO_CONFIG.clientId);
-          url.searchParams.set("response_type", "code");
-          url.searchParams.set("scope", AUTH_SCOPES.join(" "));
-          url.searchParams.set("redirect_uri", ru);
-          window.location.assign(url.toString());
+        function openPasswordlessDialog() {
+          const dialog = window.__passwordlessAuth;
+          if (dialog && typeof dialog.open === "function") {
+            dialog.open();
+          } else {
+            debugError("auth", "Passwordless dialog not available");
+          }
         }
 
-        function signOutHosted(redirectUri) {
+        function logout() {
           clearTokens();
-          const ru = redirectUri || DEFAULT_LOGOUT_URI;
-          const url = new URL(`https://${COGNITO_CONFIG.domain}/logout`);
-          url.searchParams.set("client_id", COGNITO_CONFIG.clientId);
-          url.searchParams.set("logout_uri", ru);
-          window.location.assign(url.toString());
+          document.dispatchEvent(
+            new CustomEvent("auth:state-change", {
+              detail: { isAuthenticated: false },
+            })
+          );
+          debug("auth", "Logged out");
         }
 
-        // Handle redirect on page load
-        await handleHostedUiRedirect();
-
-        // Setup window.__authBridge
+        // Setup window.__authBridge for passwordless only
         window.__authBridge = {
-          login: loginHosted,
-          logout: signOutHosted,
+          login: openPasswordlessDialog,
+          loginPasswordless: openPasswordlessDialog,
+          logout: logout,
           getState: getAuthState,
           getIdToken: () => {
             const tokens = getStoredTokens();
@@ -362,12 +238,13 @@ const authBridgeVars = {
               : null;
           },
         };
-        debug("auth", "window.__authBridge setup complete");
+        debug("auth", "Passwordless auth bridge ready");
       })();
     </script>
     <!-- Load auth icon script from public folder (external, defer to avoid inline CSP) -->
     <script src="/scripts/simple-auth-icon.js" defer></script>
     <slot />
+    <PasswordlessAuthDialog client:load />
     <Footer />
   </body>
 </html>

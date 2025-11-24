@@ -61,7 +61,7 @@ function getStoredTokens(): {
 }
 
 // Store tokens in localStorage
-function storeTokens(tokens: {
+export function storeTokens(tokens: {
   idToken?: string;
   accessToken?: string;
   refreshToken?: string;
@@ -78,7 +78,7 @@ function storeTokens(tokens: {
 }
 
 // Clear all stored tokens
-function clearTokens() {
+export function clearTokens() {
   if (typeof window === "undefined") return;
   try {
     Object.values(TOKEN_KEYS).forEach((key) => localStorage.removeItem(key));
