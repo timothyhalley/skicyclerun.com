@@ -171,24 +171,84 @@ const normalizePhoneNumber = (value: string): string | null => {
   return null;
 };
 
+// Session persistence key
+const DIALOG_STATE_KEY = "passwordless_dialog_state";
+
+interface DialogState {
+  isOpen: boolean;
+  step: Step;
+  email: string;
+  code: string;
+  phone: string;
+  session: PasswordlessAuthSession | null;
+  selectedMethod: PasswordlessMethod;
+  profilePhone: string;
+  profileLocation: string;
+}
+
+function saveDialogState(state: Partial<DialogState>) {
+  try {
+    const current = sessionStorage.getItem(DIALOG_STATE_KEY);
+    const existing = current ? JSON.parse(current) : {};
+    sessionStorage.setItem(
+      DIALOG_STATE_KEY,
+      JSON.stringify({ ...existing, ...state }),
+    );
+    DebugConsole.auth("[DialogState] Saved:", state);
+  } catch (e) {
+    DebugConsole.error("[DialogState] Failed to save:", e);
+  }
+}
+
+function loadDialogState(): Partial<DialogState> | null {
+  try {
+    const stored = sessionStorage.getItem(DIALOG_STATE_KEY);
+    if (!stored) return null;
+    const state = JSON.parse(stored);
+    DebugConsole.auth("[DialogState] Loaded:", state);
+    return state;
+  } catch (e) {
+    DebugConsole.error("[DialogState] Failed to load:", e);
+    return null;
+  }
+}
+
+function clearDialogState() {
+  try {
+    sessionStorage.removeItem(DIALOG_STATE_KEY);
+    DebugConsole.auth("[DialogState] Cleared");
+  } catch (e) {
+    DebugConsole.error("[DialogState] Failed to clear:", e);
+  }
+}
+
 export default function PasswordlessAuthDialog() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [step, setStep] = useState<Step>("email");
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [phone, setPhone] = useState("");
+  // Try to restore state from sessionStorage on mount
+  const savedState = loadDialogState();
+
+  const [isOpen, setIsOpen] = useState(savedState?.isOpen ?? false);
+  const [step, setStep] = useState<Step>(savedState?.step ?? "email");
+  const [email, setEmail] = useState(savedState?.email ?? "");
+  const [code, setCode] = useState(savedState?.code ?? "");
+  const [phone, setPhone] = useState(savedState?.phone ?? "");
   const [status, setStatus] = useState<StatusMessage | null>(null);
   const [loading, setLoading] = useState(false);
-  const [session, setSession] = useState<PasswordlessAuthSession | null>(null);
+  const [session, setSession] = useState<PasswordlessAuthSession | null>(
+    savedState?.session ?? null,
+  );
   const [resendTimer, setResendTimer] = useState(0);
   const [selectedMethod, setSelectedMethod] = useState<PasswordlessMethod>(
-    INITIAL_PASSWORDLESS_METHOD,
+    savedState?.selectedMethod ?? INITIAL_PASSWORDLESS_METHOD,
   );
   const intervalRef = useRef<number | null>(null);
 
   // Profile completion state
-  const [profilePhone, setProfilePhone] = useState("");
-  const [profileLocation, setProfileLocation] = useState("");
+  const [profilePhone, setProfilePhone] = useState(
+    savedState?.profilePhone ?? "",
+  );
+  const [profileLocation, setProfileLocation] = useState(
+    savedState?.profileLocation ?? "",
+  );
   const [locationDetecting, setLocationDetecting] = useState(false);
   const [tempAccessToken, setTempAccessToken] = useState<string | null>(null);
 
@@ -265,6 +325,17 @@ export default function PasswordlessAuthDialog() {
     }
   }, [session, selectedMethod]);
 
+  // Show helpful message when dialog state is restored (mobile app switching)
+  useEffect(() => {
+    if (savedState?.isOpen && savedState?.step === "code" && session) {
+      DebugConsole.auth("[DialogState] Restored code step from saved state");
+      setStatus({
+        tone: "info",
+        text: "👋 Welcome back! Enter your code to continue.",
+      });
+    }
+  }, []); // Run once on mount
+
   const closeDialog = () => {
     setIsOpen(false);
     setStep("email");
@@ -276,6 +347,7 @@ export default function PasswordlessAuthDialog() {
     setLoading(false);
     clearResendCountdown();
     setSelectedMethod(INITIAL_PASSWORDLESS_METHOD);
+    clearDialogState(); // Clear persisted state when closing
   };
 
   const clearResendCountdown = () => {
@@ -306,11 +378,16 @@ export default function PasswordlessAuthDialog() {
     setPhone("");
     clearResendCountdown();
     setSelectedMethod(INITIAL_PASSWORDLESS_METHOD);
+    saveDialogState({ isOpen: true, step: "email" }); // Persist initial open state
   };
 
   const handleCodeChange = (value: string) => {
     const sanitized = value.replace(/\D/g, "").slice(0, maxInputLength);
     setCode(sanitized);
+    // Persist code as user types (in case they switch apps mid-typing)
+    if (sanitized) {
+      saveDialogState({ code: sanitized });
+    }
   };
 
   const handleMethodSelect = (method: PasswordlessMethod) => {
@@ -428,6 +505,15 @@ export default function PasswordlessAuthDialog() {
           text: "Account created! Check your email for the verification code.",
         });
         startResendCountdown();
+        // Persist state so dialog survives app switching on mobile
+        saveDialogState({
+          isOpen: true,
+          step: "code",
+          email,
+          phone,
+          session: authSession,
+          selectedMethod,
+        });
         return;
       }
 
@@ -442,6 +528,15 @@ export default function PasswordlessAuthDialog() {
         text: METHOD_COPY[resolvedMethod].sendSuccess,
       });
       startResendCountdown();
+      // Persist state so dialog survives app switching on mobile
+      saveDialogState({
+        isOpen: true,
+        step: "code",
+        email,
+        phone,
+        session: authSession,
+        selectedMethod: resolvedMethod,
+      });
     } catch (error: any) {
       DebugConsole.error(
         "[PasswordlessAuthDialog] Failed to start auth",
@@ -797,6 +892,11 @@ export default function PasswordlessAuthDialog() {
         text: METHOD_COPY[resolvedMethod].resendSuccess,
       });
       startResendCountdown();
+      // Persist updated session after resend
+      saveDialogState({
+        session: newSession,
+        selectedMethod: resolvedMethod,
+      });
     } catch (error: any) {
       DebugConsole.error(
         "[PasswordlessAuthDialog] Failed to resend code",
