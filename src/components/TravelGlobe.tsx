@@ -66,38 +66,43 @@ const PostCard = ({ post }: { post: Point }) => {
       })
     : "";
   return (
-    <article className="globe-postcard">
+    <article className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-4 items-start p-4 sm:p-6 border border-skin-line rounded-2xl bg-skin-card shadow-lg">
       {post.cover ? (
-        <a href={`/posts/${post.slug}`} className="globe-postcard-link">
+        <a href={`/posts/${post.slug}`} className="block">
           <img
             src={post.cover}
             alt={post.name}
-            className="globe-postcard-img"
+            className="w-full sm:w-[140px] h-[140px] object-cover rounded-xl bg-skin-card-muted"
             loading="lazy"
           />
         </a>
       ) : (
-        <div className="globe-postcard-img globe-postcard-img--placeholder" />
+        <div className="w-full sm:w-[140px] h-[140px] rounded-xl bg-skin-card-muted" />
       )}
-      <div className="globe-postcard-body">
-        <h4 className="globe-postcard-title">
-          <a href={`/posts/${post.slug}`}>{post.name}</a>
+      <div className="min-w-0">
+        <h4 className="m-0 text-xl font-bold text-skin-base">
+          <a
+            href={`/posts/${post.slug}`}
+            className="text-skin-base no-underline transition-all hover:underline"
+          >
+            {post.name}
+          </a>
         </h4>
         {dateStr && (
-          <div className="globe-postcard-meta">
+          <div className="text-sm opacity-70 mt-1 text-skin-base">
             {dateStr} • {post.author}
           </div>
         )}
         {post.description && (
-          <p className="globe-postcard-desc">{post.description}</p>
+          <p className="mt-3 mb-2 text-skin-base">{post.description}</p>
         )}
         {post.tags?.length ? (
-          <div className="globe-postcard-tags">
+          <div className="flex gap-2 flex-wrap mt-3">
             {post.tags.map((t) => (
               <a
                 key={t}
                 href={`/tags/${encodeURIComponent(t)}`}
-                className="globe-postcard-tag"
+                className="text-sm whitespace-nowrap text-skin-base underline decoration-dashed relative inline-block transition-all opacity-85 hover:opacity-100 hover:-top-0.5"
               >
                 #{t}
               </a>
@@ -118,6 +123,7 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
   const [isClient, setIsClient] = useState(false);
   const [countryBorders, setCountryBorders] = useState([]);
   const [theme, setTheme] = useState("dark");
+  const [loadError, setLoadError] = useState(false);
   // --- New state for the selected post ---
   const [selectedPost, setSelectedPost] = useState(null as Point | null);
 
@@ -126,8 +132,14 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
 
     // Dynamically import react-globe.gl only on the client to avoid SSR issues
     import("react-globe.gl")
-      .then((mod) => setGlobeComponent(() => mod.default))
-      .catch((e) => console.warn("[Globe] Failed to load react-globe.gl:", e));
+      .then((mod) => {
+        console.log("[Globe] Successfully loaded react-globe.gl");
+        setGlobeComponent(() => mod.default);
+      })
+      .catch((e) => {
+        console.error("[Globe] Failed to load react-globe.gl:", e);
+        setLoadError(true);
+      });
 
     const getTheme = () => {
       // This now checks the 'data-theme' attribute, matching your toggle script
@@ -221,30 +233,25 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
 
   return (
     <>
-      <div
-        className="globe-layout"
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          gap: "2rem",
-          minHeight: "70vh",
-        }}
-      >
-        {/* --- Location List --- */}
-        <div className="globe-list">
-          <h3 className="globe-list-title">Locations</h3>
-          <ul className="globe-list-ul">
+      <div className="flex flex-col md:flex-row items-start gap-4 md:gap-8 min-h-[70vh]">
+        {/* --- Location List (hidden on mobile/small tablets, visible on larger screens) --- */}
+        <div className="hidden lg:block w-48 xl:w-56 h-[70vh] overflow-y-auto pr-4">
+          <h3 className="mb-4 text-xl font-bold text-skin-base">Locations</h3>
+          <ul className="list-none p-0 m-0 space-y-2">
             {sortedPoints.map((point) => (
-              <li key={point.slug} className="globe-list-li">
+              <li key={point.slug}>
                 <button
                   onClick={() => handleLocationSelect(point)}
-                  className={`globe-list-button ${selectedPost?.slug === point.slug ? "globe-list-button--active" : ""}`}
+                  className={`w-full text-left flex items-center gap-2 px-2 py-1 rounded transition-all ${
+                    selectedPost?.slug === point.slug
+                      ? "font-bold bg-skin-accent text-skin-inverted"
+                      : "text-skin-base hover:bg-skin-fill"
+                  }`}
                 >
-                  <span className="globe-list-pin" aria-hidden="true">
+                  <span className="opacity-85" aria-hidden="true">
                     📍
                   </span>
-                  <span className="globe-list-label">{point.name}</span>
+                  <span className="leading-tight">{point.name}</span>
                 </button>
               </li>
             ))}
@@ -254,16 +261,20 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
         {/* --- Globe Container --- */}
         <div
           ref={globeContainerRef}
-          className="globe-container"
-          style={{
-            minHeight: "70vh",
-            height: "70vh",
-            width: "100%",
-            position: "relative",
-          }}
+          className="flex-1 w-full min-h-[70vh] h-[70vh] relative cursor-pointer"
         >
           {/* Globe (loaded client-side only) */}
-          {GlobeComponent ? (
+          {loadError ? (
+            <div className="flex flex-col items-center justify-center h-full text-skin-base p-6">
+              <div className="text-6xl mb-4">🌍</div>
+              <h3 className="text-xl font-bold mb-2">Globe Failed to Load</h3>
+              <p className="text-center max-w-md opacity-75">
+                The 3D globe couldn't be loaded. This might be due to WebGL
+                limitations on your device. Try refreshing the page or viewing
+                on a different device.
+              </p>
+            </div>
+          ) : GlobeComponent ? (
             <GlobeComponent
               key={theme}
               ref={globeRef}
@@ -279,7 +290,9 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
                       0,
                     );
                   }
-                } catch {}
+                } catch (e) {
+                  console.warn("[Globe] Initial position failed:", e);
+                }
               }}
               polygonsData={countryBorders}
               polygonCapColor={() => "rgba(0,0,0,0)"}
@@ -298,17 +311,18 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
               labelAltitude={0.01}
             />
           ) : (
-            <div>Loading Globe...</div>
+            <div className="flex flex-col items-center justify-center h-full text-skin-base text-lg">
+              <div className="animate-spin text-4xl mb-4">🌍</div>
+              <p>Loading Globe...</p>
+            </div>
           )}
         </div>
       </div>
 
-      {/* --- Conditionally Rendered Post Card --- */}
+      {/* --- Conditionally Rendered Post Card (full width, respecting page margins) --- */}
       {selectedPost && (
-        <div className="globe-card">
-          <div className="globe-card-inner">
-            <PostCard post={selectedPost} />
-          </div>
+        <div className="mt-8 w-full">
+          <PostCard post={selectedPost} />
         </div>
       )}
     </>
@@ -316,87 +330,3 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
 };
 
 export default TravelGlobe;
-
-// CSS module for inline styles migration
-// Using a template string to keep styles co-located; could be moved to a CSS file later
-const styles = `
-:root { --globe-gap: 2rem; }
-.globe-layout { display: flex; flex-direction: row; align-items: center; gap: var(--globe-gap); }
-.globe-container { flex: 1; height: 70vh; cursor: pointer; }
-.globe-list { width: 200px; height: 70vh; overflow-y: auto; padding-right: 1rem; }
-.globe-list-title { margin-bottom: 1rem; font-size: 1.25rem; font-weight: bold; }
-.globe-list-ul { list-style: none; padding: 0; margin: 0; }
-.globe-list-li { margin-bottom: 0.5rem; }
-.globe-list-button { background: none; border: none; padding: 0.25rem 0 0.25rem 0.5rem; color: var(--text-color); cursor: pointer; text-align: left; width: 100%; font-size: 1rem; display: flex; align-items: center; gap: 0.375rem; }
-.globe-list-button--active { font-weight: bold; }
-.globe-list-pin { opacity: 0.85; }
-.globe-list-label { line-height: 1.3; }
-.globe-card { margin-top: 2rem; display: flex; justify-content: flex-start; }
-.globe-card-inner { max-width: 40rem; width: 100%; }
-
-/* Responsive: Hide location list on small screens */
-@media (max-width: 750px) {
-  .globe-list { display: none; }
-  .globe-container { width: 100%; margin: 0 1rem; }
-}
-
-/* PostCard styles */
-.globe-postcard {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 0.75rem;
-  align-items: center;
-  border: 1px solid rgba(var(--color-text-base), 0.15);
-  border-radius: 12px;
-  padding: 0.75rem;
-  background: rgb(var(--color-card));
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
-}
-.globe-postcard-link { display: block; }
-.globe-postcard-img {
-  width: 120px;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 8px;
-  background: rgb(var(--color-card-muted));
-}
-.globe-postcard-img--placeholder { background: rgb(var(--color-card-muted)); }
-.globe-postcard-body { min-width: 0; }
-.globe-postcard-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: rgb(var(--color-text-base)); }
-.globe-postcard-title a { 
-  color: rgb(var(--color-text-base)); 
-  text-decoration: none;
-  transition: all 0.2s;
-}
-.globe-postcard-title a:hover { 
-  text-decoration: underline;
-}
-.globe-postcard-meta { font-size: 0.85rem; opacity: 0.7; margin-top: 2px; color: rgb(var(--color-text-base)); }
-.globe-postcard-desc { margin: 0.5rem 0 0.25rem 0; color: rgb(var(--color-text-base)); }
-.globe-postcard-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.globe-postcard-tag { 
-  font-size: 0.85rem; 
-  white-space: nowrap; 
-  color: rgb(var(--color-text-base)); 
-  text-decoration: underline;
-  text-decoration-style: dashed;
-  position: relative;
-  display: inline-block;
-  transition: all 0.2s;
-  opacity: 0.85;
-}
-.globe-postcard-tag:hover { 
-  top: -0.125rem;
-  opacity: 1;
-}
-`;
-
-if (typeof document !== "undefined") {
-  const id = "travel-globe-styles";
-  if (!document.getElementById(id)) {
-    const el = document.createElement("style");
-    el.id = id;
-    el.textContent = styles;
-    document.head.appendChild(el);
-  }
-}
