@@ -236,31 +236,24 @@ function clearDialogState() {
 
 export default function PasswordlessAuthDialog() {
   // Try to restore state from sessionStorage on mount
-  const savedState = loadDialogState();
-
-  const [isOpen, setIsOpen] = useState(savedState?.isOpen ?? false);
-  const [step, setStep] = useState<Step>(savedState?.step ?? "email");
-  const [email, setEmail] = useState(savedState?.email ?? "");
-  const [code, setCode] = useState(savedState?.code ?? "");
-  const [phone, setPhone] = useState(savedState?.phone ?? "");
+  const [isOpen, setIsOpen] = useState(false);
+  const [step, setStep] = useState<Step>("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [phone, setPhone] = useState("");
   const [status, setStatus] = useState<StatusMessage | null>(null);
   const [loading, setLoading] = useState(false);
-  const [session, setSession] = useState<PasswordlessAuthSession | null>(
-    savedState?.session ?? null,
-  );
+  const [session, setSession] = useState<PasswordlessAuthSession | null>(null);
   const [resendTimer, setResendTimer] = useState(0);
   const [selectedMethod, setSelectedMethod] = useState<PasswordlessMethod>(
-    savedState?.selectedMethod ?? INITIAL_PASSWORDLESS_METHOD,
+    INITIAL_PASSWORDLESS_METHOD,
   );
   const intervalRef = useRef<number | null>(null);
+  const [stateRestored, setStateRestored] = useState(false);
 
   // Profile completion state
-  const [profilePhone, setProfilePhone] = useState(
-    savedState?.profilePhone ?? "",
-  );
-  const [profileLocation, setProfileLocation] = useState(
-    savedState?.profileLocation ?? "",
-  );
+  const [profilePhone, setProfilePhone] = useState("");
+  const [profileLocation, setProfileLocation] = useState("");
   const [locationDetecting, setLocationDetecting] = useState(false);
   const [tempAccessToken, setTempAccessToken] = useState<string | null>(null);
 
@@ -337,16 +330,54 @@ export default function PasswordlessAuthDialog() {
     }
   }, [session, selectedMethod]);
 
-  // Show helpful message when dialog state is restored (mobile app switching)
+  // Restore state from sessionStorage on mount and when page becomes visible (app switching)
   useEffect(() => {
-    if (savedState?.isOpen && savedState?.step === "code" && session) {
-      DebugConsole.auth("[DialogState] Restored code step from saved state");
-      setStatus({
-        tone: "info",
-        text: "👋 Welcome back! Enter your code to continue.",
-      });
-    }
-  }, []); // Run once on mount
+    const restoreState = () => {
+      if (stateRestored) return; // Only restore once per mount
+      
+      const savedState = loadDialogState();
+      if (!savedState) return;
+
+      DebugConsole.auth("[DialogState] Restoring saved state:", savedState);
+
+      if (savedState.isOpen !== undefined) setIsOpen(savedState.isOpen);
+      if (savedState.step) setStep(savedState.step);
+      if (savedState.email) setEmail(savedState.email);
+      if (savedState.code) setCode(savedState.code);
+      if (savedState.phone) setPhone(savedState.phone);
+      if (savedState.session) setSession(savedState.session);
+      if (savedState.selectedMethod) setSelectedMethod(savedState.selectedMethod);
+      if (savedState.profilePhone) setProfilePhone(savedState.profilePhone);
+      if (savedState.profileLocation) setProfileLocation(savedState.profileLocation);
+
+      setStateRestored(true);
+
+      // Show welcome back message if on code step
+      if (savedState.isOpen && savedState.step === "code" && savedState.session) {
+        setStatus({
+          tone: "info",
+          text: "👋 Welcome back! Enter your code to continue.",
+        });
+      }
+    };
+
+    // Restore immediately on mount
+    restoreState();
+
+    // Also restore when page becomes visible (user returns from Mail app)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        DebugConsole.auth("[DialogState] Page visible again, checking for saved state");
+        restoreState();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []); // Run once on mount, listen for visibility changes
 
   const closeDialog = () => {
     setIsOpen(false);
@@ -359,6 +390,7 @@ export default function PasswordlessAuthDialog() {
     setLoading(false);
     clearResendCountdown();
     setSelectedMethod(INITIAL_PASSWORDLESS_METHOD);
+    setStateRestored(false); // Reset restoration flag
     clearDialogState(); // Clear persisted state when closing
   };
 
