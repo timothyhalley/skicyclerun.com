@@ -187,6 +187,10 @@ interface DialogState {
 }
 
 function saveDialogState(state: Partial<DialogState>) {
+  // Guard against SSR - sessionStorage only exists in browser
+  if (typeof window === "undefined" || typeof sessionStorage === "undefined") {
+    return;
+  }
   try {
     const current = sessionStorage.getItem(DIALOG_STATE_KEY);
     const existing = current ? JSON.parse(current) : {};
@@ -201,6 +205,10 @@ function saveDialogState(state: Partial<DialogState>) {
 }
 
 function loadDialogState(): Partial<DialogState> | null {
+  // Guard against SSR - sessionStorage only exists in browser
+  if (typeof window === "undefined" || typeof sessionStorage === "undefined") {
+    return null;
+  }
   try {
     const stored = sessionStorage.getItem(DIALOG_STATE_KEY);
     if (!stored) return null;
@@ -214,6 +222,10 @@ function loadDialogState(): Partial<DialogState> | null {
 }
 
 function clearDialogState() {
+  // Guard against SSR - sessionStorage only exists in browser
+  if (typeof window === "undefined" || typeof sessionStorage === "undefined") {
+    return;
+  }
   try {
     sessionStorage.removeItem(DIALOG_STATE_KEY);
     DebugConsole.auth("[DialogState] Cleared");
