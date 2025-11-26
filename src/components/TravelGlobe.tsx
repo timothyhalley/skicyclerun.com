@@ -147,7 +147,10 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
       setLoadError(true);
       return;
     }
-    console.log("[Globe] WebGL is supported, renderer:", gl.getParameter(gl.RENDERER));
+    console.log(
+      "[Globe] WebGL is supported, renderer:",
+      gl.getParameter(gl.RENDERER),
+    );
 
     // Dynamically import react-globe.gl only on the client to avoid SSR issues
     // Add timeout to catch hanging imports on slow connections
@@ -311,9 +314,7 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
                   <li>Check browser console for error details</li>
                   <li>Ensure WebGL is enabled in browser settings</li>
                   <li>Try clearing browser cache and reloading</li>
-                  <li>
-                    iPad users: Disable "Low Power Mode" if enabled
-                  </li>
+                  <li>iPad users: Disable "Low Power Mode" if enabled</li>
                   <li>Check your internet connection (1.7MB download)</li>
                 </ul>
               </details>
