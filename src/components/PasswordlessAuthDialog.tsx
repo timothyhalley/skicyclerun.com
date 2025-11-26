@@ -334,7 +334,7 @@ export default function PasswordlessAuthDialog() {
   useEffect(() => {
     const restoreState = () => {
       if (stateRestored) return; // Only restore once per mount
-      
+
       const savedState = loadDialogState();
       if (!savedState) return;
 
@@ -346,14 +346,20 @@ export default function PasswordlessAuthDialog() {
       if (savedState.code) setCode(savedState.code);
       if (savedState.phone) setPhone(savedState.phone);
       if (savedState.session) setSession(savedState.session);
-      if (savedState.selectedMethod) setSelectedMethod(savedState.selectedMethod);
+      if (savedState.selectedMethod)
+        setSelectedMethod(savedState.selectedMethod);
       if (savedState.profilePhone) setProfilePhone(savedState.profilePhone);
-      if (savedState.profileLocation) setProfileLocation(savedState.profileLocation);
+      if (savedState.profileLocation)
+        setProfileLocation(savedState.profileLocation);
 
       setStateRestored(true);
 
       // Show welcome back message if on code step
-      if (savedState.isOpen && savedState.step === "code" && savedState.session) {
+      if (
+        savedState.isOpen &&
+        savedState.step === "code" &&
+        savedState.session
+      ) {
         setStatus({
           tone: "info",
           text: "👋 Welcome back! Enter your code to continue.",
@@ -367,7 +373,9 @@ export default function PasswordlessAuthDialog() {
     // Also restore when page becomes visible (user returns from Mail app)
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        DebugConsole.auth("[DialogState] Page visible again, checking for saved state");
+        DebugConsole.auth(
+          "[DialogState] Page visible again, checking for saved state",
+        );
         restoreState();
       }
     };
