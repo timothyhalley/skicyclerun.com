@@ -61,15 +61,9 @@ export default defineConfig({
       // Increase chunk size warning limit for react-globe.gl (1.75MB minified)
       // This library is lazy-loaded only on the travel globe page
       chunkSizeWarningLimit: 2000, // 2MB (vs default 500KB)
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            // Separate large 3D visualization libraries into their own chunks
-            // These are only loaded when users visit the travel globe page
-            "globe-vendor": ["react-globe.gl", "three"],
-          },
-        },
-      },
+      // Note: Removed manualChunks for react-globe.gl and three
+      // Manual chunking was causing loading failures on iPad devices
+      // Let Vite handle automatic code splitting
     },
     server: {
       https: httpsConfig,

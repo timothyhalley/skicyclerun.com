@@ -130,14 +130,46 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
   useEffect(() => {
     setIsClient(true);
 
+    // Log device and browser info for debugging
+    console.log("[Globe] Device info:", {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      vendor: navigator.vendor,
+      windowSize: `${window.innerWidth}x${window.innerHeight}`,
+    });
+
+    // Check WebGL support before loading
+    const canvas = document.createElement("canvas");
+    const gl =
+      canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+    if (!gl) {
+      console.error("[Globe] WebGL not supported on this device");
+      setLoadError(true);
+      return;
+    }
+    console.log("[Globe] WebGL is supported, renderer:", gl.getParameter(gl.RENDERER));
+
     // Dynamically import react-globe.gl only on the client to avoid SSR issues
+    // Add timeout to catch hanging imports on slow connections
+    const importTimeout = setTimeout(() => {
+      console.error("[Globe] Import timeout - taking too long to load");
+      setLoadError(true);
+    }, 30000); // 30 second timeout
+
     import("react-globe.gl")
       .then((mod) => {
+        clearTimeout(importTimeout);
         console.log("[Globe] Successfully loaded react-globe.gl");
         setGlobeComponent(() => mod.default);
       })
       .catch((e) => {
+        clearTimeout(importTimeout);
         console.error("[Globe] Failed to load react-globe.gl:", e);
+        console.error("[Globe] Error details:", {
+          message: e.message,
+          stack: e.stack,
+          name: e.name,
+        });
         setLoadError(true);
       });
 
@@ -268,11 +300,23 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
             <div className="flex flex-col items-center justify-center h-full text-skin-base p-6">
               <div className="text-6xl mb-4">🌍</div>
               <h3 className="text-xl font-bold mb-2">Globe Failed to Load</h3>
-              <p className="text-center max-w-md opacity-75">
-                The 3D globe couldn't be loaded. This might be due to WebGL
-                limitations on your device. Try refreshing the page or viewing
-                on a different device.
+              <p className="text-center max-w-md opacity-75 mb-4">
+                The 3D globe visualization couldn't be loaded on your device.
               </p>
+              <details className="text-sm opacity-75 max-w-md">
+                <summary className="cursor-pointer font-semibold mb-2">
+                  Troubleshooting
+                </summary>
+                <ul className="list-disc pl-5 space-y-1 text-left">
+                  <li>Check browser console for error details</li>
+                  <li>Ensure WebGL is enabled in browser settings</li>
+                  <li>Try clearing browser cache and reloading</li>
+                  <li>
+                    iPad users: Disable "Low Power Mode" if enabled
+                  </li>
+                  <li>Check your internet connection (1.7MB download)</li>
+                </ul>
+              </details>
             </div>
           ) : GlobeComponent ? (
             <GlobeComponent
