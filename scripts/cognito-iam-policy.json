@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CognitoProfileUpdatePermissions",
+      "Effect": "Allow",
+      "Action": [
+        "cognito-idp:UpdateUserAttributes",
+        "cognito-idp:GetUserAttributeVerificationCode",
+        "cognito-idp:VerifyUserAttribute",
+        "cognito-idp:GetUser",
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:AdminUpdateUserAttributes"
+      ],
+      "Resource": "arn:aws:cognito-idp:us-west-2:*:userpool/us-west-2_nkPiRBTSr"
+    }
+  ]
+}

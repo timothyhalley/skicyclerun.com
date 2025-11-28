@@ -202,6 +202,29 @@ export const dialogStyles = `
   opacity: 0.45;
   cursor: not-allowed;
 }
+.pl-auth__profile-hint {
+  margin-bottom: 1rem;
+}
+.pl-auth__field-hint {
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+}
+.pl-auth__location-wrapper {
+  position: relative;
+}
+.pl-auth__detect-button {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+}
+.pl-auth__button-group {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.pl-auth__button-group > button {
+  flex: 1;
+}
 
 @media (max-width: 480px) {
   .pl-auth__dialog {

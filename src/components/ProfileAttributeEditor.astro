@@ -1,0 +1,325 @@
+---
+// Astro component for editing profile attributes
+// Uses inline scripts for interactivity - no React needed!
+export interface Props {
+  attributeName: "email" | "phone";
+  currentValue: string;
+  isVerified: boolean;
+  canUpdate: boolean;
+}
+
+const { attributeName, currentValue, isVerified, canUpdate } = Astro.props;
+const displayName = attributeName === "email" ? "Email" : "Phone";
+const placeholder =
+  attributeName === "email" ? "new-email@example.com" : "+1 555 123 4567";
+---
+
+<div class="attribute-editor" data-attribute={attributeName}>
+  <div class="flex justify-between items-center mb-3">
+    <label class="font-semibold text-gray-900 dark:text-white">
+      {displayName}
+    </label>
+    {
+      isVerified && (
+        <span class="text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+          ✓ Verified
+        </span>
+      )
+    }
+  </div>
+
+  <!-- Display Mode -->
+  <div class="display-mode" data-mode="display">
+    <div class="flex justify-between items-center">
+      <span class="text-gray-900 dark:text-white" data-display-value>
+        {currentValue || "Not provided"}
+      </span>
+      <button
+        data-btn="edit"
+        disabled={!canUpdate}
+        class="text-sm text-blue-500 hover:text-blue-600 disabled:opacity-50"
+      >
+        {currentValue ? "Edit" : "Add"}
+      </button>
+    </div>
+  </div>
+
+  <!-- Edit Mode -->
+  <div class="edit-mode hidden" data-mode="edit">
+    <input
+      type={attributeName === "email" ? "email" : "tel"}
+      data-input="value"
+      value={currentValue}
+      placeholder={placeholder}
+      class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 mb-2"
+    />
+    {
+      attributeName === "phone" && (
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+          Include country code (e.g., +1 for US/Canada)
+        </p>
+      )
+    }
+    <div class="flex gap-2">
+      <button
+        data-btn="save"
+        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+      >
+        Update {displayName}
+      </button>
+      <button
+        data-btn="cancel"
+        class="px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+
+  <!-- Verify Mode -->
+  <div class="verify-mode hidden" data-mode="verify">
+    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+      Enter the verification code sent to <span data-destination></span>
+    </p>
+    <input
+      type="text"
+      data-input="code"
+      placeholder="123456"
+      maxlength="8"
+      class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-center tracking-widest mb-2"
+    />
+    <div class="flex gap-2">
+      <button
+        data-btn="verify"
+        class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
+      >
+        Verify
+      </button>
+      <button
+        data-btn="resend"
+        class="px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+      >
+        Resend Code
+      </button>
+      <button
+        data-btn="cancel-verify"
+        class="px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Import utilities for use in script
+  import {
+    getUserAttributeVerificationCode,
+    verifyUserAttribute,
+    updateUserAttributes,
+  } from "@utils/passwordlessAuth";
+  import { formatPhoneToE164 } from "@utils/phoneFormat";
+  import { DebugConsole } from "@utils/DebugConsole";
+
+  // Initialize all profile attribute editors
+  document.addEventListener("DOMContentLoaded", () => {
+    const editors = document.querySelectorAll(".attribute-editor");
+
+    editors.forEach((editor) => {
+      const attributeName = editor.getAttribute("data-attribute") as
+        | "email"
+        | "phone";
+
+      // Get all interactive elements
+      const displayMode = editor.querySelector('[data-mode="display"]');
+      const editMode = editor.querySelector('[data-mode="edit"]');
+      const verifyMode = editor.querySelector('[data-mode="verify"]');
+
+      const editBtn = editor.querySelector('[data-btn="edit"]');
+      const saveBtn = editor.querySelector('[data-btn="save"]');
+      const cancelBtn = editor.querySelector('[data-btn="cancel"]');
+      const verifyBtn = editor.querySelector('[data-btn="verify"]');
+      const resendBtn = editor.querySelector('[data-btn="resend"]');
+      const cancelVerifyBtn = editor.querySelector(
+        '[data-btn="cancel-verify"]'
+      );
+
+      const valueInput = editor.querySelector(
+        '[data-input="value"]'
+      ) as HTMLInputElement;
+      const codeInput = editor.querySelector(
+        '[data-input="code"]'
+      ) as HTMLInputElement;
+      const destination = editor.querySelector("[data-destination]");
+
+      let currentAccessToken: string | null = null;
+
+      // Get access token from auth
+      async function getAccessToken() {
+        if (currentAccessToken) return currentAccessToken;
+
+        const authState = window.__passwordlessAuth
+          ? await window.__passwordlessAuth.getState()
+          : null;
+
+        if (!authState?.accessToken) {
+          throw new Error("Not authenticated");
+        }
+
+        currentAccessToken = authState.accessToken;
+        return currentAccessToken;
+      }
+
+      // Show status message
+      function showStatus(message: string, tone: "info" | "error" | "success") {
+        const statusEl = document.getElementById("profile-status");
+        if (!statusEl) return;
+
+        statusEl.className = `p-4 rounded-lg border mb-4 ${
+          tone === "error"
+            ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900 text-red-800 dark:text-red-200"
+            : tone === "success"
+              ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900 text-green-800 dark:text-green-200"
+              : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-900 text-blue-800 dark:text-blue-200"
+        }`;
+        statusEl.textContent = message;
+        statusEl.classList.remove("hidden");
+      }
+
+      // Switch modes
+      function switchMode(mode: "display" | "edit" | "verify") {
+        displayMode?.classList.toggle("hidden", mode !== "display");
+        editMode?.classList.toggle("hidden", mode !== "edit");
+        verifyMode?.classList.toggle("hidden", mode !== "verify");
+      }
+
+      // Edit button
+      editBtn?.addEventListener("click", () => {
+        switchMode("edit");
+      });
+
+      // Cancel buttons
+      cancelBtn?.addEventListener("click", () => {
+        switchMode("display");
+      });
+
+      cancelVerifyBtn?.addEventListener("click", () => {
+        switchMode("display");
+      });
+
+      // Save button
+      saveBtn?.addEventListener("click", async () => {
+        try {
+          const token = await getAccessToken();
+          let value = valueInput.value.trim();
+
+          // Validate
+          if (!value) {
+            showStatus("Please enter a value", "error");
+            return;
+          }
+
+          if (attributeName === "phone") {
+            const e164 = formatPhoneToE164(value);
+            if (!e164) {
+              showStatus("Invalid phone format. Use: +1 555 123 4567", "error");
+              return;
+            }
+            value = e164;
+          } else {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+              showStatus("Invalid email format", "error");
+              return;
+            }
+          }
+
+          saveBtn.setAttribute("disabled", "true");
+          showStatus("Updating attribute...", "info");
+
+          // Update attribute
+          await updateUserAttributes(token, {
+            [attributeName]: value,
+          });
+
+          // Request verification code
+          const codeDelivery = await getUserAttributeVerificationCode(
+            token,
+            attributeName === "email" ? "email" : "phone_number"
+          );
+
+          if (destination) destination.textContent = codeDelivery.destination;
+          switchMode("verify");
+          showStatus(
+            `Verification code sent to ${codeDelivery.destination}`,
+            "success"
+          );
+        } catch (error: any) {
+          DebugConsole.error("[ProfileEditor] Save failed:", error);
+          showStatus(error.message || "Failed to update", "error");
+        } finally {
+          saveBtn.removeAttribute("disabled");
+        }
+      });
+
+      // Verify button
+      verifyBtn?.addEventListener("click", async () => {
+        try {
+          const token = await getAccessToken();
+          const code = codeInput.value.trim();
+
+          if (!code) {
+            showStatus("Please enter verification code", "error");
+            return;
+          }
+
+          verifyBtn.setAttribute("disabled", "true");
+          showStatus("Verifying code...", "info");
+
+          await verifyUserAttribute(
+            token,
+            attributeName === "email" ? "email" : "phone_number",
+            code
+          );
+
+          showStatus(
+            `${attributeName === "email" ? "Email" : "Phone"} verified successfully!`,
+            "success"
+          );
+
+          // Refresh page after 1 second
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } catch (error: any) {
+          DebugConsole.error("[ProfileEditor] Verify failed:", error);
+          showStatus(error.message || "Invalid verification code", "error");
+        } finally {
+          verifyBtn.removeAttribute("disabled");
+        }
+      });
+
+      // Resend button
+      resendBtn?.addEventListener("click", async () => {
+        try {
+          const token = await getAccessToken();
+
+          resendBtn.setAttribute("disabled", "true");
+          showStatus("Resending code...", "info");
+
+          const codeDelivery = await getUserAttributeVerificationCode(
+            token,
+            attributeName === "email" ? "email" : "phone_number"
+          );
+
+          if (destination) destination.textContent = codeDelivery.destination;
+          showStatus(`Code resent to ${codeDelivery.destination}`, "success");
+        } catch (error: any) {
+          DebugConsole.error("[ProfileEditor] Resend failed:", error);
+          showStatus(error.message || "Failed to resend code", "error");
+        } finally {
+          resendBtn.removeAttribute("disabled");
+        }
+      });
+    });
+  });
+</script>

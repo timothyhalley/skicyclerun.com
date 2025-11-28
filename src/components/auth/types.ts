@@ -28,3 +28,26 @@ export interface MethodConfig {
   resendSuccess: string;
   prompt: (email?: string | null) => string;
 }
+
+// Profile attribute update types
+export interface ProfileUpdateState {
+  field: "email" | "phone" | null;
+  newValue: string;
+  verificationCode: string;
+  step: "edit" | "verify" | "complete";
+  deliveryMedium?: string;
+  deliveryDestination?: string;
+}
+
+export interface UserProfile {
+  sub: string;
+  email: string;
+  emailVerified: boolean;
+  phone?: string;
+  phoneVerified: boolean;
+  geo?: string;
+  groups?: string[];
+  memberSince?: string;
+  lastLogin?: string;
+  userStatus?: string;
+}

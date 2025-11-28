@@ -16,11 +16,13 @@ import {
   ChallengeNameType,
   CognitoIdentityProviderClient,
   ConfirmSignUpCommand,
+  GetUserAttributeVerificationCodeCommand,
   InitiateAuthCommand,
   ResendConfirmationCodeCommand,
   RespondToAuthChallengeCommand,
   SignUpCommand,
   UpdateUserAttributesCommand,
+  VerifyUserAttributeCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { cognitoConfig } from "@config/cognito";
 import { DebugConsole } from "@utils/DebugConsole";
@@ -516,6 +518,91 @@ export async function updateUserAttributes(
   } catch (error: any) {
     DebugConsole.error(
       "[PasswordlessAuth] ❌ UpdateUserAttributes failed:",
+      error,
+    );
+    DebugConsole.error("[PasswordlessAuth] Error name:", error.name);
+    DebugConsole.error("[PasswordlessAuth] Error message:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Request verification code for a user attribute (email or phone)
+ * This is used when updating email or phone number to verify the new value
+ */
+export async function getUserAttributeVerificationCode(
+  accessToken: string,
+  attributeName: "email" | "phone_number",
+): Promise<{
+  deliveryMedium: string;
+  destination: string;
+}> {
+  DebugConsole.auth(
+    "[PasswordlessAuth] Requesting verification code for:",
+    attributeName,
+  );
+
+  try {
+    const result = await client.send(
+      new GetUserAttributeVerificationCodeCommand({
+        AccessToken: accessToken,
+        AttributeName: attributeName,
+      }),
+    );
+
+    DebugConsole.auth(
+      "[PasswordlessAuth] ✅ Verification code sent via:",
+      result.CodeDeliveryDetails?.DeliveryMedium,
+      "to",
+      result.CodeDeliveryDetails?.Destination,
+    );
+
+    return {
+      deliveryMedium: result.CodeDeliveryDetails?.DeliveryMedium || "UNKNOWN",
+      destination: result.CodeDeliveryDetails?.Destination || "UNKNOWN",
+    };
+  } catch (error: any) {
+    DebugConsole.error(
+      "[PasswordlessAuth] ❌ GetUserAttributeVerificationCode failed:",
+      error,
+    );
+    DebugConsole.error("[PasswordlessAuth] Error name:", error.name);
+    DebugConsole.error("[PasswordlessAuth] Error message:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Verify a user attribute with the code sent via getUserAttributeVerificationCode
+ */
+export async function verifyUserAttribute(
+  accessToken: string,
+  attributeName: "email" | "phone_number",
+  code: string,
+): Promise<void> {
+  DebugConsole.auth(
+    "[PasswordlessAuth] Verifying attribute:",
+    attributeName,
+    "with code:",
+    code.substring(0, 3) + "***",
+  );
+
+  try {
+    await client.send(
+      new VerifyUserAttributeCommand({
+        AccessToken: accessToken,
+        AttributeName: attributeName,
+        Code: code,
+      }),
+    );
+
+    DebugConsole.auth(
+      "[PasswordlessAuth] ✅ Attribute verified successfully:",
+      attributeName,
+    );
+  } catch (error: any) {
+    DebugConsole.error(
+      "[PasswordlessAuth] ❌ VerifyUserAttribute failed:",
       error,
     );
     DebugConsole.error("[PasswordlessAuth] Error name:", error.name);

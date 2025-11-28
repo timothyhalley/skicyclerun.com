@@ -29,7 +29,7 @@ export function ProfileStep({
 }: ProfileStepProps) {
   return (
     <form className="pl-auth__form" onSubmit={onComplete}>
-      <div className="pl-auth__hint" style={{ marginBottom: "1rem" }}>
+      <div className="pl-auth__hint pl-auth__profile-hint">
         These fields are optional. You can skip this step or fill them in later.
       </div>
 
@@ -46,17 +46,14 @@ export function ProfileStep({
         autoComplete="tel"
         disabled={loading}
       />
-      <div
-        className="pl-auth__hint"
-        style={{ marginTop: "0.25rem", fontSize: "0.85rem" }}
-      >
+      <div className="pl-auth__hint pl-auth__field-hint">
         Include country code (e.g., +1 for US/Canada)
       </div>
 
       <label className="pl-auth__label" htmlFor="profile-location">
         Location (optional)
       </label>
-      <div style={{ position: "relative" }}>
+      <div className="pl-auth__location-wrapper">
         <input
           id="profile-location"
           type="text"
@@ -71,10 +68,7 @@ export function ProfileStep({
           className="pl-auth__input"
           disabled={loading || locationDetecting}
         />
-        <div
-          className="pl-auth__hint"
-          style={{ marginTop: "0.25rem", fontSize: "0.85rem" }}
-        >
+        <div className="pl-auth__hint pl-auth__field-hint">
           Format: Country / State (e.g., USA / WA, Canada / BC, Japan)
         </div>
         {!profileLocation && (
@@ -82,31 +76,19 @@ export function ProfileStep({
             type="button"
             onClick={onDetectLocation}
             disabled={loading || locationDetecting}
-            className="pl-auth__button --ghost"
-            style={{
-              marginTop: "0.5rem",
-              fontSize: "0.875rem",
-              padding: "0.5rem 0.75rem",
-            }}
+            className="pl-auth__button --ghost pl-auth__detect-button"
           >
             {locationDetecting ? "Detecting..." : "📍 Auto-detect location"}
           </button>
         )}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "0.75rem",
-          marginTop: "1.5rem",
-        }}
-      >
+      <div className="pl-auth__button-group">
         <button
           type="button"
           onClick={onSkip}
           className="pl-auth__button --ghost"
           disabled={loading}
-          style={{ flex: 1 }}
         >
           Skip
         </button>
@@ -114,7 +96,6 @@ export function ProfileStep({
           type="submit"
           className="pl-auth__button --primary"
           disabled={loading}
-          style={{ flex: 1 }}
         >
           {loading ? "Saving..." : "Continue"}
         </button>

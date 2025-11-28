@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { RESEND_COOLDOWN_SECONDS } from "./constants";
+import { RESEND_COOLDOWN_SECONDS } from "../constants";
 
 export function useResendTimer() {
   const [resendTimer, setResendTimer] = useState(0);

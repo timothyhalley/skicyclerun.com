@@ -1,0 +1,333 @@
+---
+// Pure Astro profile page - static first, interactive where needed
+import BaseLayout from "@layouts/BaseLayout.astro";
+import Header from "@components/Header.astro";
+import ProfileLayout from "@layouts/ProfileLayout.astro";
+import ProfileAttributeEditor from "@components/ProfileAttributeEditor.astro";
+import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
+---
+
+<BaseLayout title="User Profile">
+  <Header />
+
+  <ProfileLayout>
+    <div class="bg-skin-card shadow-lg rounded-lg p-8">
+      <h1 class="text-4xl md:text-5xl font-extrabold text-skin-base mb-6">
+        Your Profile
+      </h1>
+
+      <!-- Loading State -->
+      <div id="profile-loading" class="text-center py-8">
+        <p class="text-gray-600 dark:text-gray-400">Loading profile...</p>
+      </div>
+
+      <!-- Not Authenticated -->
+      <div id="profile-not-authenticated" class="hidden">
+        <div class="bg-skin-fill border border-skin-line rounded-md p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="flex items-center justify-center p-4">
+              <img
+                src={EasterIslandStatue.src}
+                alt="Easter Island Statue"
+                class="w-48 h-48 md:w-64 md:h-64 object-contain opacity-80"
+              />
+            </div>
+            <div class="flex flex-col justify-center space-y-4">
+              <div class="text-center md:text-left">
+                <h2 class="text-lg font-semibold text-skin-base mb-2">
+                  Authentication Required
+                </h2>
+                <p class="text-skin-base mb-4">
+                  Please sign in to view and edit your profile.
+                </p>
+              </div>
+              <div class="flex gap-3 justify-center md:justify-start">
+                <button
+                  id="sign-in-btn"
+                  class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-500 text-white hover:opacity-90 transition-opacity"
+                >
+                  Sign In
+                </button>
+                <a
+                  href="/"
+                  class="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-skin-line text-skin-base hover:bg-skin-card-muted transition-colors"
+                >
+                  Back to Home
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Content -->
+      <div id="profile-content" class="hidden space-y-6">
+        <!-- Status Message Area -->
+        <div id="profile-status" class="hidden"></div>
+
+        <!-- Profile Header -->
+        <div
+          id="profile-header"
+          class="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 p-6 rounded-lg shadow-lg"
+        >
+          <!-- Injected by script -->
+        </div>
+
+        <!-- Contact Information -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+            Contact Information
+          </h3>
+
+          <!-- Warning if no verified contact -->
+          <div
+            id="no-verified-warning"
+            class="hidden p-4 rounded-lg border bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-900 text-yellow-800 dark:text-yellow-200 mb-4"
+          >
+            ⚠️ You must have at least one verified contact method (email or
+            phone) before you can update your profile.
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Email Editor (injected) -->
+            <div id="email-editor-container"></div>
+
+            <!-- Phone Editor (injected) -->
+            <div id="phone-editor-container"></div>
+          </div>
+
+          <!-- Info box -->
+          <div
+            class="mt-6 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900"
+          >
+            <p class="text-sm text-blue-800 dark:text-blue-200">
+              <strong>💡 Tip:</strong> You can sign in with either your verified
+              email or phone number. Keep at least one verified to maintain access
+              to your account.
+            </p>
+          </div>
+        </div>
+
+        <!-- Additional Info -->
+        <div
+          id="profile-details"
+          class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"
+        >
+          <!-- Injected by script -->
+        </div>
+
+        <!-- Logout Button -->
+        <div class="flex justify-end">
+          <button
+            id="logout-btn"
+            class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div id="profile-error" class="hidden">
+        <div
+          class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-md p-4"
+        >
+          <p class="text-red-800 dark:text-red-200 mb-4">
+            Unable to load profile information. Please try signing out and back
+            in.
+          </p>
+          <button
+            id="error-logout-btn"
+            class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </ProfileLayout>
+</BaseLayout>
+
+<script is:inline src="/scripts/simple-auth-icon.js"></script>
+
+<script>
+  import { DebugConsole } from "@utils/DebugConsole";
+  import ProfileAttributeEditor from "@components/ProfileAttributeEditor.astro";
+
+  async function getAuthState() {
+    if (window.__passwordlessAuth?.getState) {
+      return await window.__passwordlessAuth.getState();
+    }
+    if (window.__authBridge?.getState) {
+      return await window.__authBridge.getState();
+    }
+    return null;
+  }
+
+  async function fetchProfile(email: string, token: string) {
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+
+    const url = `https://api.skicyclerun.com/v2/profile?email=${encodeURIComponent(email)}`;
+    const res = await fetch(url, { method: "GET", headers, mode: "cors" });
+
+    if (!res.ok) {
+      throw new Error(`Profile fetch failed: ${res.status}`);
+    }
+
+    const data = await res.json();
+    return {
+      sub: data.sub,
+      email: data.email,
+      emailVerified: data.emailVerified,
+      phone: data.phone,
+      phoneVerified: data.phoneVerified,
+      geo: data.location,
+      groups: data.groups || [],
+      memberSince: data.memberSince,
+      lastLogin: data.lastLogin,
+      userStatus: data.userStatus,
+    };
+  }
+
+  async function loadProfile() {
+    const loading = document.getElementById("profile-loading");
+    const notAuth = document.getElementById("profile-not-authenticated");
+    const content = document.getElementById("profile-content");
+    const error = document.getElementById("profile-error");
+
+    try {
+      const authState = await getAuthState();
+
+      if (!authState?.signedIn || !authState.email) {
+        loading?.classList.add("hidden");
+        notAuth?.classList.remove("hidden");
+        return;
+      }
+
+      const token = authState.idToken || authState.accessToken;
+      if (!token) throw new Error("No token");
+
+      const profile = await fetchProfile(authState.email, token);
+
+      // Render profile header
+      const header = document.getElementById("profile-header");
+      if (header) {
+        const name = profile.email.split("@")[0];
+        header.innerHTML = `
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-full bg-linear-to-br from-blue-100 to-indigo-100 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center p-2">
+              <img src="${document.querySelector('img[alt="Easter Island Statue"]')?.getAttribute("src")}" alt="${name}" class="w-full h-full object-contain" />
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center gap-3">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white">${name}</h2>
+                ${profile.userStatus === "CONFIRMED" ? '<span class="px-3 py-1 rounded-full text-sm bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 font-medium">Active</span>' : ""}
+              </div>
+            </div>
+          </div>
+          ${profile.groups?.length ? `<div class="flex gap-2 flex-wrap mt-4">${profile.groups.map((g: string) => `<span class="px-3 py-1 rounded-full text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium">${g}</span>`).join("")}</div>` : ""}
+        `;
+      }
+
+      // Show warning if no verified contact
+      const canUpdate = profile.emailVerified || profile.phoneVerified;
+      const warning = document.getElementById("no-verified-warning");
+      if (warning) {
+        warning.classList.toggle("hidden", canUpdate);
+      }
+
+      // Inject email editor
+      const emailContainer = document.getElementById("email-editor-container");
+      if (emailContainer) {
+        const emailEditor = document.createElement("div");
+        emailEditor.innerHTML = await (
+          await fetch(
+            `/api/render-attribute-editor?attribute=email&value=${encodeURIComponent(profile.email)}&verified=${profile.emailVerified}&canUpdate=${canUpdate}`
+          )
+        ).text();
+        emailContainer.appendChild(emailEditor);
+      }
+
+      // Inject phone editor
+      const phoneContainer = document.getElementById("phone-editor-container");
+      if (phoneContainer) {
+        const phoneEditor = document.createElement("div");
+        phoneEditor.innerHTML = await (
+          await fetch(
+            `/api/render-attribute-editor?attribute=phone&value=${encodeURIComponent(profile.phone || "")}&verified=${profile.phoneVerified}&canUpdate=${canUpdate}`
+          )
+        ).text();
+        phoneContainer.appendChild(phoneEditor);
+      }
+
+      // Render details
+      const details = document.getElementById("profile-details");
+      if (
+        details &&
+        (profile.geo || profile.memberSince || profile.lastLogin)
+      ) {
+        details.innerHTML = `
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Account Details</h3>
+          <div class="space-y-3">
+            ${profile.geo ? `<div class="flex justify-between"><span class="text-gray-600 dark:text-gray-400">Location:</span><span class="font-medium text-gray-900 dark:text-white">${profile.geo}</span></div>` : ""}
+            ${profile.memberSince ? `<div class="flex justify-between"><span class="text-gray-600 dark:text-gray-400">Member Since:</span><span class="font-medium text-gray-900 dark:text-white text-sm">${new Date(profile.memberSince).toLocaleString()}</span></div>` : ""}
+            ${profile.lastLogin ? `<div class="flex justify-between"><span class="text-gray-600 dark:text-gray-400">Last Login:</span><span class="font-medium text-gray-900 dark:text-white text-sm">${new Date(profile.lastLogin).toLocaleString()}</span></div>` : ""}
+          </div>
+        `;
+      } else {
+        details?.classList.add("hidden");
+      }
+
+      loading?.classList.add("hidden");
+      content?.classList.remove("hidden");
+    } catch (err) {
+      DebugConsole.error("[Profile] Load error:", err);
+      loading?.classList.add("hidden");
+      error?.classList.remove("hidden");
+    }
+  }
+
+  // Initialize
+  document.addEventListener("DOMContentLoaded", async () => {
+    // Wait for auth
+    let attempts = 0;
+    while (
+      attempts < 20 &&
+      !window.__passwordlessAuth &&
+      !window.__authBridge
+    ) {
+      await new Promise((r) => setTimeout(r, 50));
+      attempts++;
+    }
+
+    loadProfile();
+
+    // Setup sign-in button
+    document.getElementById("sign-in-btn")?.addEventListener("click", () => {
+      window.__passwordlessAuth?.open();
+    });
+
+    // Setup logout buttons
+    const handleLogout = () => {
+      window.__passwordlessAuth?.clearSession();
+      setTimeout(() => (window.location.href = "/"), 500);
+    };
+    document
+      .getElementById("logout-btn")
+      ?.addEventListener("click", handleLogout);
+    document
+      .getElementById("error-logout-btn")
+      ?.addEventListener("click", handleLogout);
+
+    // Listen for auth changes
+    document.addEventListener("auth-changed", () =>
+      setTimeout(loadProfile, 200)
+    );
+    document.addEventListener("auth:state-change", () =>
+      setTimeout(loadProfile, 200)
+    );
+  });
+</script>

@@ -33,3 +33,33 @@ declare module "*.json" {
   const value: any;
   export default value;
 }
+
+// Augment Window interface for auth APIs
+interface Window {
+  __passwordlessAuth?: {
+    getState: () => Promise<{
+      signedIn: boolean;
+      email?: string;
+      idToken?: string;
+      accessToken?: string;
+      groups?: string[];
+    }>;
+    open: () => void;
+    clearSession: () => void;
+  };
+  __authBridge?: {
+    login: (redirectUri?: string) => Promise<string>;
+    logout: (redirectUri?: string) => Promise<string>;
+    getState: () => Promise<{
+      signedIn: boolean;
+      email?: string;
+      idToken?: string;
+      accessToken?: string;
+      groups?: string[];
+    }>;
+  };
+  updateAuthIcon?: () => void;
+  debugLog?: (category: string, ...args: any[]) => void;
+  debugError?: (category: string, ...args: any[]) => void;
+  debugWarn?: (category: string, ...args: any[]) => void;
+}
