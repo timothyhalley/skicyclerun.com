@@ -1,28 +1,35 @@
 ---
+import ProtectedContentWrapper from "@components/ProtectedContentWrapper.astro";
+
 const { frontmatter } = Astro.props;
-const { title, description, author } = frontmatter;
+const { title, description, author, auth_required = false, auth_groups = [] } = frontmatter;
 ---
 
-<!-- Title and Description (matches PostDetails.astro structure) -->
-<div class="header-wrapper">
-  {
-    title && (
-      <h1 class="text-4xl font-extrabold text-skin-accent mb-4">{title}</h1>
-    )
-  }
-  {
-    description && (
-      <p class="text-lg text-skin-base leading-relaxed mt-4">{description}</p>
-    )
-  }
-</div>
+<ProtectedContentWrapper 
+  authRequired={auth_required}
+  requiredGroups={auth_groups}
+>
+  <!-- Title and Description (matches PostDetails.astro structure) -->
+  <div class="header-wrapper">
+    {
+      title && (
+        <h1 class="text-4xl font-extrabold text-skin-accent mb-4">{title}</h1>
+      )
+    }
+    {
+      description && (
+        <p class="text-lg text-skin-base leading-relaxed mt-4">{description}</p>
+      )
+    }
+  </div>
 
-<!-- Article content -->
-<div class="article-wrapper">
-  <article id="article" role="article" class="prose mt-8">
-    <slot />
-  </article>
-</div>
+  <!-- Article content -->
+  <div class="article-wrapper">
+    <article id="article" role="article" class="prose mt-8">
+      <slot />
+    </article>
+  </div>
+</ProtectedContentWrapper>
 
 <!-- Author attribution -->
 {

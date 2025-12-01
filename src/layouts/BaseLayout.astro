@@ -217,6 +217,36 @@ const authBridgeVars = {
             })
           );
           debug("auth", "Logged out");
+          
+          // Force clear hover state by triggering mouse leave
+          const authButton = document.querySelector("[data-auth-btn]");
+          if (authButton) {
+            authButton.blur();
+            
+            // Force remove hover styles from SVG icons
+            const loginSvg = document.getElementById("login-svg");
+            const logoutSvg = document.getElementById("logout-svg");
+            if (loginSvg) {
+              loginSvg.style.transform = "";
+              loginSvg.style.color = "";
+            }
+            if (logoutSvg) {
+              logoutSvg.style.transform = "";
+              logoutSvg.style.color = "";
+            }
+            
+            const mouseLeaveEvent = new MouseEvent("mouseleave", {
+              view: window,
+              bubbles: true,
+              cancelable: true
+            });
+            authButton.dispatchEvent(mouseLeaveEvent);
+          }
+          
+          // Immediately update auth icon to reflect logout state
+          if (typeof window.updateAuthIcon === "function") {
+            window.updateAuthIcon();
+          }
         }
 
         // Setup window.__authBridge for passwordless only
