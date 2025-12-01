@@ -24,7 +24,10 @@ const { authRequired = true, requiredGroups = [] } = Astro.props;
     <h2>Protected Content</h2>
     <div class="auth-required-message hidden">
       <p>This content requires authentication. Please log in to access it.</p>
-      <button class="login-btn auth-button">Login</button>
+      <button
+        class="login-btn inline-block mt-4 px-6 py-3 bg-[rgb(var(--color-accent))] text-white rounded-md font-semibold text-base shadow transition-all duration-200 hover:bg-[rgb(var(--color-accent)/0.9)] hover:-translate-y-px hover:shadow-md active:translate-y-0 cursor-pointer"
+        >Login</button
+      >
     </div>
 
     <div class="insufficient-permissions hidden">
@@ -755,24 +758,6 @@ const { authRequired = true, requiredGroups = [] } = Astro.props;
   .protected-content-message h2 {
     margin-top: 0;
     color: var(--color-text);
-  }
-
-  .auth-button {
-    display: inline-block;
-    margin-top: 1rem;
-    padding: 0.5rem 1.5rem;
-    background-color: var(--color-primary);
-    color: white;
-    border: none;
-    border-radius: 0.25rem;
-    text-decoration: none;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-
-  .auth-button:hover {
-    background-color: var(--color-primary-dark);
   }
 
   .protected-content-loading {
