@@ -2,10 +2,16 @@
 import ProtectedContentWrapper from "@components/ProtectedContentWrapper.astro";
 
 const { frontmatter } = Astro.props;
-const { title, description, author, auth_required = false, auth_groups = [] } = frontmatter;
+const {
+  title,
+  description,
+  author,
+  auth_required = false,
+  auth_groups = [],
+} = frontmatter;
 ---
 
-<ProtectedContentWrapper 
+<ProtectedContentWrapper
   authRequired={auth_required}
   requiredGroups={auth_groups}
 >
