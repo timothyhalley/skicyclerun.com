@@ -15,8 +15,8 @@ const travelPoints = posts
   .filter(travelFilter)
   .filter((post) => post.data.lat && post.data.lon)
   .map((post) => {
-    // --- FIX: Extract the 'src' property from the cover image object ---
-    const coverImageObject = getPhotoCover(post.id);
+    // --- FIX: Pass the cover filename from frontmatter, not post.id ---
+    const coverImageObject = getPhotoCover(post.data.cover);
     const coverImagePath = coverImageObject?.src ?? "/images/default-cover.png";
 
     return {
