@@ -1,7 +1,7 @@
 {
   "name": "skicyclerun.com",
   "type": "module",
-  "version": "2025-11-16 V05.010",
+  "version": "2025-11-16 V05.011",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
