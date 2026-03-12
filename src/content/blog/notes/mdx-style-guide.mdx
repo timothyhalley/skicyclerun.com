@@ -1,0 +1,278 @@
+---
+title: "MDX Style Guide"
+layout: "@layouts/TechPostLayout.astro"
+slug: "mdx-style-guide"
+type: "TECH"
+pubDatetime: 2026-03-11T10:00:00-08:00
+modDatetime: 2026-03-11T10:00:00-08:00
+featured: false
+draft: false
+tags:
+  - "mdx"
+  - "markdown"
+  - "style"
+  - "guide"
+  - "lint"
+description: "Reference guide for consistent, lint-clean MDX authoring: structure, spacing, punctuation, and common pitfalls."
+author: "Tim H"
+auth_required: false
+---
+
+## Table of contents
+
+## Overview
+
+This document is the canonical style reference for all `.md` and `.mdx` files in this project.
+It describes the rules enforced by the toolchain (Prettier 3 + Astro plugin) and additional
+conventions adopted to keep content lint-clean and readable.
+
+**Standards in use:**
+
+- Syntax: [CommonMark](https://commonmark.org/) + [MDX](https://mdxjs.com/) (JSX/ESM extensions)
+- Formatter: Prettier 3 with `prettier-plugin-astro`
+- Character policy: ASCII punctuation only in technical content
+
+---
+
+## Frontmatter
+
+Every MDX file must open with a valid YAML frontmatter block.
+
+```yaml
+---
+title: "Post Title"
+layout: "@layouts/TechPostLayout.astro"
+slug: "post-slug"
+type: "TECH"
+pubDatetime: 2026-01-01T10:00:00-08:00
+modDatetime: 2026-01-01T10:00:00-08:00
+featured: false
+draft: false
+tags:
+  - "tag-one"
+  - "tag-two"
+description: "One-sentence summary of the post."
+author: "Tim H"
+auth_required: false
+---
+```
+
+Rules:
+
+- All string values use double quotes.
+- Dates use ISO 8601 with timezone offset (`T10:00:00-08:00`).
+- Tag values use lowercase kebab-case.
+- No trailing whitespace on any frontmatter line.
+
+---
+
+## Headings
+
+Use ATX-style headings (prefix `#`). Never use underline-style (Setext) headings.
+
+```md
+## Top-level section        <- ## for H2 (H1 is the post title)
+### Subsection              <- ### for H3
+#### Detail heading         <- #### for H4 (use sparingly)
+```
+
+Rules:
+
+- The post `title` in frontmatter acts as the H1; never add a duplicate `#` H1 in body text.
+- Always leave one blank line above and one blank line below every heading.
+- No punctuation (`.`, `:`, `!`) at the end of a heading.
+- Heading text is sentence case: `## Core architecture overview`, not `## Core Architecture Overview`.
+
+---
+
+## Paragraphs and Blank Lines
+
+- Separate every block element (paragraph, heading, list, code fence, blockquote, `---`) with
+  **exactly one blank line** above and one below.
+- Do not double-blank-line between paragraphs.
+- Wrap long prose lines at ~100 characters for readability, but do not break mid-sentence just to
+  hit column 80.
+
+---
+
+## Lists
+
+Use `-` as the list marker for all unordered lists. Never use `*`, `+`, or Unicode bullets (`•`, `◦`).
+
+```md
+- First item
+- Second item
+  - Nested item         <- 2-space indent for nesting
+  - Another nested item
+- Third item
+```
+
+For ordered lists use `1.` throughout (Prettier will auto-number on format):
+
+```md
+1. Step one
+1. Step two
+1. Step three
+```
+
+Rules:
+
+- Always leave a blank line before the first list item when the list follows a paragraph.
+- Always leave a blank line after the last list item when more body text follows.
+- Do not put a blank line between tightly related list items (tight list).
+- Use a blank line between items only when items contain multiple paragraphs (loose list).
+
+---
+
+## Emphasis and Strong
+
+```md
+_italic_          <- single underscore
+**bold**          <- double asterisk
+**_bold italic_** <- combined
+`inline code`     <- backtick for code, filenames, field names, values
+```
+
+Do not use `__double_underscore__` for bold or `*single_asterisk*` for italic.
+
+---
+
+## Inline Code and Code Fences
+
+Use backtick inline code for:
+
+- Field names: `teff_val`, `phot_bp_mean_mag`
+- File paths: `src/content/blog/notes/`
+- Command names: `npm run format`
+- Short expressions: `d = 1 / parallax`
+
+Use fenced code blocks with an explicit language tag for multi-line code:
+
+````md
+```ts
+const x = 1;
+```
+````
+
+Common language tags: `ts`, `js`, `astro`, `mdx`, `yaml`, `json`, `bash`, `text`, `sql`.
+
+Use `text` (not nothing) when the block is neither prose nor a real language.
+
+---
+
+## Horizontal Rules
+
+Use `---` only as a thematic break between major sections. Surround with blank lines:
+
+```md
+Last sentence of section A.
+
+---
+
+## Next Section
+```
+
+Do not use `***` or `___` as horizontal rules.
+
+---
+
+## Punctuation - ASCII Only
+
+**Never use Unicode lookalike punctuation characters in source files.**
+These are the most common offenders and the ASCII replacements to use instead:
+
+| Avoid | Code point | Use instead |
+| -- | -- | -- |
+| non-breaking hyphen | U+2011 | `-` U+002D |
+| en dash | U+2013 | `-` or `--` |
+| em dash | U+2014 | `---` or `, ` or `;` |
+| left double quote | U+201C | `"` |
+| right double quote | U+201D | `"` |
+| left single quote | U+2018 | `'` |
+| right single quote | U+2019 | `'` |
+| ellipsis | U+2026 | `...` |
+
+These characters are inserted silently by rich-text editors and word processors
+("smart punctuation"). Disable smart punctuation in any tool used to draft content.
+
+---
+
+## Tables
+
+Use standard GFM pipe tables. Align columns with at least two dashes per separator cell.
+
+```md
+| Column A | Column B | Column C |
+| -- | -- | -- |
+| value    | value    | value    |
+```
+
+- Every table needs a header row and a separator row.
+- Surround the table with blank lines.
+- No trailing `|` required but allowed for consistency.
+
+---
+
+## Blockquotes
+
+```md
+> This is a blockquote.
+> It can span multiple lines.
+```
+
+- Use `>` for callouts, quotes, or notes.
+- Surround with blank lines.
+
+---
+
+## Links and Images
+
+```md
+[Link text](https://example.com)
+![Alt text](./images/photo.jpg)
+```
+
+- Always provide descriptive alt text for images.
+- Use relative paths for local assets.
+- Do not use bare URLs without link text in body content.
+
+---
+
+## MDX-Specific
+
+When importing and using components in `.mdx` files:
+
+```mdx
+import MyComponent from "@components/MyComponent.astro";
+
+<MyComponent prop="value" />
+```
+
+Rules:
+
+- All imports go at the top of the file, after the frontmatter closing `---` and before body text.
+- Leave one blank line between the last import and the first content line.
+- JSX component attributes use double quotes exclusively.
+- Self-close tags with no children: `<Component />`.
+
+---
+
+## Common Lint Errors Checklist
+
+Before committing, verify:
+
+- [ ] No Unicode punctuation characters (U+2011, U+2013, U+2014, curly quotes, `...` ellipsis).
+- [ ] Every heading has one blank line above and below.
+- [ ] Lists use `-` only.
+- [ ] Nested list items use 2-space indent.
+- [ ] All code fences have a language tag.
+- [ ] Frontmatter strings use double quotes.
+- [ ] No H1 heading in body (title is in frontmatter).
+- [ ] `---` horizontal rules are surrounded by blank lines.
+- [ ] No trailing whitespace on any line.
+
+Run the formatter before commit:
+
+```bash
+npm run format
+```
