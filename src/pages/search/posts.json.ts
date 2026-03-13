@@ -19,11 +19,12 @@ export const GET: APIRoute = async () => {
   const posts = await getCollection("blog", ({ data }) => !data.draft);
   const sorted = getSortedPosts(posts);
 
-  const searchData = sorted.map(({ data, slug, body }) => {
+  const searchData = sorted.map((post) => {
+    const { data, body } = post;
     const tags = data.tags ?? [];
     const rawBody = body ? stripMarkdown(body) : "";
     const bodySnippet = rawBody.slice(0, 4000).toLowerCase();
-    const slugStr = String(data.slug || slug);
+    const slugStr = data.slug ?? post.id.replace(/\.mdx?$/, "");
     const lastSeg = slugStr.split("/").filter(Boolean).pop() || slugStr;
     const url = data.type === "TECH" ? `/tech/${lastSeg}` : `/posts/${slugStr}`;
 
@@ -33,7 +34,7 @@ export const GET: APIRoute = async () => {
       tags.join(" "),
       data.author || "",
       data.type || "",
-      slug || "",
+      slugStr || "",
       data.class || "",
       data.album || "",
       bodySnippet,

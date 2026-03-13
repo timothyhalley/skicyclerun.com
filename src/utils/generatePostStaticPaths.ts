@@ -1,5 +1,6 @@
 import type { CollectionEntry } from "astro:content";
 import { slugifyStr } from "./slugify";
+import { getPostSlug } from "./slugify";
 import { SkiCycleRunConfig } from "../skicyclerun.config";
 import postFilter from "./postFilter";
 
@@ -58,9 +59,8 @@ export function generatePostStaticPaths(
   // Simple pipeline: post detail routes and paginated listing routes.
   const postDetailPaths: any[] = filteredPosts
     .map((post) => {
-      // Astro provides post.slug from frontmatter or generates from filename
-      // Use it exactly as provided for full SEO control
-      const slug = post.slug;
+      // Astro v6 (glob loader): post.slug is gone — use getPostSlug().
+      const slug = getPostSlug(post);
       
       if (isDev) {
         debug("SLUG", { id: post.id, slug });

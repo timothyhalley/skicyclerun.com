@@ -23,7 +23,7 @@ const travelPoints = posts
       lat: post.data.lat!,
       lng: post.data.lon!,
       name: post.data.title,
-      slug: post.slug,
+      slug: post.data.slug ?? post.id.replace(/\.mdx?$/, ""),
       author: post.data.author,
       pubDatetime: post.data.pubDatetime,
       tags: post.data.tags,

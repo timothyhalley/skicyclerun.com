@@ -17,3 +17,8 @@ export const slugifyStr = (str: string) => {
 };
 
 export const slugifyAll = (arr: string[]) => arr.map((str) => slugifyStr(str));
+
+// Astro v6 (glob loader): post.slug no longer exists.
+// Use frontmatter slug override if set, otherwise derive from post.id (strip extension).
+export const getPostSlug = (post: { id: string; data: { slug?: string } }) =>
+  post.data.slug ?? post.id.replace(/\.mdx?$/, "");

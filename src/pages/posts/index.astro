@@ -7,6 +7,7 @@ import Pagination from "@components/Pagination.astro";
 import PostCard from "@components/PostCards.astro";
 import { getPhotoCover } from "@utils/getPhotoCover";
 import { POSTS_TYPES } from "@constants/blogTypes";
+import { getPostSlug } from "@utils/slugify";
 
 const posts = await getCollection("blog");
 const sortedPosts = getFilteredPosts(posts, POSTS_TYPES);
@@ -42,7 +43,7 @@ const coverImages = await Promise.all(
           tags={post.data.tags}
           description={post.data.description}
           cover={coverImages[index]?.src ?? "images/default-cover.png"}
-          href={`/posts/${post.slug}`}
+          href={`/posts/${getPostSlug(post)}`}
         />
       ))
     }
