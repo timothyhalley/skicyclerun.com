@@ -39,7 +39,9 @@ function formatVersion(date: string, major: number, minor: number) {
 
 function bumpVersion(current: string, opts: Options) {
   const [, y, m, d, majorStr, minorStr] = current.match(VERSION_PATTERN)!;
-  const date = opts.date ?? `${y}-${m}-${d}`;
+  const now = new Date();
+  const todayDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const date = opts.date ?? todayDate;
   const major = Number(majorStr);
   const minor = Number(minorStr);
 
