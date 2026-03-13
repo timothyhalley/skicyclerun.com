@@ -1,7 +1,7 @@
 {
   "name": "skicyclerun.com",
   "type": "module",
-  "version": "2026-02-12 V05.020",
+  "version": "2026-02-12 V05.021",
   "scripts": {
     "dev": "astro dev",
     "prebuild": "npx npm-check-updates -u && npm install",
@@ -16,14 +16,14 @@
     "version:bump:date": "tsx scripts/update-version.ts --date"
   },
   "dependencies": {
-    "@astrojs/check": "0.9.6",
-    "@astrojs/mdx": "^4.3.13",
-    "@astrojs/react": "^4.4.2",
-    "@astrojs/rss": "^4.0.15",
-    "@astrojs/sitemap": "^3.7.0",
-    "@aws-sdk/client-cognito-identity-provider": "^3.1003.0",
+    "@astrojs/check": "0.9.7",
+    "@astrojs/mdx": "^5.0.0",
+    "@astrojs/react": "^5.0.0",
+    "@astrojs/rss": "^4.0.17",
+    "@astrojs/sitemap": "^3.7.1",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1008.0",
     "@tailwindcss/vite": "^4.2.1",
-    "astro": "^5.18.0",
+    "astro": "^6.0.4",
     "astro-embed": "^0.12.0",
     "fuse.js": "^7.1.0",
     "react": "^19.2.4",
@@ -35,10 +35,10 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
     "@types/lodash": "4.17.24",
-    "@types/node": "^25.3.3",
+    "@types/node": "^25.5.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "esbuild": "^0.27.3",
+    "esbuild": "^0.27.4",
     "fast-glob": "3.3.3",
     "patch-package": "^8.0.1",
     "postinstall-postinstall": "^2.1.0",

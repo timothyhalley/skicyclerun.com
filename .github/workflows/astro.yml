@@ -7,7 +7,6 @@ name: Deploy SkiCycleRun (astro site) to AWS S3 Static Host
 env:
   AWS_S3_SKICYCLERUN: ${{ vars.S3_BUCKET_NAME }}
   AWS_CLOUDFRONT_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 on:
   # Runs on pushes targeting the default branch
@@ -21,8 +20,6 @@ jobs:
   deploy_to_s3:
     name: deploy astro to s3
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     permissions:
       id-token: write
