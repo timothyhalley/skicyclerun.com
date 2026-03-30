@@ -13,7 +13,7 @@ export const SkiCycleRunConfig = {
   postsPerPage: 5,
   blogType: BLOG_TYPES[3], // "GENERAL"
   scheduledPostMargin: 15 * 60 * 1000,
-  version: "2026-03-29 V05.000",
+  version: "2026-03-30 V05.000",
   maxWidth: 1024,
   // maximum photos to request/display in MDXLayout galleries (4x4 => 16)
   galleryMaxPhotos: 16,
