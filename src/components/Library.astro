@@ -9,7 +9,7 @@ export function getRndValue(images: any) {
 
 export async function getLocalImages() {
   const imageObject = import.meta.glob<{ default: ImageMetadata }>(
-    "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
+    "/src/assets/images/*.{jpeg,jpg,png,gif,svg}",
   );
   const imageKeys = Object.keys(imageObject);
   return imageKeys;
@@ -22,7 +22,7 @@ export async function getImgMeta(imgPath: string) {
 
 export async function getAlbumPhotos(
   album: any,
-  loraStyle: string = "random"
+  loraStyle: string = "random",
 ): Promise<any[]> {
   try {
     let photos: any[] = [];
@@ -41,7 +41,7 @@ export async function getAlbumPhotos(
 
       const camelToDash = base.replace(/([a-z0-9])([A-Z])/g, "$1-$2");
       const dashToCamel = base.replace(/-([a-zA-Z0-9])/g, (_, c) =>
-        `${c}`.toUpperCase()
+        `${c}`.toUpperCase(),
       );
 
       const candidates = [
@@ -62,7 +62,7 @@ export async function getAlbumPhotos(
     if (album === "local") {
       const imagePaths = await getLocalImages();
       const imageModules = import.meta.glob<{ default: ImageMetadata }>(
-        "/src/assets/images/*.{jpeg,jpg,png,gif,svg}"
+        "/src/assets/images/*.{jpeg,jpg,png,gif,svg}",
       );
 
       photos = await Promise.all(
@@ -74,7 +74,7 @@ export async function getAlbumPhotos(
             altText: `Photo ${i + 1}`,
             sourceType: "local",
           };
-        })
+        }),
       );
     } else {
       // Development mode - try API call with fallback to local
@@ -121,12 +121,12 @@ export async function getAlbumPhotos(
 
           if (usedAlbum && usedAlbum !== `${album}`) {
             console.warn(
-              `ℹ️ Album "${album}" resolved using variant "${usedAlbum}"`
+              `ℹ️ Album "${album}" resolved using variant "${usedAlbum}"`,
             );
           }
         } else {
           console.warn(
-            `⚠️ No remote photos found for album "${album}", falling back to local images`
+            `⚠️ No remote photos found for album "${album}", falling back to local images`,
           );
           photos = await getAlbumPhotos("local");
         }
@@ -136,15 +136,15 @@ export async function getAlbumPhotos(
         console.warn("\n⚠️ Photo API failed, falling back to local images");
         console.warn(
           "📍 URL:",
-          `${import.meta.env.PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/v2/"}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=${SkiCycleRunConfig.photoApi.buildTimePhotos}${loraParam}`
+          `${import.meta.env.PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/v2/"}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=${SkiCycleRunConfig.photoApi.buildTimePhotos}${loraParam}`,
         );
         console.warn(
           "🔴 Error type:",
-          apiError instanceof Error ? apiError.name : typeof apiError
+          apiError instanceof Error ? apiError.name : typeof apiError,
         );
         console.warn(
           "🔴 Error message:",
-          apiError instanceof Error ? apiError.message : String(apiError)
+          apiError instanceof Error ? apiError.message : String(apiError),
         );
         console.warn("📦 Album:", album);
         console.warn("🎨 LoRA Style:", loraStyle);
@@ -162,7 +162,7 @@ export async function getAlbumPhotos(
 }
 
 export function getRandomImage(
-  imagesObject: Record<string, () => Promise<{ default: ImageMetadata }>>
+  imagesObject: Record<string, () => Promise<{ default: ImageMetadata }>>,
 ) {
   const imagePaths = Object.keys(imagesObject);
   const randomIndex = Math.floor(Math.random() * imagePaths.length);
@@ -173,7 +173,7 @@ export function getRandomImage(
 
 export function findKeyWithValue(
   searchString: string,
-  obj: Record<string, any>
+  obj: Record<string, any>,
 ) {
   for (const key in obj) {
     console.log("findKeyWithValue: key == ", key);
@@ -195,7 +195,7 @@ export function findKeyWithValue(
 
 export function findSubstring(
   imageName: string,
-  imageModules: Record<string, any>
+  imageModules: Record<string, any>,
 ) {
   for (const key in imageModules) {
     if (key.endsWith(imageName)) {
@@ -237,7 +237,7 @@ export function getFileName(path: unknown): string {
   }
 
   const matchResult = cleanPath.match(
-    /\/([\w-]+)(?:\.[\w]+)*\.(svg|jpeg|jpg|png|gif)$/i
+    /\/([\w-]+)(?:\.[\w]+)*\.(svg|jpeg|jpg|png|gif)$/i,
   );
   if (matchResult) {
     return `${matchResult[1]}.${matchResult[2]}`;
