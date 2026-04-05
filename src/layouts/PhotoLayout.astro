@@ -111,7 +111,7 @@ if (!photos || photos.length === 0) {
   >
     document.addEventListener("DOMContentLoaded", function () {
       const radios = Array.from(
-        document.querySelectorAll('input[name="photo-view"]')
+        document.querySelectorAll('input[name="photo-view"]'),
       );
       const dynamicCheckbox = document.getElementById("use-dynamic");
       const loraSelect = document.getElementById("lora-style");
@@ -158,21 +158,21 @@ if (!photos || photos.length === 0) {
         for (const [viewName, viewDiv] of Object.entries(sections)) {
           if (viewDiv) {
             const scriptTag = viewDiv.querySelector(
-              'script[type="application/json"]'
+              'script[type="application/json"]',
             );
             if (scriptTag) {
               try {
                 const photos = JSON.parse(scriptTag.textContent || "[]");
                 if (photos.length > 0) {
                   console.log(
-                    `[PhotoLayout] Found ${photos.length} static photos in ${viewName} view`
+                    `[PhotoLayout] Found ${photos.length} static photos in ${viewName} view`,
                   );
                   return photos;
                 }
               } catch (e) {
                 console.warn(
                   `[PhotoLayout] Failed to parse static photos from ${viewName}:`,
-                  e
+                  e,
                 );
               }
             }
@@ -185,12 +185,12 @@ if (!photos || photos.length === 0) {
       // Filter static photos by art style
       function filterStaticPhotosByStyle(photos, style) {
         console.log(
-          `[PhotoLayout] filterStaticPhotosByStyle called with ${photos.length} photos, style: ${style}`
+          `[PhotoLayout] filterStaticPhotosByStyle called with ${photos.length} photos, style: ${style}`,
         );
 
         if (style === "random" || !style) {
           console.log(
-            "[PhotoLayout] No filtering - showing all photos (random)"
+            "[PhotoLayout] No filtering - showing all photos (random)",
           );
           return photos;
         }
@@ -215,19 +215,19 @@ if (!photos || photos.length === 0) {
 
           const matches = loraStyle === style;
           console.log(
-            `[PhotoLayout] Photo: ${photo.src.split("/").pop()}, extracted style: ${loraStyle}, matches ${style}: ${matches}`
+            `[PhotoLayout] Photo: ${photo.src.split("/").pop()}, extracted style: ${loraStyle}, matches ${style}: ${matches}`,
           );
           return matches;
         });
 
         console.log(
-          `[PhotoLayout] Filtered ${photos.length} photos to ${filtered.length} for style: ${style}`
+          `[PhotoLayout] Filtered ${photos.length} photos to ${filtered.length} for style: ${style}`,
         );
 
         // If filtering resulted in no photos, return all photos instead of empty array
         if (filtered.length === 0) {
           console.warn(
-            `[PhotoLayout] No photos match style "${style}", returning all photos instead`
+            `[PhotoLayout] No photos match style "${style}", returning all photos instead`,
           );
           return photos;
         }
@@ -239,7 +239,7 @@ if (!photos || photos.length === 0) {
         // Reset cache if style changed
         if (currentLoraStyle !== loraStyle) {
           console.log(
-            `[PhotoLayout] LoRA style changed from ${currentLoraStyle} to ${loraStyle} - invalidating cache`
+            `[PhotoLayout] LoRA style changed from ${currentLoraStyle} to ${loraStyle} - invalidating cache`,
           );
           dynamicPhotosLoaded = false;
           currentLoraStyle = loraStyle;
@@ -247,7 +247,7 @@ if (!photos || photos.length === 0) {
 
         if (dynamicPhotosLoaded && dynamicPhotos.length > 0) {
           console.log(
-            `[PhotoLayout] Using cached dynamic photos for style: ${loraStyle}`
+            `[PhotoLayout] Using cached dynamic photos for style: ${loraStyle}`,
           );
           return dynamicPhotos;
         }
@@ -278,7 +278,7 @@ if (!photos || photos.length === 0) {
             });
             dynamicPhotosLoaded = true;
             console.log(
-              `✅ Loaded ${dynamicPhotos.length} photos from API with style: ${loraStyle}`
+              `✅ Loaded ${dynamicPhotos.length} photos from API with style: ${loraStyle}`,
             );
           } else {
             console.warn("No photos returned from API");
@@ -301,7 +301,7 @@ if (!photos || photos.length === 0) {
 
       function updateViewContent(photos) {
         console.log(
-          `[PhotoLayout] Updating view content with ${photos.length} photos`
+          `[PhotoLayout] Updating view content with ${photos.length} photos`,
         );
 
         // Update Hero view
@@ -309,12 +309,12 @@ if (!photos || photos.length === 0) {
         if (heroContainer && photos.length > 0) {
           // Update the JSON data that Hero view uses for navigation
           const heroJsonScript = heroContainer.querySelector(
-            'script[type="application/json"]#hero-photos'
+            'script[type="application/json"]#hero-photos',
           );
           if (heroJsonScript) {
             heroJsonScript.textContent = JSON.stringify(photos).replace(
               /</g,
-              "\\u003c"
+              "\\u003c",
             );
             console.log("[PhotoLayout] Hero JSON updated");
           }
@@ -330,7 +330,7 @@ if (!photos || photos.length === 0) {
           // Remove old event listeners by cloning the image element
           if (heroImg) {
             const heroFigure = heroContainer.querySelector(
-              "figure[data-photos-json]"
+              "figure[data-photos-json]",
             );
             if (heroFigure) {
               delete heroFigure.dataset.heroInitialized;
@@ -349,12 +349,12 @@ if (!photos || photos.length === 0) {
                   newImg.src = p.src;
                   newImg.alt = p.altText || `Photo ${idx + 1}`;
                   console.log(
-                    `[PhotoLayout] Hero clicked - showing photo ${idx + 1}/${photos.length}`
+                    `[PhotoLayout] Hero clicked - showing photo ${idx + 1}/${photos.length}`,
                   );
                 }
               });
               console.log(
-                "[PhotoLayout] Hero click handler reattached with new photos"
+                "[PhotoLayout] Hero click handler reattached with new photos",
               );
             }
           }
@@ -370,12 +370,12 @@ if (!photos || photos.length === 0) {
 
             // Update the JSON data for gallery
             const galleryJsonScript = galleryContainer.querySelector(
-              'script[type="application/json"]#gallery-photos'
+              'script[type="application/json"]#gallery-photos',
             );
             if (galleryJsonScript) {
               galleryJsonScript.textContent = JSON.stringify(photos).replace(
                 /</g,
-                "\\u003c"
+                "\\u003c",
               );
               console.log("[PhotoLayout] Gallery JSON updated");
             }
@@ -389,7 +389,7 @@ if (!photos || photos.length === 0) {
               let startIndex = 0; // Track where the current window begins
 
               const slots = Array.from(
-                grid.querySelectorAll("[data-slot-index]")
+                grid.querySelectorAll("[data-slot-index]"),
               );
 
               function renderSlot(slotEl, photo) {
@@ -435,14 +435,14 @@ if (!photos || photos.length === 0) {
                   // Advance the gallery window by the full visible count
                   startIndex = (startIndex + visibleCount) % photos.length;
                   console.log(
-                    `[PhotoLayout] Gallery advanced by ${visibleCount}, startIndex now ${startIndex}`
+                    `[PhotoLayout] Gallery advanced by ${visibleCount}, startIndex now ${startIndex}`,
                   );
                   renderVisible();
                 });
               });
 
               console.log(
-                `[PhotoLayout] Gallery reinitialized with ${photos.length} photos`
+                `[PhotoLayout] Gallery reinitialized with ${photos.length} photos`,
               );
             }
           }
@@ -453,12 +453,12 @@ if (!photos || photos.length === 0) {
         if (carouselContainer) {
           // Update the JSON data for carousel
           const carouselJsonScript = carouselContainer.querySelector(
-            'script[type="application/json"]'
+            'script[type="application/json"]',
           );
           if (carouselJsonScript) {
             carouselJsonScript.textContent = JSON.stringify(photos).replace(
               /</g,
-              "\\u003c"
+              "\\u003c",
             );
             console.log("[PhotoLayout] Carousel JSON updated");
           }
@@ -467,7 +467,7 @@ if (!photos || photos.length === 0) {
           const track = carouselContainer.querySelector(".carousel-track");
           if (track) {
             const slides = Array.from(
-              track.querySelectorAll(".carousel-slide")
+              track.querySelectorAll(".carousel-slide"),
             );
 
             // Update each slide's data-src and image
@@ -504,7 +504,7 @@ if (!photos || photos.length === 0) {
             }
 
             console.log(
-              `[PhotoLayout] Carousel slides updated with ${slides.length} photos and reinitialized`
+              `[PhotoLayout] Carousel slides updated with ${slides.length} photos and reinitialized`,
             );
           }
         }
@@ -514,14 +514,14 @@ if (!photos || photos.length === 0) {
         console.log("[PhotoLayout] update() called");
 
         const checked = document.querySelector(
-          'input[name="photo-view"]:checked'
+          'input[name="photo-view"]:checked',
         );
         const value = checked ? checked.getAttribute("value") : "gallery";
         const useDynamic = dynamicCheckbox?.checked || false;
         const loraStyle = loraSelect?.value || "random";
 
         console.log(
-          `[PhotoLayout] Current view: ${value}, useDynamic: ${useDynamic}, loraStyle: ${loraStyle}`
+          `[PhotoLayout] Current view: ${value}, useDynamic: ${useDynamic}, loraStyle: ${loraStyle}`,
         );
 
         // Show/hide views based on radio selection
@@ -546,20 +546,20 @@ if (!photos || photos.length === 0) {
             staticPhotos = getStaticPhotos();
           }
           console.log(
-            `[PhotoLayout] Have ${staticPhotos.length} static photos before filtering`
+            `[PhotoLayout] Have ${staticPhotos.length} static photos before filtering`,
           );
 
           const filteredPhotos = filterStaticPhotosByStyle(
             staticPhotos,
-            loraStyle
+            loraStyle,
           );
           console.log(
-            `[PhotoLayout] After filtering: ${filteredPhotos.length} photos`
+            `[PhotoLayout] After filtering: ${filteredPhotos.length} photos`,
           );
 
           if (filteredPhotos.length > 0) {
             console.log(
-              "[PhotoLayout] Calling updateViewContent with filtered photos..."
+              "[PhotoLayout] Calling updateViewContent with filtered photos...",
             );
             updateViewContent(filteredPhotos);
           } else {
@@ -577,7 +577,7 @@ if (!photos || photos.length === 0) {
       loraSelect?.addEventListener("change", async function () {
         console.log(
           "[PhotoLayout] Art style dropdown changed to:",
-          loraSelect.value
+          loraSelect.value,
         );
         await update();
       });
@@ -589,7 +589,7 @@ if (!photos || photos.length === 0) {
       setTimeout(() => {
         staticPhotos = getStaticPhotos();
         console.log(
-          `[PhotoLayout] Initialized with ${staticPhotos.length} static photos`
+          `[PhotoLayout] Initialized with ${staticPhotos.length} static photos`,
         );
 
         if (staticPhotos.length > 0) {

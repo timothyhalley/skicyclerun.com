@@ -1,6 +1,6 @@
-import type { SocialObjects } from "@config/types";
-import I18nKeys from "@locales/keys";
-import { BLOG_TYPES } from "@constants/blogTypes";
+import type { SocialObjects } from "./config/types";
+import I18nKeys from "./locales/keys";
+import { BLOG_TYPES } from "./constants/blogTypes";
 
 export const SkiCycleRunConfig = {
   website: "https://skicylerun.com/",
@@ -13,7 +13,7 @@ export const SkiCycleRunConfig = {
   postsPerPage: 5,
   blogType: BLOG_TYPES[3], // "GENERAL"
   scheduledPostMargin: 15 * 60 * 1000,
-  version: "2026-03-30 V05.000",
+  version: "2026-04-05 V05.000",
   maxWidth: 1024,
   // maximum photos to request/display in MDXLayout galleries (4x4 => 16)
   galleryMaxPhotos: 16,

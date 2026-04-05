@@ -4,6 +4,8 @@ import PageLayout from "@layouts/PageLayout.astro";
 import PostCard from "@components/PostCards.astro";
 import Pagination from "@components/Pagination.astro";
 import { getPhotoCover } from "@utils/getPhotoCover";
+import { getBlogSection } from "@constants/blogTypes";
+import { getPostSlug } from "@utils/slugify";
 
 export interface Props {
   currentPage: number;
@@ -24,8 +26,8 @@ const {
 // Fetch cover images for all posts
 const coverImages = await Promise.all(
   paginatedPosts.map((post) =>
-    getPhotoCover(post.data.cover ?? "images/default-cover.png")
-  )
+    getPhotoCover(post.data.cover ?? "images/default-cover.png"),
+  ),
 );
 ---
 
@@ -45,11 +47,7 @@ const coverImages = await Promise.all(
           tags={post.data.tags}
           description={post.data.description}
           cover={coverImages[index]?.src ?? "images/default-cover.png"}
-          href={
-            post.data.type === "TECH"
-              ? `/tech/${post.data.slug || post.slug}`
-              : `/posts/${post.data.slug || post.slug}`
-          }
+          href={`/${getBlogSection(post.data.type)}/${getPostSlug(post)}`}
         />
       ))
     }

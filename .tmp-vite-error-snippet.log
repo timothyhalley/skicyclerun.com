@@ -1,0 +1,163 @@
+
+
+---
+2026-04-04T19:56:56.003Z vite:hmr [file change] .astro/collections/blog.schema.json
+2026-04-04T19:56:56.003Z vite:hmr [file change] .astro/content.d.ts
+2026-04-04T19:56:56.003Z vite:hmr (client) [no modules matched] .astro/types.d.ts
+2026-04-04T19:56:56.003Z vite:hmr (ssr) [no modules matched] .astro/types.d.ts
+2026-04-04T19:56:56.003Z vite:hmr (astro) [no modules matched] .astro/types.d.ts
+2026-04-04T19:56:56.003Z vite:hmr (client) [no modules matched] .astro/collections/blog.schema.json
+2026-04-04T19:56:56.003Z vite:hmr (ssr) [no modules matched] .astro/collections/blog.schema.json
+2026-04-04T19:56:56.003Z vite:hmr (astro) [no modules matched] .astro/collections/blog.schema.json
+2026-04-04T19:56:56.003Z vite:hmr (client) [no modules matched] .astro/content.d.ts
+2026-04-04T19:56:56.003Z vite:hmr (ssr) [no modules matched] .astro/content.d.ts
+2026-04-04T19:56:56.003Z vite:hmr (astro) [no modules matched] .astro/content.d.ts
+2026-04-04T19:56:56.004Z astro:router Route cache cleared due to content change
+12:56:56 [vite] Re-optimizing dependencies because vite config has changed
+2026-04-04T19:56:56.006Z vite:deps (client) removing old cache dir /Users/timothyhalley/Projects/skicyclerun.com/node_modules/.vite/deps
+2026-04-04T19:56:56.010Z vite:resolve 0.28ms @astrojs/react/client.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@astrojs/react/dist/client.js
+2026-04-04T19:56:56.010Z vite:resolve 0.13ms react -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react/index.js
+2026-04-04T19:56:56.010Z vite:resolve 0.19ms react-dom -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react-dom/index.js
+2026-04-04T19:56:56.010Z vite:resolve 0.08ms react/jsx-dev-runtime -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react/jsx-dev-runtime.js
+2026-04-04T19:56:56.010Z vite:resolve 0.07ms react/jsx-runtime -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react/jsx-runtime.js
+2026-04-04T19:56:56.011Z vite:resolve 0.21ms aria-query -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/aria-query/lib/index.js
+2026-04-04T19:56:56.011Z vite:resolve 0.15ms axobject-query -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/axobject-query/lib/index.js
+2026-04-04T19:56:56.011Z vite:resolve 0.12ms html-escaper -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/html-escaper/esm/index.js
+2026-04-04T19:56:56.011Z vite:resolve 0.04ms react-dom/client -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react-dom/client.js
+2026-04-04T19:56:56.012Z vite:deps scanning for dependencies...
+12:56:56 [vite] Port 4321 is in use, trying another one...
+ astro  v6.1.3 ready in 564 ms
+┃ Local    https://localhost:4322/
+12:56:56 watching for file changes...
+2026-04-04T19:56:56.015Z vite:deps Crawling dependencies using entries: 
+  /Users/timothyhalley/Projects/skicyclerun.com/src/components/PasswordlessAuthDialog.backup.tsx
+  /Users/timothyhalley/Projects/skicyclerun.com/src/components/PasswordlessAuthDialog.tsx
+  /Users/timothyhalley/Projects/skicyclerun.com/src/components/RemotePhotoGallery.tsx
+  /Users/timothyhalley/Projects/skicyclerun.com/src/components/TravelGlobe.tsx
+  /Users/timothyhalley/Projects/skicyclerun.com/src/utils/og-templates/post.tsx
+  /Users/timothyhalley/Projects/skicyclerun.com/src/utils/og-templates/site.tsx
+  /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/steps/CodeStep.tsx
+  /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/steps/EmailStep.tsx
+  /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/steps/ProfileStep.tsx
+  /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/steps/StepIndicator.tsx
+2026-04-04T19:56:56.019Z vite:resolve 0.14ms react/jsx-dev-runtime -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react/jsx-dev-runtime.js
+2026-04-04T19:56:56.020Z vite:resolve 0.10ms skicyclerun.config -> /Users/timothyhalley/Projects/skicyclerun.com/src/skicyclerun.config.ts
+2026-04-04T19:56:56.020Z vite:resolve 0.05ms /Users/timothyhalley/Projects/skicyclerun.com/src/utils/geolocation -> /Users/timothyhalley/Projects/skicyclerun.com/src/utils/geolocation.ts
+2026-04-04T19:56:56.020Z vite:resolve 0.18ms @utils/geolocation -> /Users/timothyhalley/Projects/skicyclerun.com/src/utils/geolocation.ts
+2026-04-04T19:56:56.020Z vite:resolve 0.05ms ../constants -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/constants.ts
+2026-04-04T19:56:56.020Z vite:resolve 0.05ms react -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react/index.js
+2026-04-04T19:56:56.020Z vite:resolve 0.05ms ../utils -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/utils.ts
+2026-04-04T19:56:56.021Z vite:resolve 0.16ms react-globe.gl -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react-globe.gl/dist/react-globe.gl.mjs
+2026-04-04T19:56:56.021Z vite:resolve 0.06ms /Users/timothyhalley/Projects/skicyclerun.com/src/utils/DebugConsole -> /Users/timothyhalley/Projects/skicyclerun.com/src/utils/DebugConsole.ts
+2026-04-04T19:56:56.021Z vite:resolve 0.25ms @utils/DebugConsole -> /Users/timothyhalley/Projects/skicyclerun.com/src/utils/DebugConsole.ts
+2026-04-04T19:56:56.022Z vite:resolve 0.05ms ./auth/utils -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/utils.ts
+2026-04-04T19:56:56.023Z vite:resolve 0.09ms ./auth/constants -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/constants.ts
+2026-04-04T19:56:56.023Z vite:resolve 0.05ms /Users/timothyhalley/Projects/skicyclerun.com/src/utils/passwordlessAuth -> /Users/timothyhalley/Projects/skicyclerun.com/src/utils/passwordlessAuth.ts
+2026-04-04T19:56:56.023Z vite:resolve 0.18ms @utils/passwordlessAuth -> /Users/timothyhalley/Projects/skicyclerun.com/src/utils/passwordlessAuth.ts
+2026-04-04T19:56:56.023Z vite:resolve 0.13ms ./auth/sessionStorage -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/sessionStorage.ts
+2026-04-04T19:56:56.023Z vite:resolve 0.06ms /Users/timothyhalley/Projects/skicyclerun.com/src/utils/clientAuth -> /Users/timothyhalley/Projects/skicyclerun.com/src/utils/clientAuth.ts
+2026-04-04T19:56:56.023Z vite:resolve 0.26ms @utils/clientAuth -> /Users/timothyhalley/Projects/skicyclerun.com/src/utils/clientAuth.ts
+2026-04-04T19:56:56.023Z vite:resolve 0.11ms ./constants -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/constants.ts
+2026-04-04T19:56:56.023Z vite:resolve 0.12ms ./auth/hooks/useResendTimer -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/hooks/useResendTimer.ts
+2026-04-04T19:56:56.024Z vite:resolve 0.05ms /Users/timothyhalley/Projects/skicyclerun.com/src/locales/keys -> /Users/timothyhalley/Projects/skicyclerun.com/src/locales/keys.ts
+2026-04-04T19:56:56.024Z vite:resolve 0.20ms @locales/keys -> /Users/timothyhalley/Projects/skicyclerun.com/src/locales/keys.ts
+2026-04-04T19:56:56.024Z vite:resolve 0.10ms ./auth/hooks/useStateRestoration -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/hooks/useStateRestoration.ts
+2026-04-04T19:56:56.024Z vite:resolve 0.08ms /Users/timothyhalley/Projects/skicyclerun.com/src/constants/blogTypes -> /Users/timothyhalley/Projects/skicyclerun.com/src/constants/blogTypes.ts
+2026-04-04T19:56:56.024Z vite:resolve 0.22ms @constants/blogTypes -> /Users/timothyhalley/Projects/skicyclerun.com/src/constants/blogTypes.ts
+2026-04-04T19:56:56.024Z vite:resolve 0.04ms ./auth/hooks/useGlobalAPI -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/hooks/useGlobalAPI.ts
+2026-04-04T19:56:56.024Z vite:resolve 0.04ms /Users/timothyhalley/Projects/skicyclerun.com/src/utils/phoneFormat -> /Users/timothyhalley/Projects/skicyclerun.com/src/utils/phoneFormat.ts
+2026-04-04T19:56:56.024Z vite:resolve 0.09ms @utils/phoneFormat -> /Users/timothyhalley/Projects/skicyclerun.com/src/utils/phoneFormat.ts
+2026-04-04T19:56:56.024Z vite:resolve 0.04ms ./auth/hooks/useCodeValidation -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/hooks/useCodeValidation.ts
+2026-04-04T19:56:56.024Z vite:resolve 0.04ms ./auth/handlers -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/handlers.ts
+2026-04-04T19:56:56.024Z vite:resolve 0.06ms ./auth/steps/EmailStep -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/steps/EmailStep.tsx
+2026-04-04T19:56:56.025Z vite:resolve 0.04ms ./auth/steps/CodeStep -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/steps/CodeStep.tsx
+2026-04-04T19:56:56.025Z vite:resolve 0.05ms ./auth/steps/ProfileStep -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/steps/ProfileStep.tsx
+2026-04-04T19:56:56.025Z vite:resolve 0.06ms ./auth/steps/StepIndicator -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/steps/StepIndicator.tsx
+2026-04-04T19:56:56.025Z vite:resolve 0.04ms ./auth/styles -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/styles.ts
+2026-04-04T19:56:56.026Z vite:resolve 0.04ms /Users/timothyhalley/Projects/skicyclerun.com/src/config/cognito -> /Users/timothyhalley/Projects/skicyclerun.com/src/config/cognito.ts
+2026-04-04T19:56:56.026Z vite:resolve 0.10ms @config/cognito -> /Users/timothyhalley/Projects/skicyclerun.com/src/config/cognito.ts
+2026-04-04T19:56:56.026Z vite:resolve 0.17ms @aws-sdk/client-cognito-identity-provider -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@aws-sdk/client-cognito-identity-provider/dist-es/index.js
+2026-04-04T19:56:56.026Z vite:resolve 0.09ms ../sessionStorage -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/sessionStorage.ts
+2026-04-04T19:56:56.027Z vite:resolve 0.05ms ./utils -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/utils.ts
+2026-04-04T19:56:56.028Z vite:resolve 0.05ms ./sessionStorage -> /Users/timothyhalley/Projects/skicyclerun.com/src/components/auth/sessionStorage.ts
+2026-04-04T19:56:56.028Z vite:deps Scan completed in 16.68ms: 
+  @aws-sdk/client-cognito-identity-provider -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@aws-sdk/client-cognito-identity-provider/dist-es/index.js
+  react -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react/index.js
+  react-globe.gl -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react-globe.gl/dist/react-globe.gl.mjs
+  react/jsx-dev-runtime -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react/jsx-dev-runtime.js
+2026-04-04T19:56:56.029Z vite:deps creating package.json in /Users/timothyhalley/Projects/skicyclerun.com/node_modules/.vite/deps_temp_c2a1f37a
+2026-04-04T19:56:56.032Z vite:resolve 0.26ms react -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react/index.js
+2026-04-04T19:56:56.032Z vite:resolve 0.19ms react-kapsule -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react-kapsule/dist/react-kapsule.mjs
+2026-04-04T19:56:56.033Z vite:resolve 0.10ms react-dom/client -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react-dom/client.js
+2026-04-04T19:56:56.033Z vite:resolve 0.12ms globe.gl -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/globe.gl/dist/globe.gl.mjs
+2026-04-04T19:56:56.033Z vite:resolve 0.15ms prop-types -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/prop-types/index.js
+2026-04-04T19:56:56.033Z vite:resolve 0.15ms react-is -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react-is/index.js
+2026-04-04T19:56:56.034Z vite:resolve 0.22ms jerrypick -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/jerrypick/dist/jerrypick.mjs
+2026-04-04T19:56:56.034Z vite:resolve 0.40ms react -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react/index.js
+2026-04-04T19:56:56.034Z vite:resolve 0.40ms three -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/build/three.module.js
+2026-04-04T19:56:56.034Z vite:resolve 0.11ms three/examples/jsm/renderers/CSS2DRenderer.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/examples/jsm/renderers/CSS2DRenderer.js
+2026-04-04T19:56:56.035Z vite:resolve 0.13ms three-globe -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three-globe/dist/three-globe.mjs
+2026-04-04T19:56:56.035Z vite:resolve 0.19ms three-render-objects -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three-render-objects/dist/three-render-objects.mjs
+2026-04-04T19:56:56.035Z vite:resolve 0.15ms accessor-fn -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/accessor-fn/dist/accessor-fn.mjs
+2026-04-04T19:56:56.035Z vite:resolve 0.12ms kapsule -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/kapsule/dist/kapsule.mjs
+2026-04-04T19:56:56.036Z vite:resolve 0.15ms @tweenjs/tween.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@tweenjs/tween.js/dist/tween.esm.js
+2026-04-04T19:56:56.037Z vite:resolve 0.25ms lodash-es/debounce.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/lodash-es/debounce.js
+2026-04-04T19:56:56.038Z vite:resolve 0.17ms object-assign -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/object-assign/index.js
+2026-04-04T19:56:56.038Z vite:resolve 0.06ms three/webgpu -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/build/three.webgpu.js
+2026-04-04T19:56:56.038Z vite:resolve 0.17ms three/examples/jsm/controls/TrackballControls.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/examples/jsm/controls/TrackballControls.js
+2026-04-04T19:56:56.038Z vite:resolve 0.10ms three/examples/jsm/controls/OrbitControls.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/examples/jsm/controls/OrbitControls.js
+2026-04-04T19:56:56.038Z vite:resolve 0.06ms three/examples/jsm/controls/FlyControls.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/examples/jsm/controls/FlyControls.js
+2026-04-04T19:56:56.039Z vite:resolve 0.07ms three/examples/jsm/postprocessing/EffectComposer.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/examples/jsm/postprocessing/EffectComposer.js
+2026-04-04T19:56:56.039Z vite:resolve 0.05ms three/examples/jsm/postprocessing/RenderPass.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/examples/jsm/postprocessing/RenderPass.js
+2026-04-04T19:56:56.040Z vite:resolve 0.21ms polished -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/polished/dist/polished.esm.js
+2026-04-04T19:56:56.040Z vite:resolve 0.15ms float-tooltip -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/float-tooltip/dist/float-tooltip.mjs
+2026-04-04T19:56:56.041Z vite:resolve 0.18ms d3-selection -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/d3-selection/src/index.js
+2026-04-04T19:56:56.041Z vite:resolve 0.21ms preact -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/preact/dist/preact.module.js
+2026-04-04T19:56:56.043Z vite:resolve 1.09ms @smithy/smithy-client -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@smithy/smithy-client/dist-es/index.js
+2026-04-04T19:56:56.044Z vite:resolve 0.41ms @smithy/core -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@smithy/core/dist-es/index.js
+2026-04-04T19:56:56.044Z vite:resolve 0.41ms @aws-sdk/middleware-host-header -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@aws-sdk/middleware-host-header/dist-es/index.js
+2026-04-04T19:56:56.044Z vite:resolve 0.22ms @aws-sdk/middleware-logger -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@aws-sdk/middleware-logger/dist-es/index.js
+2026-04-04T19:56:56.044Z vite:resolve 0.27ms @aws-sdk/middleware-recursion-detection -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@aws-sdk/middleware-recursion-detection/dist-es/index.js
+2026-04-04T19:56:56.045Z vite:resolve 0.33ms @babel/runtime/helpers/esm/extends -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@babel/runtime/helpers/esm/extends.js
+2026-04-04T19:56:56.045Z vite:resolve 0.27ms three-slippy-map-globe -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three-slippy-map-globe/dist/three-slippy-map-globe.mjs
+2026-04-04T19:56:56.045Z vite:resolve 0.27ms @aws-sdk/middleware-user-agent -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@aws-sdk/middleware-user-agent/dist-es/index.js
+2026-04-04T19:56:56.045Z vite:resolve 0.05ms @babel/runtime/helpers/esm/assertThisInitialized -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@babel/runtime/helpers/esm/assertThisInitialized.js
+2026-04-04T19:56:56.045Z vite:resolve 0.24ms three-geojson-geometry -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three-geojson-geometry/dist/three-geojson-geometry.mjs
+2026-04-04T19:56:56.045Z vite:resolve 0.24ms @smithy/config-resolver -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@smithy/config-resolver/dist-es/index.js
+2026-04-04T19:56:56.045Z vite:resolve 0.04ms @babel/runtime/helpers/esm/inheritsLoose -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@babel/runtime/helpers/esm/inheritsLoose.js
+2026-04-04T19:56:56.046Z vite:resolve 0.12ms d3-geo -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/d3-geo/src/index.js
+2026-04-04T19:56:56.046Z vite:resolve 0.04ms @babel/runtime/helpers/esm/wrapNativeSuper -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@babel/runtime/helpers/esm/wrapNativeSuper.js
+2026-04-04T19:56:56.046Z vite:resolve 0.13ms @smithy/core/schema -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@smithy/core/dist-es/submodules/schema/index.js
+2026-04-04T19:56:56.046Z vite:resolve 0.13ms three/examples/jsm/utils/BufferGeometryUtils.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/examples/jsm/utils/BufferGeometryUtils.js
+2026-04-04T19:56:56.046Z vite:resolve 0.05ms @babel/runtime/helpers/esm/taggedTemplateLiteralLoose -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@babel/runtime/helpers/esm/taggedTemplateLiteralLoose.js
+2026-04-04T19:56:56.046Z vite:resolve 0.16ms @smithy/middleware-content-length -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@smithy/middleware-content-length/dist-es/index.js
+2026-04-04T19:56:56.046Z vite:resolve 0.11ms d3-color -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/d3-color/src/index.js
+2026-04-04T19:56:56.046Z vite:resolve 0.13ms @smithy/middleware-endpoint -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@smithy/middleware-endpoint/dist-es/index.js
+2026-04-04T19:56:56.047Z vite:resolve 0.10ms tinycolor2 -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/tinycolor2/esm/tinycolor.js
+2026-04-04T19:56:56.047Z vite:resolve 0.11ms @smithy/middleware-retry -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@smithy/middleware-retry/dist-es/index.js
+2026-04-04T19:56:56.047Z vite:resolve 0.10ms data-bind-mapper -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/data-bind-mapper/dist/data-bind-mapper.mjs
+2026-04-04T19:56:56.048Z vite:resolve 0.50ms frame-ticker -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/frame-ticker/dist/FrameTicker.js
+2026-04-04T19:56:56.049Z vite:resolve 0.20ms d3-scale -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/d3-scale/src/index.js
+2026-04-04T19:56:56.049Z vite:resolve 0.20ms three-conic-polygon-geometry -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three-conic-polygon-geometry/dist/three-conic-polygon-geometry.mjs
+2026-04-04T19:56:56.049Z vite:resolve 0.12ms index-array-by -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/index-array-by/dist/index-array-by.mjs
+2026-04-04T19:56:56.050Z vite:resolve 0.25ms h3-js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/h3-js/dist/browser/h3-js.es.js
+2026-04-04T19:56:56.050Z vite:resolve 0.14ms d3-scale-chromatic -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/d3-scale-chromatic/src/index.js
+2026-04-04T19:56:56.050Z vite:resolve 0.14ms d3-array -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/d3-array/src/index.js
+2026-04-04T19:56:56.050Z vite:resolve 0.04ms three/tsl -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/build/three.tsl.js
+2026-04-04T19:56:56.050Z vite:resolve 0.07ms three/examples/jsm/lines/Line2.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/examples/jsm/lines/Line2.js
+2026-04-04T19:56:56.051Z vite:resolve 0.14ms three/examples/jsm/lines/LineGeometry.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/examples/jsm/lines/LineGeometry.js
+2026-04-04T19:56:56.051Z vite:resolve 0.16ms three/examples/jsm/lines/LineMaterial.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/examples/jsm/lines/LineMaterial.js
+2026-04-04T19:56:56.051Z vite:resolve 0.29ms d3-interpolate -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/d3-interpolate/src/index.js
+2026-04-04T19:56:56.052Z vite:resolve 0.06ms three/examples/jsm/geometries/TextGeometry.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/examples/jsm/geometries/TextGeometry.js
+2026-04-04T19:56:56.052Z vite:resolve 0.09ms three/examples/jsm/loaders/FontLoader.js -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/three/examples/jsm/loaders/FontLoader.js
+2026-04-04T19:56:56.053Z vite:resolve 0.14ms earcut -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/earcut/src/earcut.js
+2026-04-04T19:56:56.053Z vite:resolve 0.14ms d3-octree -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/d3-octree/src/index.js
+2026-04-04T19:56:56.054Z vite:resolve 0.13ms delaunator -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/delaunator/index.js
+2026-04-04T19:56:56.054Z vite:resolve 0.13ms @turf/boolean-point-in-polygon -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@turf/boolean-point-in-polygon/dist/esm/index.js
+2026-04-04T19:56:56.054Z vite:resolve 0.21ms d3-geo-voronoi -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/d3-geo-voronoi/src/index.js
+2026-04-04T19:56:56.057Z vite:resolve 0.17ms scheduler -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/scheduler/index.js
+2026-04-04T19:56:56.057Z vite:resolve 0.24ms point-in-polygon-hao -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/point-in-polygon-hao/dist/esm/index.js
+2026-04-04T19:56:56.057Z vite:resolve 0.12ms react-dom -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/react-dom/index.js
+2026-04-04T19:56:56.057Z vite:resolve 0.15ms @turf/invariant -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@turf/invariant/dist/esm/index.js
+2026-04-04T19:56:56.058Z vite:resolve 0.19ms robust-predicates -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/robust-predicates/index.js
+2026-04-04T19:56:56.058Z vite:resolve 0.18ms @turf/helpers -> /Users/timothyhalley/Projects/skicyclerun.com/node_modules/@turf/helpers/dist/esm/index.js
