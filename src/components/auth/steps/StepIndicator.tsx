@@ -1,10 +1,21 @@
+type IndicatorChallenge =
+  | "CONFIRM_SIGN_UP"
+  | "EMAIL_OTP"
+  | "SMS_OTP"
+  | "CUSTOM_CHALLENGE"
+  | null;
+
 export function StepIndicator({
-  isVerificationStep,
-  isLoginStep,
+  challengeName,
 }: {
-  isVerificationStep: boolean;
-  isLoginStep: boolean;
+  challengeName: IndicatorChallenge;
 }) {
+  const isVerificationStep = challengeName === "CONFIRM_SIGN_UP";
+  const isLoginStep =
+    challengeName === "EMAIL_OTP" ||
+    challengeName === "SMS_OTP" ||
+    challengeName === "CUSTOM_CHALLENGE";
+
   if (!isVerificationStep && !isLoginStep) return null;
 
   return (

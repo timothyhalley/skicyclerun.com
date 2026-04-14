@@ -6,6 +6,7 @@ import {
   resendPasswordlessCode,
   updateUserAttributes,
 } from "@utils/passwordlessAuth";
+import { PasswordlessAuthError } from "@utils/samAuthClient";
 import { storeTokens } from "@utils/clientAuth";
 import {
   detectGeolocation,
@@ -42,9 +43,58 @@ interface AuthHandlersContext {
 }
 
 export function createAuthHandlers(ctx: AuthHandlersContext) {
+  const getDeliveryDetails = (session: PasswordlessAuthSession | null) => {
+    const medium =
+      session?.challengeParameters?.CODE_DELIVERY_DELIVERY_MEDIUM || "";
+    const destination =
+      session?.challengeParameters?.CODE_DELIVERY_DESTINATION || "";
+    return { medium, destination };
+  };
+
+  const buildDeliveryFailureMessage = (error: any): string | null => {
+    // Handle SAM/HTTP errors (PasswordlessAuthError)
+    if (error instanceof PasswordlessAuthError) {
+      // SAM error message is already user-friendly
+      return error.message;
+    }
+
+    // Legacy Cognito SDK error handling (kept for backwards compatibility)
+    const name = String(error?.name || "");
+    const rawMessage = String(error?.message || "");
+
+    if (
+      name === "CodeDeliveryFailureException" ||
+      rawMessage.toLowerCase().includes("delivery")
+    ) {
+      return "Cognito could not deliver the code. Check Cognito email settings (or SES if configured), then try again.";
+    }
+
+    if (name === "InvalidEmailRoleAccessPolicyException") {
+      return "Email delivery is not configured correctly in Cognito. Check SES identity/policy for this user pool.";
+    }
+
+    if (
+      name === "InvalidSmsRoleAccessPolicyException" ||
+      name === "InvalidSmsRoleTrustRelationshipException"
+    ) {
+      return "SMS delivery is not configured correctly in Cognito/SNS IAM role.";
+    }
+
+    if (
+      name === "LimitExceededException" ||
+      name === "TooManyRequestsException"
+    ) {
+      return "Too many code requests. Wait a minute, then request a new code.";
+    }
+
+    return null;
+  };
+
   const handleSendCode = async (event?: FormEvent) => {
     event?.preventDefault();
-    if (!ctx.email || ctx.loading) return;
+    if (ctx.loading) return;
+
+    const normalizedEmail = ctx.email.trim().toLowerCase();
 
     let normalizedPhone: string | null = null;
     if (ctx.selectedMethod === "SMS_OTP") {
@@ -56,13 +106,30 @@ export function createAuthHandlers(ctx: AuthHandlersContext) {
         });
         return;
       }
+
+      if (!normalizedEmail && !normalizedPhone) {
+        ctx.setStatus({
+          tone: "error",
+          text: "Enter either an email or a phone number.",
+        });
+        return;
+      }
     }
+
+    if (ctx.selectedMethod !== "SMS_OTP" && !normalizedEmail) {
+      return;
+    }
+
+    const authIdentifier =
+      ctx.selectedMethod === "SMS_OTP"
+        ? normalizedPhone || normalizedEmail || ""
+        : normalizedEmail;
 
     try {
       ctx.setLoading(true);
       const copy = METHOD_COPY[ctx.selectedMethod];
       ctx.setStatus({ tone: "info", text: copy.sending });
-      const authSession = await startPasswordlessAuth(ctx.email, {
+      const authSession = await startPasswordlessAuth(authIdentifier, {
         preferredChallenge: ctx.selectedMethod,
         phoneNumber: normalizedPhone || undefined,
       });
@@ -107,15 +174,21 @@ export function createAuthHandlers(ctx: AuthHandlersContext) {
       if (authSession.challengeName === "CONFIRM_SIGN_UP") {
         ctx.setSession(authSession);
         ctx.setStep("code");
+        const { medium, destination } = getDeliveryDetails(authSession);
         ctx.setStatus({
           tone: "success",
-          text: "Account created! Check your email for the verification code.",
+          text:
+            destination && medium
+              ? `Account created! Verification code sent via ${medium.toLowerCase()} to ${destination}.`
+              : ctx.selectedMethod === "SMS_OTP"
+                ? "Account created! Check your messages for the verification code."
+                : "Account created! Check your email for the verification code.",
         });
         ctx.startResendCountdown();
         saveDialogState({
           isOpen: true,
           step: "code",
-          email: ctx.email,
+          email: normalizedEmail,
           phone: ctx.phone,
           session: authSession,
           selectedMethod: ctx.selectedMethod,
@@ -124,20 +197,49 @@ export function createAuthHandlers(ctx: AuthHandlersContext) {
       }
 
       ctx.setSession(authSession);
-      const resolvedMethod = normalizeMethod(
-        authSession.preferredChallenge ?? authSession.challengeName,
-      );
+      const resolvedMethod =
+        authSession.challengeName === "CUSTOM_CHALLENGE"
+          ? ctx.selectedMethod
+          : normalizeMethod(
+              authSession.preferredChallenge ?? authSession.challengeName,
+            );
+      const { medium, destination } = getDeliveryDetails(authSession);
+
+      if (resolvedMethod === "SMS_OTP" && medium && medium !== "SMS") {
+        ctx.setSession(authSession);
+        ctx.setStep("code");
+        ctx.setStatus({
+          tone: "error",
+          text: destination
+            ? `Cognito sent the code via ${medium.toLowerCase()} to ${destination}, not SMS. Verify phone_number in Cognito for SMS delivery.`
+            : `Cognito sent the code via ${medium.toLowerCase()}, not SMS. Verify phone_number in Cognito for SMS delivery.`,
+        });
+        ctx.startResendCountdown();
+        saveDialogState({
+          isOpen: true,
+          step: "code",
+          email: normalizedEmail,
+          phone: ctx.phone,
+          session: authSession,
+          selectedMethod: resolvedMethod,
+        });
+        return;
+      }
+
       ctx.setSelectedMethod(resolvedMethod);
       ctx.setStep("code");
       ctx.setStatus({
         tone: "success",
-        text: METHOD_COPY[resolvedMethod].sendSuccess,
+        text:
+          destination && medium
+            ? `Code sent via ${medium.toLowerCase()} to ${destination}.`
+            : METHOD_COPY[resolvedMethod].sendSuccess,
       });
       ctx.startResendCountdown();
       saveDialogState({
         isOpen: true,
         step: "code",
-        email: ctx.email,
+        email: normalizedEmail,
         phone: ctx.phone,
         session: authSession,
         selectedMethod: resolvedMethod,
@@ -147,22 +249,20 @@ export function createAuthHandlers(ctx: AuthHandlersContext) {
         "[PasswordlessAuthDialog] Failed to start auth",
         error,
       );
-      DebugConsole.error("[PasswordlessAuthDialog] Error name:", error?.name);
       DebugConsole.error(
-        "[PasswordlessAuthDialog] Error code:",
-        error?.$metadata?.httpStatusCode,
+        "[PasswordlessAuthDialog] Error status:",
+        error?.status,
+      );
+      DebugConsole.error(
+        "[PasswordlessAuthDialog] Error message:",
+        error?.message,
       );
 
       let message = "We couldn't send the code. Please try again.";
 
-      if (error?.name === "InvalidParameterException") {
-        message = `Invalid parameters: ${error.message}`;
-      } else if (error?.name === "NotAuthorizedException") {
-        message = "Authentication failed. Please check your credentials.";
-      } else if (error?.name === "UserNotFoundException") {
-        message = "User not found. Creating new account...";
-      } else if (error?.name === "TooManyRequestsException") {
-        message = "Too many attempts. Please wait a moment and try again.";
+      // SAM returns PasswordlessAuthError with friendly messages
+      if (error instanceof PasswordlessAuthError) {
+        message = error.message || message;
       } else if (error?.message) {
         message = error.message;
       }
@@ -479,9 +579,13 @@ export function createAuthHandlers(ctx: AuthHandlersContext) {
         newSession.preferredChallenge ?? newSession.challengeName,
       );
       ctx.setSelectedMethod(resolvedMethod);
+      const { medium, destination } = getDeliveryDetails(newSession);
       ctx.setStatus({
         tone: "success",
-        text: METHOD_COPY[resolvedMethod].resendSuccess,
+        text:
+          destination && medium
+            ? `New code sent via ${medium.toLowerCase()} to ${destination}.`
+            : METHOD_COPY[resolvedMethod].resendSuccess,
       });
       ctx.startResendCountdown();
       saveDialogState({
@@ -493,9 +597,12 @@ export function createAuthHandlers(ctx: AuthHandlersContext) {
         "[PasswordlessAuthDialog] Failed to resend code",
         error,
       );
+      const deliveryMessage = buildDeliveryFailureMessage(error);
       ctx.setStatus({
         tone: "error",
-        text: "We couldn't resend the code. Try again in a moment.",
+        text:
+          deliveryMessage ||
+          "We couldn't resend the code. Try again in a moment.",
       });
     } finally {
       ctx.setLoading(false);

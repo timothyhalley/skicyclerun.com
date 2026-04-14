@@ -1,31 +1,29 @@
 /**
  * Clean Passwordless Authentication Implementation
- * Based on AWS Cognito USER_AUTH flow with EMAIL_OTP/SMS_OTP
+ * Uses SAM (Serverless Application Model) API Gateway endpoints
  *
- * Flow:
+ * Flow via SAM:
  * 1. User enters email/phone
- * 2. System creates user if needed (SignUp) → sends verification code
- * 3. User enters verification code → account confirmed
- * 4. User automatically gets login code (EMAIL_OTP/SMS_OTP)
- * 5. User enters login code → receives JWT tokens
+ * 2. Call SAM /v2/auth/send-otp (handles user creation internally)
+ * 3. User enters OTP code
+ * 4. Call SAM /v2/auth/verify-otp → receive JWT tokens
  */
 
 import {
   AttributeType,
-  AuthFlowType,
-  ChallengeNameType,
   CognitoIdentityProviderClient,
-  ConfirmSignUpCommand,
   GetUserAttributeVerificationCodeCommand,
-  InitiateAuthCommand,
-  ResendConfirmationCodeCommand,
-  RespondToAuthChallengeCommand,
-  SignUpCommand,
   UpdateUserAttributesCommand,
   VerifyUserAttributeCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { cognitoConfig } from "@config/cognito";
 import { DebugConsole } from "@utils/DebugConsole";
+import {
+  samAuthClient,
+  PasswordlessAuthError,
+  type SendOtpRequest,
+  type VerifyOtpRequest,
+} from "@utils/samAuthClient";
 
 const client = new CognitoIdentityProviderClient({
   region: cognitoConfig.region,
@@ -38,7 +36,7 @@ export interface PasswordlessAuthSession {
   session: string;
   challengeName: string;
   challengeParameters?: Record<string, string>;
-  preferredChallenge?: ChallengeNameType;
+  preferredChallenge?: "EMAIL_OTP" | "SMS_OTP";
   isNewUser?: boolean; // NEW: track if this is a new user signup
   tokens?: {
     idToken?: string;
@@ -67,261 +65,103 @@ export interface UserProfileAttributes {
   [key: string]: string | undefined;
 }
 
-/**
- * Generate a temporary password for user creation
- * (Required by Cognito SignUp, but not used for passwordless auth)
- */
-function generateTempPassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%";
-  let password = "";
-  for (let i = 0; i < 16; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return `Temp${password}!1`;
+function isEmailIdentifier(value: string): boolean {
+  return value.includes("@");
 }
 
 /**
- * Create a new user in Cognito
- * Only called when we've confirmed the user doesn't exist
- */
-async function createNewUser(
-  email: string,
-  phoneNumber?: string,
-): Promise<void> {
-  const attributes: AttributeType[] = [{ Name: "email", Value: email }];
-
-  if (phoneNumber) {
-    attributes.push({ Name: "phone_number", Value: phoneNumber });
-  }
-
-  // Add timezone if configured
-  const timezone = import.meta.env.PUBLIC_COGNITO_TIMEZONE_VALUE || "UTC";
-  const timezoneAttr =
-    import.meta.env.PUBLIC_COGNITO_TIMEZONE_ATTRIBUTE || "zoneinfo";
-  if (timezoneAttr) {
-    attributes.push({ Name: timezoneAttr, Value: timezone });
-  }
-
-  const signUpResult = await client.send(
-    new SignUpCommand({
-      ClientId: cognitoConfig.clientId,
-      Username: email,
-      Password: generateTempPassword(),
-      UserAttributes: attributes,
-    }),
-  );
-
-  DebugConsole.auth("[PasswordlessAuth] New user created:", email);
-  DebugConsole.auth(
-    "[PasswordlessAuth] SignUp result:",
-    signUpResult.CodeDeliveryDetails,
-  );
-
-  // If Cognito didn't automatically send verification code, send it manually
-  if (!signUpResult.CodeDeliveryDetails) {
-    DebugConsole.auth(
-      "[PasswordlessAuth] No code delivery details, resending confirmation code",
-    );
-    await client.send(
-      new ResendConfirmationCodeCommand({
-        ClientId: cognitoConfig.clientId,
-        Username: email,
-      }),
-    );
-  }
-}
-
-/**
- * Initiate passwordless authentication
+ * Initiate passwordless authentication via SAM API
  *
- * For new users: sends verification code to confirm account
- * For existing users: sends login code (EMAIL_OTP/SMS_OTP)
+ * SAM endpoint handles:
+ * - User creation (if new user)
+ * - User confirmation (if new user)
+ * - OTP code delivery (EMAIL_OTP or SMS_OTP)
+ *
+ * Returns session with challenge name and delivery details
  */
 export async function startPasswordlessAuth(
-  email: string,
+  identifier: string,
   options: {
     preferredChallenge?: "EMAIL_OTP" | "SMS_OTP";
     phoneNumber?: string;
   } = {},
 ): Promise<PasswordlessAuthSession> {
-  const normalizedEmail = email.trim().toLowerCase();
+  const trimmedIdentifier = identifier.trim();
+  const normalizedIdentifier = isEmailIdentifier(trimmedIdentifier)
+    ? trimmedIdentifier.toLowerCase()
+    : trimmedIdentifier;
+  const normalizedEmail = isEmailIdentifier(normalizedIdentifier)
+    ? normalizedIdentifier
+    : undefined;
 
-  DebugConsole.auth("[PasswordlessAuth] Starting auth for:", normalizedEmail);
+  const challenge = options.preferredChallenge || "EMAIL_OTP";
 
-  // CRITICAL FIX: USER_AUTH flow returns EMAIL_OTP for non-existent users WITHOUT sending email!
-  // We must try SignUp first to handle new users properly.
-  // Strategy: Try SignUp first, if user exists (UsernameExistsException), then InitiateAuth
+  DebugConsole.auth(
+    "[PasswordlessAuth] Starting SAM auth for:",
+    normalizedIdentifier,
+    "challenge:",
+    challenge,
+  );
 
-  // First, try creating new user (this sends verification email)
   try {
+    // Call SAM endpoint
+    const request: SendOtpRequest = {
+      username: normalizedIdentifier,
+      preferredChallenge: challenge,
+    };
+
     DebugConsole.auth(
-      "[PasswordlessAuth] Attempting SignUp for potential new user",
+      "[PasswordlessAuth] Calling SAM /v2/auth/send-otp with:",
+      request,
     );
 
-    await createNewUser(normalizedEmail, options.phoneNumber);
+    const response = await samAuthClient.sendOtp(request);
 
-    // New user created successfully - they need to verify their account first
-    DebugConsole.auth(
-      "[PasswordlessAuth] New user created, verification email sent",
-    );
+    DebugConsole.auth("[PasswordlessAuth] SAM response:", response);
 
-    return {
-      username: normalizedEmail,
+    // Map SAM response to PasswordlessAuthSession
+    const session: PasswordlessAuthSession = {
+      username: normalizedIdentifier,
       email: normalizedEmail,
       phoneNumber: options.phoneNumber,
-      session: "PENDING_CONFIRMATION",
-      challengeName: "CONFIRM_SIGN_UP",
-      preferredChallenge: options.preferredChallenge,
-      isNewUser: true,
+      session: response.session || "",
+      challengeName: response.challengeName || challenge,
+      challengeParameters: response.challengeParameters,
+      preferredChallenge: challenge,
     };
-  } catch (signUpError: any) {
-    // User already exists - proceed with normal auth flow
-    if (signUpError.name === "UsernameExistsException") {
-      DebugConsole.auth(
-        "[PasswordlessAuth] User exists, proceeding with InitiateAuth",
-      );
-    } else {
-      // Unexpected error during SignUp
-      DebugConsole.auth(
-        "[PasswordlessAuth] SignUp error:",
-        signUpError.name,
-        signUpError.message,
-      );
-      throw signUpError;
-    }
-  }
 
-  // User exists, try to authenticate (existing user flow)
-  try {
-    const response = await client.send(
-      new InitiateAuthCommand({
-        AuthFlow: AuthFlowType.USER_AUTH,
-        ClientId: cognitoConfig.clientId,
-        AuthParameters: {
-          USERNAME: normalizedEmail,
-        },
-      }),
-    );
+    DebugConsole.auth("[PasswordlessAuth] Session created:", session);
 
-    DebugConsole.auth(
-      "[PasswordlessAuth] InitiateAuth succeeded, challenge:",
-      response.ChallengeName,
-    );
-
-    // Handle SELECT_CHALLENGE
-    if (response.ChallengeName === "SELECT_CHALLENGE") {
-      const preferredChallenge = options.preferredChallenge || "EMAIL_OTP";
-
-      DebugConsole.auth(
-        "[PasswordlessAuth] Responding to SELECT_CHALLENGE with:",
-        preferredChallenge,
-      );
-
-      const selectResponse = await client.send(
-        new RespondToAuthChallengeCommand({
-          ClientId: cognitoConfig.clientId,
-          ChallengeName: "SELECT_CHALLENGE",
-          Session: response.Session,
-          ChallengeResponses: {
-            USERNAME: normalizedEmail,
-            ANSWER: preferredChallenge,
-          },
-        }),
-      );
-
-      DebugConsole.auth(
-        "[PasswordlessAuth] SELECT_CHALLENGE response:",
-        selectResponse.ChallengeName,
-      );
-      DebugConsole.auth(
-        "[PasswordlessAuth] Code delivery:",
-        selectResponse.ChallengeParameters?.CODE_DELIVERY_DELIVERY_MEDIUM,
-        selectResponse.ChallengeParameters?.CODE_DELIVERY_DESTINATION,
-      );
-
-      return {
-        username: normalizedEmail,
-        email: normalizedEmail,
-        phoneNumber: options.phoneNumber,
-        session: selectResponse.Session || "",
-        challengeName: selectResponse.ChallengeName || preferredChallenge,
-        challengeParameters: selectResponse.ChallengeParameters,
-        preferredChallenge,
-      };
-    }
-
-    // Direct challenge (EMAIL_OTP/SMS_OTP) - no SELECT_CHALLENGE step
-    DebugConsole.auth(
-      "[PasswordlessAuth] Direct challenge:",
-      response.ChallengeName,
-    );
-    DebugConsole.auth(
-      "[PasswordlessAuth] Code delivery:",
-      response.ChallengeParameters?.CODE_DELIVERY_DELIVERY_MEDIUM,
-      response.ChallengeParameters?.CODE_DELIVERY_DESTINATION,
-    );
-
-    return {
-      username: normalizedEmail,
-      email: normalizedEmail,
-      phoneNumber: options.phoneNumber,
-      session: response.Session || "",
-      challengeName: response.ChallengeName || "EMAIL_OTP",
-      challengeParameters: response.ChallengeParameters,
-      preferredChallenge: options.preferredChallenge,
-    };
+    return session;
   } catch (error: any) {
-    DebugConsole.auth("[PasswordlessAuth] InitiateAuth failed:", error.name);
-
-    // User exists but not confirmed - resend verification code
-    if (error.name === "UserNotConfirmedException") {
-      DebugConsole.auth(
-        "[PasswordlessAuth] User exists but not confirmed, resending verification code",
+    // Handle SAM errors (HTTP status + error message)
+    if (error instanceof PasswordlessAuthError) {
+      DebugConsole.error(
+        "[PasswordlessAuth] SAM error:",
+        error.status,
+        error.message,
       );
+      DebugConsole.error("[PasswordlessAuth] Error body:", error.body);
 
-      // Resend confirmation code
-      try {
-        await client.send(
-          new ResendConfirmationCodeCommand({
-            ClientId: cognitoConfig.clientId,
-            Username: normalizedEmail,
-          }),
-        );
+      // Map common SAM errors to user-friendly messages
+      const errorMessage = error.message || "Authentication failed";
 
-        DebugConsole.auth("[PasswordlessAuth] Verification code resent");
-      } catch (resendError: any) {
-        DebugConsole.error(
-          "[PasswordlessAuth] Failed to resend code:",
-          resendError,
-        );
-      }
-
-      return {
-        username: normalizedEmail,
-        email: normalizedEmail,
-        phoneNumber: options.phoneNumber,
-        session: "PENDING_CONFIRMATION",
-        challengeName: "CONFIRM_SIGN_UP",
-        preferredChallenge: options.preferredChallenge,
-      };
+      // Re-throw with same error so handlers.ts can use the message format
+      throw error;
     }
-
-    // Note: UserNotFoundException should never happen here because we tried SignUp first
-    // If it does, it's an unexpected state - log and throw
 
     // Unexpected error
     DebugConsole.error("[PasswordlessAuth] Unexpected auth error:", error);
-    DebugConsole.error("[PasswordlessAuth] Error name:", error.name);
-    DebugConsole.error("[PasswordlessAuth] Error message:", error.message);
+    DebugConsole.error("[PasswordlessAuth] Error name:", error?.name);
+    DebugConsole.error("[PasswordlessAuth] Error message:", error?.message);
     throw error;
   }
 }
 
 /**
- * Confirm a verification or login code
+ * Confirm OTP code via SAM API
  *
- * For CONFIRM_SIGN_UP: verifies the account and initiates login
- * For EMAIL_OTP/SMS_OTP: completes login and returns tokens
+ * SAM endpoint verifies the OTP and returns JWT tokens
  */
 export async function confirmPasswordlessAuth(
   session: PasswordlessAuthSession,
@@ -329,109 +169,126 @@ export async function confirmPasswordlessAuth(
 ): Promise<PasswordlessAuthResult> {
   const trimmedCode = code.trim();
 
-  // Handle account confirmation
-  if (session.challengeName === "CONFIRM_SIGN_UP") {
-    await client.send(
-      new ConfirmSignUpCommand({
-        ClientId: cognitoConfig.clientId,
-        Username: session.username,
-        ConfirmationCode: trimmedCode,
-      }),
-    );
-
-    DebugConsole.auth(
-      "[PasswordlessAuth] Account confirmed:",
-      session.username,
-    );
-
-    // NEW: Signal that profile completion is available for new users
-    if (session.isNewUser) {
-      return {
-        needsProfileCompletion: true,
-        nextSession: {
-          ...session,
-          challengeName: "PROFILE_COMPLETION", // Custom step
-          session: "PROFILE_COMPLETION",
-        },
-      };
-    }
-
-    // After confirmation, initiate auth to get login code
-    const authSession = await startPasswordlessAuth(
-      session.email || session.username,
-      {
-        preferredChallenge: session.preferredChallenge as
-          | "EMAIL_OTP"
-          | "SMS_OTP",
-        phoneNumber: session.phoneNumber,
-      },
-    );
-
-    return { nextSession: authSession };
-  }
-
-  // Handle EMAIL_OTP/SMS_OTP
-  const challengeResponses: Record<string, string> = {
-    USERNAME: session.username,
-  };
-
-  if (session.challengeName === "EMAIL_OTP") {
-    challengeResponses.EMAIL_OTP_CODE = trimmedCode;
-  } else if (session.challengeName === "SMS_OTP") {
-    challengeResponses.SMS_OTP_CODE = trimmedCode;
-  }
-  challengeResponses.ANSWER = trimmedCode;
-
-  const response = await client.send(
-    new RespondToAuthChallengeCommand({
-      ClientId: cognitoConfig.clientId,
-      ChallengeName: session.challengeName as ChallengeNameType,
-      Session: session.session,
-      ChallengeResponses: challengeResponses,
-    }),
+  DebugConsole.auth(
+    "[PasswordlessAuth] Confirming code for:",
+    session.username,
+    "challenge:",
+    session.challengeName,
   );
 
-  if (!response.AuthenticationResult) {
-    throw new Error("Authentication failed - no tokens returned");
-  }
+  try {
+    // Call SAM endpoint
+    const request: VerifyOtpRequest = {
+      username: session.username,
+      session: session.session,
+      challengeName: (session.challengeName || "EMAIL_OTP") as
+        | "EMAIL_OTP"
+        | "SMS_OTP",
+      code: trimmedCode,
+    };
 
-  return {
-    tokens: {
-      idToken: response.AuthenticationResult.IdToken,
-      accessToken: response.AuthenticationResult.AccessToken,
-      refreshToken: response.AuthenticationResult.RefreshToken,
-      expiresIn: response.AuthenticationResult.ExpiresIn,
-      tokenType: response.AuthenticationResult.TokenType,
-    },
-  };
+    DebugConsole.auth(
+      "[PasswordlessAuth] Calling SAM /v2/auth/verify-otp with:",
+      { ...request, code: "***" },
+    );
+
+    const response = await samAuthClient.verifyOtp(request);
+
+    DebugConsole.auth("[PasswordlessAuth] SAM verify-otp response:", {
+      idToken: response.idToken
+        ? response.idToken.substring(0, 20) + "..."
+        : undefined,
+      accessToken: response.accessToken
+        ? response.accessToken.substring(0, 20) + "..."
+        : undefined,
+      challengeName: response.challengeName,
+    });
+
+    // Return tokens
+    return {
+      tokens: {
+        idToken: response.idToken,
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+        expiresIn: response.expiresIn,
+        tokenType: response.tokenType,
+      },
+    };
+  } catch (error: any) {
+    // Handle SAM errors
+    if (error instanceof PasswordlessAuthError) {
+      DebugConsole.error(
+        "[PasswordlessAuth] SAM error:",
+        error.status,
+        error.message,
+      );
+      DebugConsole.error("[PasswordlessAuth] Error body:", error.body);
+
+      // Re-throw so handlers.ts can use the message
+      throw error;
+    }
+
+    // Unexpected error
+    DebugConsole.error("[PasswordlessAuth] Unexpected confirm error:", error);
+    DebugConsole.error("[PasswordlessAuth] Error name:", error?.name);
+    DebugConsole.error("[PasswordlessAuth] Error message:", error?.message);
+    throw error;
+  }
 }
 
 /**
- * Resend verification or login code
+ * Resend OTP code via SAM API
+ *
+ * Simply re-calls send-otp with the same username and challenge
  */
 export async function resendPasswordlessCode(
   session: PasswordlessAuthSession,
 ): Promise<PasswordlessAuthSession> {
-  // Handle CONFIRM_SIGN_UP - resend confirmation code
-  if (session.challengeName === "CONFIRM_SIGN_UP") {
-    await client.send(
-      new ResendConfirmationCodeCommand({
-        ClientId: cognitoConfig.clientId,
-        Username: session.username,
-      }),
-    );
-    DebugConsole.auth(
-      "[PasswordlessAuth] Resent confirmation code:",
-      session.username,
-    );
-    return session; // Return same session
-  }
+  DebugConsole.auth(
+    "[PasswordlessAuth] Resending code for:",
+    session.username,
+    "challenge:",
+    session.challengeName,
+  );
 
-  // For EMAIL_OTP/SMS_OTP - re-initiate auth to get a new code
-  return await startPasswordlessAuth(session.email || session.username, {
-    preferredChallenge: session.preferredChallenge as "EMAIL_OTP" | "SMS_OTP",
-    phoneNumber: session.phoneNumber || undefined,
-  });
+  try {
+    // Re-call send-otp to get a new code
+    const request: SendOtpRequest = {
+      username: session.username,
+      preferredChallenge: (session.challengeName || "EMAIL_OTP") as
+        | "EMAIL_OTP"
+        | "SMS_OTP",
+    };
+
+    const response = await samAuthClient.sendOtp(request);
+
+    const newSession: PasswordlessAuthSession = {
+      ...session,
+      session: response.session || session.session,
+      challengeParameters:
+        response.challengeParameters || session.challengeParameters,
+    };
+
+    DebugConsole.auth(
+      "[PasswordlessAuth] Code resent, new session:",
+      newSession,
+    );
+
+    return newSession;
+  } catch (error: any) {
+    // Handle SAM errors
+    if (error instanceof PasswordlessAuthError) {
+      DebugConsole.error(
+        "[PasswordlessAuth] SAM resend error:",
+        error.status,
+        error.message,
+      );
+      throw error;
+    }
+
+    DebugConsole.error("[PasswordlessAuth] Unexpected resend error:", error);
+    throw error;
+  }
 }
 
 /**

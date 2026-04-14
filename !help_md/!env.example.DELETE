@@ -6,6 +6,10 @@
 SKICYCLERUN_URL=https://localhost:4321
 PUBLIC_SKICYCLERUN_API=https://api.skicyclerun.com/v2/
 
+# SAM (Serverless Application Model) Passwordless Auth API
+# API Gateway endpoint for password-less authentication (EMAIL_OTP / SMS_OTP)
+PUBLIC_AUTH_API_URL=https://ltohdaduj0.execute-api.us-west-2.amazonaws.com/Prod
+
 # API and auth settings (legacy - for compatibility)
 COGNITO_DOMAIN=https://your-cognito-domain.auth.region.amazoncognito.com
 COGNITO_USER_POOL_ID=your_user_pool_id

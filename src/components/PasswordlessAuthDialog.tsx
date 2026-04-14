@@ -137,26 +137,39 @@ export default function PasswordlessAuthDialog() {
     return "pl-auth__status";
   }, [status]);
 
+  const currentChallenge = session?.challengeName ?? null;
+  const deliveryMedium =
+    session?.challengeParameters?.CODE_DELIVERY_DELIVERY_MEDIUM ?? "";
+
   const codePromptMethod =
     step === "code"
-      ? normalizeMethod(
-          session?.preferredChallenge ??
-            session?.challengeName ??
-            selectedMethod,
-        )
+      ? currentChallenge === "CONFIRM_SIGN_UP"
+        ? deliveryMedium === "SMS"
+          ? "SMS_OTP"
+          : "EMAIL_OTP"
+        : normalizeMethod(
+            session?.preferredChallenge ??
+              session?.challengeName ??
+              selectedMethod,
+          )
       : selectedMethod;
 
   const codePromptCopy = METHOD_COPY[codePromptMethod];
-  const promptEmail = session?.phoneNumber ?? session?.email ?? email;
+  const promptEmail =
+    session?.challengeParameters?.CODE_DELIVERY_DESTINATION ||
+    session?.phoneNumber ||
+    session?.email ||
+    email;
   const emailStepMessage =
     selectedMethod === "SMS_OTP"
-      ? "Enter your email and the phone number where you want the text sent."
+      ? "Enter your phone number for SMS sign-in. Email is optional."
       : "Enter your email and we'll send a one-time code to your inbox.";
 
-  const isVerificationStep = session?.challengeName === "CONFIRM_SIGN_UP";
+  const isVerificationStep = currentChallenge === "CONFIRM_SIGN_UP";
   const isLoginStep =
-    session?.challengeName === "EMAIL_OTP" ||
-    session?.challengeName === "SMS_OTP";
+    currentChallenge === "EMAIL_OTP" ||
+    currentChallenge === "SMS_OTP" ||
+    currentChallenge === "CUSTOM_CHALLENGE";
 
   // Dialog title and subtitle
   const dialogTitle =
@@ -200,9 +213,10 @@ export default function PasswordlessAuthDialog() {
   // Sync selected method with session
   useEffect(() => {
     if (!session) return;
-    const resolved = normalizeMethod(
-      session.preferredChallenge ?? session.challengeName,
-    );
+    const resolved =
+      session.challengeName === "CUSTOM_CHALLENGE"
+        ? normalizeMethod(session.preferredChallenge ?? selectedMethod)
+        : normalizeMethod(session.preferredChallenge ?? session.challengeName);
     if (resolved !== selectedMethod) {
       setSelectedMethod(resolved);
     }
@@ -224,12 +238,7 @@ export default function PasswordlessAuthDialog() {
         <h2 className="pl-auth__title">{dialogTitle}</h2>
         <p className="pl-auth__subtitle">{dialogSubtitle}</p>
 
-        {step === "code" && (
-          <StepIndicator
-            isVerificationStep={isVerificationStep}
-            isLoginStep={isLoginStep}
-          />
-        )}
+        {step === "code" && <StepIndicator challengeName={currentChallenge} />}
 
         {status && <div className={statusClass}>{status.text}</div>}
 

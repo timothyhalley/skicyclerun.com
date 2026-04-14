@@ -57,8 +57,8 @@ export function EmailStep({
       {selectedMethod === "SMS_OTP" && (
         <>
           <p className="pl-auth__hint">
-            We'll text the code to your verified phone number. Include the
-            country code (e.g. +1).
+            We'll text a one-time code to this phone number. Include the country
+            code (e.g. +1). Email is optional.
           </p>
           <label className="pl-auth__label" htmlFor="passwordless-phone">
             Phone number
@@ -76,14 +76,14 @@ export function EmailStep({
         </>
       )}
       <label className="pl-auth__label" htmlFor="passwordless-email">
-        Account email
+        {isSmsSelected ? "Account email (optional)" : "Account email"}
       </label>
       <input
         id="passwordless-email"
         type="email"
         value={email}
         onChange={(event) => onEmailChange(event.target.value)}
-        required
+        required={!isSmsSelected}
         placeholder="you@example.com"
         className="pl-auth__input"
         autoComplete="email"
@@ -93,7 +93,9 @@ export function EmailStep({
         type="submit"
         className="pl-auth__button --primary"
         disabled={
-          loading || !email || (isSmsSelected && phone.trim().length === 0)
+          loading ||
+          (!isSmsSelected && !email) ||
+          (isSmsSelected && phone.trim().length === 0)
         }
       >
         {loading ? "Sending..." : sendButtonText}
