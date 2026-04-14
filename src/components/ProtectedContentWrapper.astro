@@ -34,7 +34,7 @@ const { authRequired = true, requiredGroups = [] } = Astro.props;
     >
       <div class="flex items-start gap-4 mb-6">
         <svg
-          class="w-8 h-8 text-[rgb(var(--color-accent))] flex-shrink-0 mt-1"
+          class="w-8 h-8 text-[rgb(var(--color-accent))] shrink-0 mt-1"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -138,30 +138,6 @@ const { authRequired = true, requiredGroups = [] } = Astro.props;
   (function () {
     const MAX_ATTEMPTS = 3; // Reduced for faster auth decision (was 6)
 
-    function decodeIdTokenGroups() {
-      try {
-        const token = localStorage.getItem("cognito_id_token");
-        if (!token) return null;
-        const parts = token.split(".");
-        if (parts.length < 2) return null;
-        const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-        const json = decodeURIComponent(
-          atob(payload)
-            .split("")
-            .map(function (c) {
-              return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-            })
-            .join("")
-        );
-        const data = JSON.parse(json);
-        // Try common claim names
-        return data["cognito:groups"] || data["groups"] || null;
-      } catch (e) {
-        console.debug("PCW: decodeIdTokenGroups failed:", e);
-        return null;
-      }
-    }
-
     async function detectAuthOnce() {
       // Returns { signedIn: bool, groups: Array, source: string, raw: any }
       try {
@@ -192,54 +168,19 @@ const { authRequired = true, requiredGroups = [] } = Astro.props;
           };
         }
 
-        // cookie/localStorage quick checks
         try {
-          const cookies = (document.cookie || "").split(";");
-          const names = [
-            "cognito_id_token",
-            "cognito_access_token",
-            "CognitoIdentityServiceProvider",
-          ];
-          const hasAny = cookies.some((c) => {
-            const t = c.trim();
-            return names.some((n) => t.startsWith(n + "="));
-          });
-          if (hasAny)
-            return { signedIn: true, groups: [], source: "cookie", raw: null };
-        } catch (e) {
-          /* ignore */
-        }
-
-        try {
-          for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i) || "";
-            if (
-              k.includes("CognitoIdentityServiceProvider") ||
-              k === "cognito_id_token"
-            ) {
-              // decode groups if possible
-              const groups = decodeIdTokenGroups();
-              return {
-                signedIn: true,
-                groups: groups || [],
-                source: "localStorage",
-                raw: null,
-              };
-            }
+          const otpSession = localStorage.getItem("passwordless_auth_session");
+          if (otpSession) {
+            return {
+              signedIn: true,
+              groups: [],
+              source: "otp-session",
+              raw: null,
+            };
           }
         } catch (e) {
           /* ignore */
         }
-
-        // last resort: decode id token directly
-        const tokenGroups = decodeIdTokenGroups();
-        if (tokenGroups)
-          return {
-            signedIn: true,
-            groups: tokenGroups,
-            source: "token-claim",
-            raw: null,
-          };
 
         return { signedIn: false, groups: [], source: "none", raw: null };
       } catch (e) {
@@ -759,36 +700,10 @@ const { authRequired = true, requiredGroups = [] } = Astro.props;
 
     // Listen for storage changes (other windows or bridge writes)
     window.addEventListener("storage", (ev) => {
-      // React more broadly to storage changes that look like auth tokens.
       try {
         if (!ev.key) return;
-        const exactKeys = new Set(["cognito_id_token", "cognito_access_token"]);
-        if (exactKeys.has(ev.key)) {
-          console.debug("PCW: storage event (exact key)=", ev.key);
-          debounceGlobalCheck(100, true);
-          return;
-        }
-
-        // If key looks like a Cognito provider key or contains 'Cognito' substring
-        if (ev.key.includes("Cognito") || ev.key.includes("cognito")) {
-          const val = ev.newValue || "";
-          const looksLikeJwt =
-            typeof val === "string" && val.split(".").length === 3;
-          const longString = typeof val === "string" && val.length >= 100;
-          if (looksLikeJwt || longString) {
-            console.debug("PCW: storage event (cognito-ish key)=", ev.key);
-            debounceGlobalCheck(100, true);
-            return;
-          }
-        }
-
-        // Fallback: if the new value looks like a JWT (three segments) or long token-ish
-        const nv = ev.newValue || "";
-        if (
-          typeof nv === "string" &&
-          (nv.split(".").length === 3 || nv.length >= 100)
-        ) {
-          console.debug("PCW: storage event (token-like newValue)");
+        if (ev.key === "passwordless_auth_session") {
+          console.debug("PCW: storage event (otp session)");
           debounceGlobalCheck(100, true);
         }
       } catch (e) {

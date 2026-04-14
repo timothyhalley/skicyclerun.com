@@ -1,6 +1,5 @@
 ---
 import { SkiCycleRunConfig } from "skicyclerun.config";
-import { cognitoConfig } from "@config/cognito";
 import "@styles/base.css";
 import "@styles/prose-fix.css"; // Import our prose fix for Tailwind v4
 import "@styles/auth-styles.css"; // Import auth-related styles
@@ -35,15 +34,6 @@ const socialImageURL = new URL(
   Astro.url.origin
 ).href;
 
-const authBridgeVars = {
-  cognito: {
-    domain: cognitoConfig.domain,
-    clientId: cognitoConfig.clientId,
-    scopes: cognitoConfig.scopes,
-    redirectUri: cognitoConfig.redirectUri,
-    logoutUri: cognitoConfig.logoutUri,
-  },
-};
 ---
 
 <!doctype html>
@@ -115,9 +105,8 @@ const authBridgeVars = {
     {
       /** Global, minimal auth icon handler (uses localStorage tokens, toggles #auth-btn icons) */
     }
-    <!-- Auth bridge inline script to handle OAuth redirect -->
-    <script is:inline define:vars={{ cognito: authBridgeVars.cognito }}>
-      // Handle OAuth redirect and token exchange
+    <!-- Auth bridge inline script for OTP session state -->
+    <script is:inline>
       (async function () {
         // Use global debug helpers (loaded from debug-helper.js)
         const debug = window.debugLog
@@ -127,76 +116,39 @@ const authBridgeVars = {
           ? (cat, ...args) => window.debugError(cat, ...args)
           : () => {};
 
-        const TOKEN_KEYS = {
-          idToken: "cognito_id_token",
-          accessToken: "cognito_access_token",
-          refreshToken: "cognito_refresh_token",
-        };
-
-        function parseJWT(token) {
-          try {
-            const base64Url = token.split(".")[1];
-            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-            const jsonPayload = decodeURIComponent(
-              atob(base64)
-                .split("")
-                .map(
-                  (c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
-                )
-                .join("")
-            );
-            return JSON.parse(jsonPayload);
-          } catch {
-            return null;
-          }
-        }
-
-        function isTokenExpired(token) {
-          const payload = parseJWT(token);
-          if (!payload || !payload.exp) return true;
-          return Date.now() >= payload.exp * 1000;
-        }
+        const OTP_SESSION_KEY = "passwordless_auth_session";
 
         function clearTokens() {
           try {
-            Object.values(TOKEN_KEYS).forEach((key) =>
-              localStorage.removeItem(key)
-            );
+            localStorage.removeItem(OTP_SESSION_KEY);
             debug("auth", "Tokens cleared");
           } catch (e) {
             debugError("auth", "Failed to clear tokens:", e);
           }
         }
 
-        function getStoredTokens() {
+        function getStoredSession() {
           try {
-            return {
-              idToken: localStorage.getItem(TOKEN_KEYS.idToken) || undefined,
-              accessToken:
-                localStorage.getItem(TOKEN_KEYS.accessToken) || undefined,
-              refreshToken:
-                localStorage.getItem(TOKEN_KEYS.refreshToken) || undefined,
-            };
+            const raw = localStorage.getItem(OTP_SESSION_KEY);
+            return raw ? JSON.parse(raw) : null;
           } catch {
-            return {};
+            return null;
           }
         }
 
         function getAuthState() {
-          const tokens = getStoredTokens();
-          if (!tokens.idToken || isTokenExpired(tokens.idToken)) {
-            return { signedIn: false };
-          }
-          const payload = parseJWT(tokens.idToken);
-          if (!payload) {
+          const session = getStoredSession();
+          if (!session) {
             return { signedIn: false };
           }
           return {
             signedIn: true,
-            email: payload.email || null,
-            groups: payload["cognito:groups"] || [],
-            idToken: tokens.idToken,
-            accessToken: tokens.accessToken,
+            email: session.email || null,
+            phone: session.phone || null,
+            method: session.method,
+            groups: [],
+            idToken: null,
+            accessToken: null,
           };
         }
 
@@ -255,18 +207,8 @@ const authBridgeVars = {
           loginPasswordless: openPasswordlessDialog,
           logout: logout,
           getState: getAuthState,
-          getIdToken: () => {
-            const tokens = getStoredTokens();
-            return tokens.idToken && !isTokenExpired(tokens.idToken)
-              ? tokens.idToken
-              : null;
-          },
-          getAccessToken: () => {
-            const tokens = getStoredTokens();
-            return tokens.accessToken && !isTokenExpired(tokens.accessToken)
-              ? tokens.accessToken
-              : null;
-          },
+          getIdToken: () => null,
+          getAccessToken: () => null,
         };
         debug("auth", "Passwordless auth bridge ready");
       })();

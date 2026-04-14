@@ -7,7 +7,7 @@ import {
   updateUserAttributes,
 } from "@utils/passwordlessAuth";
 import { PasswordlessAuthError } from "@utils/samAuthClient";
-import { storeTokens } from "@utils/clientAuth";
+import { storePasswordlessSession } from "@utils/clientAuth";
 import {
   detectGeolocation,
   formatLocationForDisplay,
@@ -129,102 +129,17 @@ export function createAuthHandlers(ctx: AuthHandlersContext) {
       ctx.setLoading(true);
       const copy = METHOD_COPY[ctx.selectedMethod];
       ctx.setStatus({ tone: "info", text: copy.sending });
+      DebugConsole.api("[PasswordlessAuthDialog] POST /v2/auth/send-otp");
       const authSession = await startPasswordlessAuth(authIdentifier, {
         preferredChallenge: ctx.selectedMethod,
         phoneNumber: normalizedPhone || undefined,
       });
 
-      if (authSession.tokens) {
-        ctx.setSelectedMethod(
-          normalizeMethod(
-            authSession.preferredChallenge ?? authSession.challengeName,
-          ),
-        );
-        storeTokens({
-          idToken: authSession.tokens.idToken,
-          accessToken: authSession.tokens.accessToken,
-          refreshToken: authSession.tokens.refreshToken,
-        });
-        ctx.setSession(authSession);
-        ctx.setStatus({
-          tone: "success",
-          text: "You're signed in!",
-        });
-        ctx.setStep("success");
-        document.dispatchEvent(
-          new CustomEvent("auth:state-change", {
-            detail: { isAuthenticated: true },
-          }),
-        );
-        setTimeout(() => {
-          ctx.closeDialog();
-          document.dispatchEvent(
-            new CustomEvent("auth-changed", {
-              detail: { authenticated: true },
-            }),
-          );
-          if (window.updateAuthIcon) {
-            window.updateAuthIcon();
-          }
-        }, 900);
-        return;
-      }
-
-      // Handle new user confirmation flow
-      if (authSession.challengeName === "CONFIRM_SIGN_UP") {
-        ctx.setSession(authSession);
-        ctx.setStep("code");
-        const { medium, destination } = getDeliveryDetails(authSession);
-        ctx.setStatus({
-          tone: "success",
-          text:
-            destination && medium
-              ? `Account created! Verification code sent via ${medium.toLowerCase()} to ${destination}.`
-              : ctx.selectedMethod === "SMS_OTP"
-                ? "Account created! Check your messages for the verification code."
-                : "Account created! Check your email for the verification code.",
-        });
-        ctx.startResendCountdown();
-        saveDialogState({
-          isOpen: true,
-          step: "code",
-          email: normalizedEmail,
-          phone: ctx.phone,
-          session: authSession,
-          selectedMethod: ctx.selectedMethod,
-        });
-        return;
-      }
-
       ctx.setSession(authSession);
-      const resolvedMethod =
-        authSession.challengeName === "CUSTOM_CHALLENGE"
-          ? ctx.selectedMethod
-          : normalizeMethod(
-              authSession.preferredChallenge ?? authSession.challengeName,
-            );
+      const resolvedMethod = normalizeMethod(
+        authSession.preferredChallenge ?? authSession.challengeName,
+      );
       const { medium, destination } = getDeliveryDetails(authSession);
-
-      if (resolvedMethod === "SMS_OTP" && medium && medium !== "SMS") {
-        ctx.setSession(authSession);
-        ctx.setStep("code");
-        ctx.setStatus({
-          tone: "error",
-          text: destination
-            ? `Cognito sent the code via ${medium.toLowerCase()} to ${destination}, not SMS. Verify phone_number in Cognito for SMS delivery.`
-            : `Cognito sent the code via ${medium.toLowerCase()}, not SMS. Verify phone_number in Cognito for SMS delivery.`,
-        });
-        ctx.startResendCountdown();
-        saveDialogState({
-          isOpen: true,
-          step: "code",
-          email: normalizedEmail,
-          phone: ctx.phone,
-          session: authSession,
-          selectedMethod: resolvedMethod,
-        });
-        return;
-      }
 
       ctx.setSelectedMethod(resolvedMethod);
       ctx.setStep("code");
@@ -263,6 +178,11 @@ export function createAuthHandlers(ctx: AuthHandlersContext) {
       // SAM returns PasswordlessAuthError with friendly messages
       if (error instanceof PasswordlessAuthError) {
         message = error.message || message;
+
+        if (error.status === 500 && ctx.selectedMethod === "EMAIL_OTP") {
+          message =
+            "OTP API returned 500. If SES is in sandbox, use a verified recipient email (for example skicyclerun@gmail.com).";
+        }
       } else if (error?.message) {
         message = error.message;
       }
@@ -280,54 +200,22 @@ export function createAuthHandlers(ctx: AuthHandlersContext) {
     try {
       ctx.setLoading(true);
       ctx.setStatus({ tone: "info", text: "Verifying code..." });
+      DebugConsole.api("[PasswordlessAuthDialog] POST /v2/auth/verify-otp");
       const result = await confirmPasswordlessAuth(ctx.session, ctx.code);
 
-      if (result.tokens) {
-        storeTokens({
-          idToken: result.tokens.idToken,
-          accessToken: result.tokens.accessToken,
-          refreshToken: result.tokens.refreshToken,
-        });
-
+      if (result.authenticated) {
         const pendingProfile = sessionStorage.getItem("pending_profile");
-        DebugConsole.auth(
-          "[ProfileCompletion] Checking for pending profile data:",
-          pendingProfile,
-        );
-
-        if (pendingProfile && result.tokens.accessToken) {
-          try {
-            const profileData = JSON.parse(pendingProfile);
-            DebugConsole.auth(
-              "[ProfileCompletion] Parsed profile data:",
-              profileData,
-            );
-            DebugConsole.auth(
-              "[ProfileCompletion] Access token present:",
-              !!result.tokens.accessToken,
-            );
-
-            await updateUserAttributes(result.tokens.accessToken, profileData);
-            sessionStorage.removeItem("pending_profile");
-
-            DebugConsole.auth(
-              "[ProfileCompletion] ✅ Profile data saved successfully!",
-            );
-            ctx.setStatus({
-              tone: "success",
-              text: "✅ Profile saved! You're signed in.",
-            });
-          } catch (error) {
-            DebugConsole.error(
-              "[ProfileCompletion] ❌ Failed to save profile data:",
-              error,
-            );
-          }
-        } else {
-          DebugConsole.auth(
-            "[ProfileCompletion] No pending profile data to save",
+        if (pendingProfile) {
+          DebugConsole.warn(
+            "[ProfileCompletion] Pending profile data not sent because the new OTP backend is stateless and no access token is available.",
           );
         }
+
+        storePasswordlessSession({
+          email: ctx.session.email || null,
+          phone: ctx.session.phoneNumber || null,
+          method: ctx.session.preferredChallenge || ctx.selectedMethod,
+        });
 
         ctx.setStatus({
           tone: "success",
@@ -573,6 +461,7 @@ export function createAuthHandlers(ctx: AuthHandlersContext) {
         tone: "info",
         text: METHOD_COPY[ctx.selectedMethod].sending,
       });
+      DebugConsole.api("[PasswordlessAuthDialog] POST /v2/auth/send-otp (resend)");
       const newSession = await resendPasswordlessCode(ctx.session);
       ctx.setSession(newSession);
       const resolvedMethod = normalizeMethod(

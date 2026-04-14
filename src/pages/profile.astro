@@ -5,11 +5,6 @@ import Header from "@components/Header.astro";
 import ProfileLayout from "@layouts/ProfileLayout.astro";
 import AuthButton from "@components/AuthButton.astro";
 import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
-import { cognitoConfig } from "@config/cognito";
-
-const cognitoDomain = cognitoConfig.domain;
-const cognitoClientId = cognitoConfig.clientId;
-const cognitoScopes = cognitoConfig.scopes.join(" ");
 ---
 
 <BaseLayout title="User Profile">
@@ -60,9 +55,6 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
                 data-auth-btn
                 type="button"
                 data-auth-state="unauthenticated"
-                data-cognito-domain={cognitoDomain}
-                data-client-id={cognitoClientId}
-                data-scopes={cognitoScopes}
                 class="sign-in-btn inline-flex items-center gap-2 px-4 py-2 rounded-md text-white hover:opacity-90 transition-opacity cursor-pointer"
                 aria-label="Sign In"
                 title="Sign In"
@@ -198,7 +190,10 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
             ")"
           );
         } else {
-          debugError("api", "[Profile] ❌ NO TOKEN provided for API call!");
+          debugLog(
+            "api",
+            "[Profile] No bearer token available; attempting profile lookup with authenticated email only"
+          );
         }
 
         // API endpoint requires email query param to match against token
@@ -261,7 +256,7 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
     }) {
       const container = document.getElementById("user-card-container");
       const statueUrl = statueImageSrc;
-      const name = email.split("@")[0];
+      const name = email ? email.split("@")[0] : (phone || "User");
 
       // Format dates as YYYY-MM-DD HH:MM in local time
       const formatDateTime = (dateStr) => {
@@ -278,7 +273,7 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
       const formattedLastLogin = formatDateTime(lastLogin) || "Current session";
       const formattedMemberSince = formatDateTime(memberSince) || "Unknown";
       const groupsDisplay = groups?.length ? groups : ["User"];
-      const emailStatus = emailVerified ? "✓ Verified" : "Unverified";
+      const emailStatus = email ? (emailVerified ? "✓ Verified" : "Unverified") : null;
       const phoneStatus = phone
         ? phoneVerified
           ? "✓ Verified"
@@ -311,7 +306,7 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">${name}</h2>
                 ${statusBadge}
               </div>
-              <p class="text-gray-600 dark:text-gray-300">${email}</p>
+              <p class="text-gray-600 dark:text-gray-300">${email || phone || ""}</p>
             </div>
           </div>
           
@@ -322,8 +317,8 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
                 <div class="flex justify-between items-center">
                   <span class="text-gray-600 dark:text-gray-400">Email:</span>
                   <div class="text-right">
-                    <div class="font-medium text-gray-900 dark:text-white">${email}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">${emailStatus}</div>
+                    <div class="font-medium text-gray-900 dark:text-white">${email || "Not provided"}</div>
+                    ${emailStatus ? `<div class="text-xs text-gray-500 dark:text-gray-400">${emailStatus}</div>` : ""}
                   </div>
                 </div>
                 <div class="flex justify-between items-center">
@@ -378,7 +373,7 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
         const authState = await getAuthState();
         debugLog("auth", "[Profile] Auth state received:", authState);
 
-        if (!authState || !authState.signedIn || !authState.email) {
+        if (!authState || !authState.signedIn || (!authState.email && !authState.phone)) {
           debugLog(
             "auth",
             "[Profile] User not authenticated, showing not-auth section"
@@ -391,7 +386,6 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
         }
 
         const email = authState.email;
-        // Use ID token (Cognito authorizer expects ID tokens, not access tokens)
         const token = authState.idToken || authState.accessToken;
         debugLog(
           "auth",
@@ -412,6 +406,30 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
             "[Profile] Token preview:",
             token.substring(0, 50) + "..."
           );
+        } else {
+          debugLog(
+            "api",
+            "[Profile] No bearer token in OTP-only mode; rendering local profile without API call"
+          );
+
+          renderUserCard({
+            email,
+            emailVerified: true,
+            phone: authState.phone || null,
+            phoneVerified: !!authState.phone,
+            geo: null,
+            groups: [],
+            lastLogin: null,
+            memberSince: null,
+            userStatus: "ACTIVE",
+          });
+
+          loading.style.display = "none";
+          content.style.display = "block";
+          notAuth.style.display = "none";
+          error.style.display = "none";
+          logoutBtn.style.display = "inline-block";
+          return;
         }
 
         debugLog("api", "[Profile] Calling fetchUserProfile...");
@@ -419,8 +437,28 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
         debugLog("api", "[Profile] fetchUserProfile result:", profile);
 
         if (!profile || !profile.email) {
-          debugError("api", "[Profile] Invalid profile data received");
-          throw new Error("Invalid profile");
+          debugLog(
+            "api",
+            "[Profile] Falling back to a local OTP-only profile view because the API did not return profile data"
+          );
+          renderUserCard({
+            email,
+            emailVerified: true,
+            phone: authState.phone || null,
+            phoneVerified: !!authState.phone,
+            geo: null,
+            groups: [],
+            lastLogin: null,
+            memberSince: null,
+            userStatus: "ACTIVE",
+          });
+
+          loading.style.display = "none";
+          content.style.display = "block";
+          notAuth.style.display = "none";
+          error.style.display = "none";
+          logoutBtn.style.display = "inline-block";
+          return;
         }
 
         renderUserCard({
@@ -447,6 +485,38 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
         notAuth.style.display = "none";
         error.style.display = "block";
       }
+    }
+
+    let loadProfileTimer = null;
+    let isLoadingProfile = false;
+    let pendingProfileLoad = false;
+
+    async function runLoadProfile() {
+      if (isLoadingProfile) {
+        pendingProfileLoad = true;
+        return;
+      }
+
+      isLoadingProfile = true;
+      try {
+        await loadProfile();
+      } finally {
+        isLoadingProfile = false;
+        if (pendingProfileLoad) {
+          pendingProfileLoad = false;
+          scheduleLoadProfile(50);
+        }
+      }
+    }
+
+    function scheduleLoadProfile(delay = 150) {
+      if (loadProfileTimer) {
+        clearTimeout(loadProfileTimer);
+      }
+      loadProfileTimer = setTimeout(() => {
+        loadProfileTimer = null;
+        void runLoadProfile();
+      }, delay);
     }
 
     function setupButtons() {
@@ -512,25 +582,10 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
               return;
             }
 
-            // Fallback: construct Hosted UI URL
-            debugLog("auth", "[Profile] Using fallback Hosted UI URL");
-            const domain = signInBtn.getAttribute("data-cognito-domain");
-            const clientId = signInBtn.getAttribute("data-client-id");
-            const scopes =
-              signInBtn.getAttribute("data-scopes") || "openid email profile";
-            const origin = window.location.origin + "/";
-
-            if (domain && clientId) {
-              const url = new URL(`https://${domain}/oauth2/authorize`);
-              url.searchParams.set("client_id", clientId);
-              url.searchParams.set("response_type", "code");
-              url.searchParams.set("redirect_uri", origin);
-              url.searchParams.set("scope", scopes);
-              debugLog("auth", "[Profile] Redirecting to:", url.toString());
-              window.location.assign(url.toString());
-            } else {
-              debugError("auth", "[Profile] Missing domain or clientId");
-            }
+            debugError(
+              "auth",
+              "[Profile] No OTP auth handler available (passwordless dialog not initialized)"
+            );
           } catch (error) {
             debugError("auth", "[Profile] Sign in error:", error);
           }
@@ -575,16 +630,14 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
 
       // Check localStorage tokens directly
       if (typeof localStorage !== "undefined") {
-        const idToken = localStorage.getItem("cognito_id_token");
-        const accessToken = localStorage.getItem("cognito_access_token");
+        const otpSession = localStorage.getItem("passwordless_auth_session");
         debugLog("auth", "[Profile] Direct localStorage check:", {
-          hasIdToken: !!idToken,
-          hasAccessToken: !!accessToken,
-          idTokenPreview: idToken ? idToken.substring(0, 30) + "..." : null,
+          hasOtpSession: !!otpSession,
+          otpSessionPreview: otpSession ? otpSession.substring(0, 60) + "..." : null,
         });
       }
 
-      loadProfile();
+      scheduleLoadProfile(0);
       setupButtons();
     }
 
@@ -597,16 +650,16 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
     // Listen for auth changes (login/logout)
     document.addEventListener("auth-changed", (e) => {
       debugLog("auth", "[Profile] Auth changed event:", e.detail);
-      setTimeout(loadProfile, 200);
+      scheduleLoadProfile(200);
     });
 
     document.addEventListener("auth:state-change", (e) => {
       debugLog("auth", "[Profile] Auth state change event:", e.detail);
-      setTimeout(loadProfile, 200);
+      scheduleLoadProfile(200);
     });
 
     window.addEventListener("focus", () => {
-      setTimeout(loadProfile, 100);
+      scheduleLoadProfile(100);
     });
   })();
 </script>

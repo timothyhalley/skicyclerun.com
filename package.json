@@ -1,7 +1,7 @@
 {
   "name": "skicyclerun.com",
   "type": "module",
-  "version": "2026-04-14 V05.000",
+  "version": "2026-04-14 V05.001",
   "scripts": {
     "dev": "astro dev",
     "prebuild": "npx npm-check-updates -u && npm install",
@@ -21,9 +21,9 @@
     "@astrojs/react": "^5.0.3",
     "@astrojs/rss": "^4.0.18",
     "@astrojs/sitemap": "^3.7.2",
-    "@aws-sdk/client-cognito-identity-provider": "^3.1029.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1030.0",
     "@tailwindcss/vite": "^4.2.2",
-    "astro": "^6.1.5",
+    "astro": "^6.1.6",
     "astro-embed": "^0.12.0",
     "fuse.js": "^7.3.0",
     "react": "^19.2.5",

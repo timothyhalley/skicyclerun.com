@@ -1,14 +1,9 @@
 ---
-import { cognitoConfig } from "@config/cognito";
-
 export interface Props {
   enabled: boolean;
 }
 
 const { enabled } = Astro.props;
-const cognitoDomain = cognitoConfig.domain;
-const cognitoClientId = cognitoConfig.clientId;
-const cognitoScopes = cognitoConfig.scopes.join(" ");
 ---
 
 {enabled && (
@@ -20,9 +15,6 @@ const cognitoScopes = cognitoConfig.scopes.join(" ");
       aria-label="Account"
       title="Login"
       data-auth-state="unauthenticated"
-      data-cognito-domain={cognitoDomain}
-      data-client-id={cognitoClientId}
-      data-scopes={cognitoScopes}
     >
       <!-- Login icon (visible when not authenticated) -->
       <svg

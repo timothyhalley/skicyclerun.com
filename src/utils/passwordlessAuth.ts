@@ -1,22 +1,11 @@
 /**
- * Clean Passwordless Authentication Implementation
- * Uses SAM (Serverless Application Model) API Gateway endpoints
+ * Passwordless authentication via API Gateway OTP endpoints.
  *
- * Flow via SAM:
- * 1. User enters email/phone
- * 2. Call SAM /v2/auth/send-otp (handles user creation internally)
- * 3. User enters OTP code
- * 4. Call SAM /v2/auth/verify-otp → receive JWT tokens
+ * The frontend still expects JWTs after OTP verification, so this adapter keeps
+ * the existing session-based UI while also supporting the newer stateless OTP
+ * request payloads.
  */
 
-import {
-  AttributeType,
-  CognitoIdentityProviderClient,
-  GetUserAttributeVerificationCodeCommand,
-  UpdateUserAttributesCommand,
-  VerifyUserAttributeCommand,
-} from "@aws-sdk/client-cognito-identity-provider";
-import { cognitoConfig } from "@config/cognito";
 import { DebugConsole } from "@utils/DebugConsole";
 import {
   samAuthClient,
@@ -24,10 +13,6 @@ import {
   type SendOtpRequest,
   type VerifyOtpRequest,
 } from "@utils/samAuthClient";
-
-const client = new CognitoIdentityProviderClient({
-  region: cognitoConfig.region,
-});
 
 export interface PasswordlessAuthSession {
   username: string;
@@ -48,13 +33,7 @@ export interface PasswordlessAuthSession {
 }
 
 export interface PasswordlessAuthResult {
-  tokens?: {
-    idToken?: string;
-    accessToken?: string;
-    refreshToken?: string;
-    expiresIn?: number;
-    tokenType?: string;
-  };
+  authenticated?: boolean;
   nextSession?: PasswordlessAuthSession;
   needsProfileCompletion?: boolean; // NEW: indicate profile completion step needed
 }
@@ -65,19 +44,16 @@ export interface UserProfileAttributes {
   [key: string]: string | undefined;
 }
 
+function getChallengeDeliveryMedium(challenge: "EMAIL_OTP" | "SMS_OTP") {
+  return challenge === "SMS_OTP" ? "SMS" : "EMAIL";
+}
+
 function isEmailIdentifier(value: string): boolean {
   return value.includes("@");
 }
 
 /**
- * Initiate passwordless authentication via SAM API
- *
- * SAM endpoint handles:
- * - User creation (if new user)
- * - User confirmation (if new user)
- * - OTP code delivery (EMAIL_OTP or SMS_OTP)
- *
- * Returns session with challenge name and delivery details
+ * Initiate passwordless authentication via the OTP API.
  */
 export async function startPasswordlessAuth(
   identifier: string,
@@ -95,38 +71,43 @@ export async function startPasswordlessAuth(
     : undefined;
 
   const challenge = options.preferredChallenge || "EMAIL_OTP";
+  const normalizedPhone =
+    challenge === "SMS_OTP" ? options.phoneNumber?.trim() || normalizedIdentifier : undefined;
 
   DebugConsole.auth(
-    "[PasswordlessAuth] Starting SAM auth for:",
+    "[PasswordlessAuth] Starting OTP auth for:",
     normalizedIdentifier,
     "challenge:",
     challenge,
   );
 
   try {
-    // Call SAM endpoint
     const request: SendOtpRequest = {
-      username: normalizedIdentifier,
       preferredChallenge: challenge,
+      email: challenge === "EMAIL_OTP" ? normalizedEmail || normalizedIdentifier : normalizedEmail,
+      phoneNumber: normalizedPhone,
     };
 
     DebugConsole.auth(
-      "[PasswordlessAuth] Calling SAM /v2/auth/send-otp with:",
+      "[PasswordlessAuth] Calling /v2/auth/send-otp with:",
       request,
     );
 
     const response = await samAuthClient.sendOtp(request);
 
-    DebugConsole.auth("[PasswordlessAuth] SAM response:", response);
+    DebugConsole.auth("[PasswordlessAuth] send-otp response:", response);
 
-    // Map SAM response to PasswordlessAuthSession
     const session: PasswordlessAuthSession = {
       username: normalizedIdentifier,
       email: normalizedEmail,
-      phoneNumber: options.phoneNumber,
-      session: response.session || "",
-      challengeName: response.challengeName || challenge,
-      challengeParameters: response.challengeParameters,
+      phoneNumber: normalizedPhone,
+      session: "",
+      challengeName: challenge,
+      challengeParameters: {
+        CODE_DELIVERY_DELIVERY_MEDIUM: getChallengeDeliveryMedium(challenge),
+        CODE_DELIVERY_DESTINATION:
+          normalizedPhone || normalizedEmail || normalizedIdentifier,
+      },
       preferredChallenge: challenge,
     };
 
@@ -134,23 +115,16 @@ export async function startPasswordlessAuth(
 
     return session;
   } catch (error: any) {
-    // Handle SAM errors (HTTP status + error message)
     if (error instanceof PasswordlessAuthError) {
       DebugConsole.error(
-        "[PasswordlessAuth] SAM error:",
+        "[PasswordlessAuth] OTP API error:",
         error.status,
         error.message,
       );
       DebugConsole.error("[PasswordlessAuth] Error body:", error.body);
-
-      // Map common SAM errors to user-friendly messages
-      const errorMessage = error.message || "Authentication failed";
-
-      // Re-throw with same error so handlers.ts can use the message format
       throw error;
     }
 
-    // Unexpected error
     DebugConsole.error("[PasswordlessAuth] Unexpected auth error:", error);
     DebugConsole.error("[PasswordlessAuth] Error name:", error?.name);
     DebugConsole.error("[PasswordlessAuth] Error message:", error?.message);
@@ -159,9 +133,7 @@ export async function startPasswordlessAuth(
 }
 
 /**
- * Confirm OTP code via SAM API
- *
- * SAM endpoint verifies the OTP and returns JWT tokens
+ * Confirm an OTP code and return JWTs when the backend provides them.
  */
 export async function confirmPasswordlessAuth(
   session: PasswordlessAuthSession,
@@ -177,58 +149,47 @@ export async function confirmPasswordlessAuth(
   );
 
   try {
-    // Call SAM endpoint
     const request: VerifyOtpRequest = {
-      username: session.username,
-      session: session.session,
-      challengeName: (session.challengeName || "EMAIL_OTP") as
-        | "EMAIL_OTP"
-        | "SMS_OTP",
       code: trimmedCode,
+      email: session.email,
+      phoneNumber: session.phoneNumber,
     };
 
     DebugConsole.auth(
-      "[PasswordlessAuth] Calling SAM /v2/auth/verify-otp with:",
+      "[PasswordlessAuth] Calling /v2/auth/verify-otp with:",
       { ...request, code: "***" },
     );
 
     const response = await samAuthClient.verifyOtp(request);
 
-    DebugConsole.auth("[PasswordlessAuth] SAM verify-otp response:", {
-      idToken: response.idToken
-        ? response.idToken.substring(0, 20) + "..."
-        : undefined,
-      accessToken: response.accessToken
-        ? response.accessToken.substring(0, 20) + "..."
-        : undefined,
-      challengeName: response.challengeName,
+    DebugConsole.auth("[PasswordlessAuth] verify-otp response:", {
+      success: response.success,
+      message: response.message,
     });
 
-    // Return tokens
+    if (!response.success) {
+      throw new PasswordlessAuthError(
+        response.message ||
+          "OTP verification failed.",
+        502,
+        response,
+      );
+    }
+
     return {
-      tokens: {
-        idToken: response.idToken,
-        accessToken: response.accessToken,
-        refreshToken: response.refreshToken,
-        expiresIn: response.expiresIn,
-        tokenType: response.tokenType,
-      },
+      authenticated: true,
     };
   } catch (error: any) {
-    // Handle SAM errors
     if (error instanceof PasswordlessAuthError) {
       DebugConsole.error(
-        "[PasswordlessAuth] SAM error:",
+        "[PasswordlessAuth] OTP API error:",
         error.status,
         error.message,
       );
       DebugConsole.error("[PasswordlessAuth] Error body:", error.body);
-
-      // Re-throw so handlers.ts can use the message
       throw error;
     }
 
-    // Unexpected error
     DebugConsole.error("[PasswordlessAuth] Unexpected confirm error:", error);
     DebugConsole.error("[PasswordlessAuth] Error name:", error?.name);
     DebugConsole.error("[PasswordlessAuth] Error message:", error?.message);
@@ -237,9 +198,7 @@ export async function confirmPasswordlessAuth(
 }
 
 /**
- * Resend OTP code via SAM API
- *
- * Simply re-calls send-otp with the same username and challenge
+ * Resend the OTP by re-calling the send endpoint.
  */
 export async function resendPasswordlessCode(
   session: PasswordlessAuthSession,
@@ -252,21 +211,19 @@ export async function resendPasswordlessCode(
   );
 
   try {
-    // Re-call send-otp to get a new code
     const request: SendOtpRequest = {
-      username: session.username,
       preferredChallenge: (session.challengeName || "EMAIL_OTP") as
         | "EMAIL_OTP"
         | "SMS_OTP",
+      email: session.email,
+      phoneNumber: session.phoneNumber,
     };
 
-    const response = await samAuthClient.sendOtp(request);
+    await samAuthClient.sendOtp(request);
 
     const newSession: PasswordlessAuthSession = {
       ...session,
-      session: response.session || session.session,
-      challengeParameters:
-        response.challengeParameters || session.challengeParameters,
+      challengeParameters: session.challengeParameters,
     };
 
     DebugConsole.auth(
@@ -276,10 +233,9 @@ export async function resendPasswordlessCode(
 
     return newSession;
   } catch (error: any) {
-    // Handle SAM errors
     if (error instanceof PasswordlessAuthError) {
       DebugConsole.error(
-        "[PasswordlessAuth] SAM resend error:",
+        "[PasswordlessAuth] OTP resend error:",
         error.status,
         error.message,
       );
@@ -296,91 +252,16 @@ export async function resendPasswordlessCode(
  * Call this after account confirmation to set phone, location, etc.
  */
 export async function updateUserAttributes(
-  accessToken: string,
+  _accessToken: string,
   attributes: UserProfileAttributes,
 ): Promise<void> {
-  DebugConsole.auth(
-    "[PasswordlessAuth] updateUserAttributes called with:",
+  DebugConsole.warn(
+    "[PasswordlessAuth] updateUserAttributes is not available in OTP-only mode.",
     attributes,
   );
-
-  const userAttributes: AttributeType[] = [];
-
-  if (attributes.phone) {
-    const phoneValue = attributes.phone.startsWith("+")
-      ? attributes.phone
-      : `+1${attributes.phone}`;
-    DebugConsole.auth(
-      "[PasswordlessAuth] Adding phone_number attribute:",
-      phoneValue,
-    );
-    userAttributes.push({
-      Name: "phone_number",
-      Value: phoneValue,
-    });
-  }
-
-  if (attributes.location) {
-    DebugConsole.auth(
-      "[PasswordlessAuth] Adding custom:location attribute:",
-      attributes.location,
-    );
-    userAttributes.push({
-      Name: "custom:location",
-      Value: attributes.location,
-    });
-  }
-
-  // Add any additional custom attributes
-  Object.entries(attributes).forEach(([key, value]) => {
-    if (key !== "phone" && key !== "location" && value) {
-      const attrName = key.startsWith("custom:") ? key : `custom:${key}`;
-      DebugConsole.auth(
-        `[PasswordlessAuth] Adding ${attrName} attribute:`,
-        value,
-      );
-      userAttributes.push({
-        Name: attrName,
-        Value: value,
-      });
-    }
-  });
-
-  if (userAttributes.length === 0) {
-    DebugConsole.auth("[PasswordlessAuth] No attributes to update");
-    return;
-  }
-
-  DebugConsole.auth(
-    "[PasswordlessAuth] Sending UpdateUserAttributesCommand with:",
-    userAttributes,
+  throw new Error(
+    "Profile attribute updates are not supported by the OTP-only API yet.",
   );
-
-  try {
-    const result = await client.send(
-      new UpdateUserAttributesCommand({
-        AccessToken: accessToken,
-        UserAttributes: userAttributes,
-      }),
-    );
-
-    DebugConsole.auth(
-      "[PasswordlessAuth] ✅ Successfully updated user attributes:",
-      userAttributes.map((attr) => `${attr.Name}=${attr.Value}`),
-    );
-    DebugConsole.auth(
-      "[PasswordlessAuth] UpdateUserAttributes response:",
-      result,
-    );
-  } catch (error: any) {
-    DebugConsole.error(
-      "[PasswordlessAuth] ❌ UpdateUserAttributes failed:",
-      error,
-    );
-    DebugConsole.error("[PasswordlessAuth] Error name:", error.name);
-    DebugConsole.error("[PasswordlessAuth] Error message:", error.message);
-    throw error;
-  }
 }
 
 /**
@@ -388,82 +269,26 @@ export async function updateUserAttributes(
  * This is used when updating email or phone number to verify the new value
  */
 export async function getUserAttributeVerificationCode(
-  accessToken: string,
-  attributeName: "email" | "phone_number",
+  _accessToken: string,
+  _attributeName: "email" | "phone_number",
 ): Promise<{
   deliveryMedium: string;
   destination: string;
 }> {
-  DebugConsole.auth(
-    "[PasswordlessAuth] Requesting verification code for:",
-    attributeName,
+  throw new Error(
+    "Attribute verification is not supported by the OTP-only API yet.",
   );
-
-  try {
-    const result = await client.send(
-      new GetUserAttributeVerificationCodeCommand({
-        AccessToken: accessToken,
-        AttributeName: attributeName,
-      }),
-    );
-
-    DebugConsole.auth(
-      "[PasswordlessAuth] ✅ Verification code sent via:",
-      result.CodeDeliveryDetails?.DeliveryMedium,
-      "to",
-      result.CodeDeliveryDetails?.Destination,
-    );
-
-    return {
-      deliveryMedium: result.CodeDeliveryDetails?.DeliveryMedium || "UNKNOWN",
-      destination: result.CodeDeliveryDetails?.Destination || "UNKNOWN",
-    };
-  } catch (error: any) {
-    DebugConsole.error(
-      "[PasswordlessAuth] ❌ GetUserAttributeVerificationCode failed:",
-      error,
-    );
-    DebugConsole.error("[PasswordlessAuth] Error name:", error.name);
-    DebugConsole.error("[PasswordlessAuth] Error message:", error.message);
-    throw error;
-  }
 }
 
 /**
  * Verify a user attribute with the code sent via getUserAttributeVerificationCode
  */
 export async function verifyUserAttribute(
-  accessToken: string,
-  attributeName: "email" | "phone_number",
-  code: string,
+  _accessToken: string,
+  _attributeName: "email" | "phone_number",
+  _code: string,
 ): Promise<void> {
-  DebugConsole.auth(
-    "[PasswordlessAuth] Verifying attribute:",
-    attributeName,
-    "with code:",
-    code.substring(0, 3) + "***",
+  throw new Error(
+    "Attribute verification is not supported by the OTP-only API yet.",
   );
-
-  try {
-    await client.send(
-      new VerifyUserAttributeCommand({
-        AccessToken: accessToken,
-        AttributeName: attributeName,
-        Code: code,
-      }),
-    );
-
-    DebugConsole.auth(
-      "[PasswordlessAuth] ✅ Attribute verified successfully:",
-      attributeName,
-    );
-  } catch (error: any) {
-    DebugConsole.error(
-      "[PasswordlessAuth] ❌ VerifyUserAttribute failed:",
-      error,
-    );
-    DebugConsole.error("[PasswordlessAuth] Error name:", error.name);
-    DebugConsole.error("[PasswordlessAuth] Error message:", error.message);
-    throw error;
-  }
 }

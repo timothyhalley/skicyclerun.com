@@ -1,8 +1,7 @@
 /**
  * simple-auth-icon.js (clean version)
  * Minimal script to drive the header SVG auth button without bundler deps.
- * Prefers a window.__authBridge provided by the app (login/logout/getState).
- * Falls back to constructing Hosted UI URLs from data- attributes on #auth-btn.
+ * Uses window.__authBridge provided by the app (login/logout/getState).
  */
 
 (function () {
@@ -10,7 +9,7 @@
   if (window.__authIconInitialized) return;
   window.__authIconInitialized = true;
 
-  // Try to read auth state via bridge; fallback to cookie sniffing
+  // Try to read auth state via bridge; fallback to local OTP session or cookies.
   async function getAuthSession() {
     try {
       if (
@@ -28,6 +27,18 @@
       }
     } catch {}
     try {
+      const otpSession = localStorage.getItem("passwordless_auth_session");
+      if (otpSession) {
+        const parsed = JSON.parse(otpSession);
+        const sess = {
+          signedIn: true,
+          user: parsed?.email ? { email: parsed.email } : null,
+          groups: [],
+        };
+        window.__userSession = sess;
+        return sess;
+      }
+
       const cookies = (document.cookie || "").split(";");
       const names = [
         "cognito_id_token",
@@ -44,27 +55,6 @@
     } catch {
       return { signedIn: false, user: null, groups: [] };
     }
-  }
-
-  function computeHostedUiUrl(isLogout) {
-    const btn = document.querySelector("[data-auth-btn]");
-    const domain = btn?.getAttribute("data-cognito-domain");
-    const clientId = btn?.getAttribute("data-client-id");
-    const origin = window.location.origin + "/";
-    if (!domain || !clientId) return null;
-    const url = new URL(
-      `https://${domain}${isLogout ? "/logout" : "/oauth2/authorize"}`,
-    );
-    url.searchParams.set("client_id", clientId);
-    if (isLogout) {
-      url.searchParams.set("logout_uri", origin);
-    } else {
-      url.searchParams.set("response_type", "code");
-      url.searchParams.set("redirect_uri", origin);
-      const scopes = btn?.getAttribute("data-scopes") || "openid email profile";
-      url.searchParams.set("scope", scopes);
-    }
-    return url.toString();
   }
 
   async function updateAuthIcon() {
@@ -228,26 +218,7 @@
         debugError("auth", "🔑 [CLICK] Bridge error:", err);
       }
 
-      // Fallback: compute Hosted UI URL directly
-      debugLog("auth", "🔑 [CLICK] Computing Hosted UI URL...");
-      const url = computeHostedUiUrl(isAuthenticated /* logout? */);
-      debugLog("auth", "🔑 [CLICK] Computed URL:", url);
-
-      if (url) {
-        debugLog("auth", "🔑 [CLICK] Redirecting to:", url);
-        window.location.assign(url);
-        return;
-      }
-
-      debugError(
-        "auth",
-        "🔑 [CLICK] FAILED: Unable to compute Hosted UI URL (missing data attributes)",
-      );
-      debugError("auth", "🔑 [CLICK] Button data attributes:", {
-        domain: replacement.getAttribute("data-cognito-domain"),
-        clientId: replacement.getAttribute("data-client-id"),
-        scopes: replacement.getAttribute("data-scopes"),
-      });
+      debugError("auth", "🔑 [CLICK] FAILED: No auth bridge login/logout handler available");
     });
 
     debugLog("auth", "🔑 [DEBUG] Click listener attached successfully");

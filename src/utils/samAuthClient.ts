@@ -1,20 +1,19 @@
 /**
- * SAM (Serverless Application Model) Passwordless Auth Client
- * Thin HTTP wrapper over AWS Cognito via API Gateway + Lambda
- *
- * Endpoints:
- * - POST /v2/auth/send-otp       → initiate passwordless challenge
- * - POST /v2/auth/verify-otp     → verify OTP and return tokens
+ * Passwordless Auth Client
+ * Thin HTTP wrapper over the API Gateway OTP endpoints.
  */
 
 export type OtpChallenge = "EMAIL_OTP" | "SMS_OTP";
 
 export type SendOtpRequest = {
-  username: string;
+  email?: string;
+  phoneNumber?: string;
   preferredChallenge: OtpChallenge;
 };
 
 export type SendOtpResponse = {
+  success?: boolean;
+  message?: string;
   challengeName?: string;
   session?: string;
   availableChallenges?: string[];
@@ -28,20 +27,14 @@ export type SendOtpResponse = {
 };
 
 export type VerifyOtpRequest = {
-  username: string;
-  session: string;
-  challengeName: OtpChallenge;
+  email?: string;
+  phoneNumber?: string;
   code: string;
 };
 
 export type VerifyOtpResponse = {
-  challengeName?: string;
-  session?: string;
-  idToken?: string;
-  accessToken?: string;
-  refreshToken?: string;
-  expiresIn?: number;
-  tokenType?: string;
+  success?: boolean;
+  message?: string;
   metadata?: {
     httpStatusCode?: number;
     requestId?: string;
@@ -69,6 +62,16 @@ export class PasswordlessAuthError extends Error {
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+}
+
+function buildIdentifierPayload(input: SendOtpRequest | VerifyOtpRequest) {
+  const email = input.email?.trim() || undefined;
+  const phoneNumber = input.phoneNumber?.trim() || undefined;
+
+  return {
+    ...(email ? { email } : {}),
+    ...(phoneNumber ? { phoneNumber } : {}),
+  };
 }
 
 function toErrorMessage(body: unknown, fallback: string): string {
@@ -109,19 +112,29 @@ export function createPasswordlessAuthClient(
   const fetchImpl = options.fetchImpl ?? fetch;
 
   async function post<T>(path: string, payload: unknown): Promise<T> {
-    const response = await fetchImpl(baseUrl + path, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    let response: Response;
+    try {
+      response = await fetchImpl(baseUrl + path, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      throw new PasswordlessAuthError(
+        "Network request failed. Check API URL, HTTPS certificate, and CORS configuration.",
+        0,
+        { error: String(error) },
+      );
+    }
 
     const body = await parseJsonSafe(response);
 
     if (!response.ok) {
+      const statusPrefix = `Request failed (${response.status})`;
       throw new PasswordlessAuthError(
-        toErrorMessage(body, "Passwordless auth request failed"),
+        toErrorMessage(body, statusPrefix),
         response.status,
         body,
       );
@@ -132,18 +145,20 @@ export function createPasswordlessAuthClient(
 
   return {
     sendOtp(input: SendOtpRequest): Promise<SendOtpResponse> {
+      const identifierPayload = buildIdentifierPayload(input);
+
       return post<SendOtpResponse>("/v2/auth/send-otp", {
-        username: input.username,
-        preferredChallenge: input.preferredChallenge,
+        action: "send",
+        ...identifierPayload,
       });
     },
 
     verifyOtp(input: VerifyOtpRequest): Promise<VerifyOtpResponse> {
+      const identifierPayload = buildIdentifierPayload(input);
+
       return post<VerifyOtpResponse>("/v2/auth/verify-otp", {
-        username: input.username,
-        session: input.session,
-        challengeName: input.challengeName,
-        code: input.code,
+        otp: input.code,
+        ...identifierPayload,
       });
     },
   };
