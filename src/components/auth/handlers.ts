@@ -212,9 +212,26 @@ export function createAuthHandlers(ctx: AuthHandlersContext) {
         }
 
         storePasswordlessSession({
-          email: ctx.session.email || null,
-          phone: ctx.session.phoneNumber || null,
+          email: result.profile?.email || ctx.session.email || null,
+          phone: result.profile?.phone || ctx.session.phoneNumber || null,
           method: ctx.session.preferredChallenge || ctx.selectedMethod,
+          groups: result.profile?.groups,
+          idToken: result.tokens?.idToken,
+          accessToken: result.tokens?.accessToken,
+          refreshToken: result.tokens?.refreshToken,
+          tokenType: result.tokens?.tokenType,
+          expiresIn: result.tokens?.expiresIn,
+          emailVerified: result.profile?.emailVerified,
+          phoneVerified: result.profile?.phoneVerified,
+          location: result.profile?.location,
+          zoneinfo: result.profile?.zoneinfo,
+          memberSince: result.profile?.memberSince,
+          lastLogin: result.profile?.lastLogin,
+          userStatus: result.profile?.userStatus,
+          enabled: result.profile?.enabled,
+          username: result.profile?.username,
+          name: result.profile?.name,
+          sub: result.profile?.sub,
         });
 
         ctx.setStatus({

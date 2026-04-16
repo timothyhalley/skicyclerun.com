@@ -12,6 +12,7 @@ import {
   PasswordlessAuthError,
   type SendOtpRequest,
   type VerifyOtpRequest,
+  type VerifyOtpResponse,
 } from "@utils/samAuthClient";
 
 export interface PasswordlessAuthSession {
@@ -34,8 +35,27 @@ export interface PasswordlessAuthSession {
 
 export interface PasswordlessAuthResult {
   authenticated?: boolean;
+  tokens?: PasswordlessAuthSession["tokens"];
+  profile?: PasswordlessAuthProfile;
   nextSession?: PasswordlessAuthSession;
   needsProfileCompletion?: boolean; // NEW: indicate profile completion step needed
+}
+
+export interface PasswordlessAuthProfile {
+  sub?: string;
+  username?: string;
+  name?: string;
+  email?: string;
+  emailVerified?: boolean;
+  phone?: string;
+  phoneVerified?: boolean;
+  zoneinfo?: string;
+  location?: string | null;
+  groups?: string[];
+  memberSince?: string | null;
+  lastLogin?: string | null;
+  userStatus?: string;
+  enabled?: boolean;
 }
 
 export interface UserProfileAttributes {
@@ -50,6 +70,112 @@ function getChallengeDeliveryMedium(challenge: "EMAIL_OTP" | "SMS_OTP") {
 
 function isEmailIdentifier(value: string): boolean {
   return value.includes("@");
+}
+
+function extractTokensFromVerifyResponse(
+  response: VerifyOtpResponse,
+): PasswordlessAuthSession["tokens"] | undefined {
+  const candidate =
+    response.tokens ||
+    response.authenticationResult ||
+    response.AuthenticationResult ||
+    response;
+
+  const readString = (...values: Array<unknown>) => {
+    for (const value of values) {
+      if (typeof value === "string" && value.length > 0) {
+        return value;
+      }
+    }
+    return undefined;
+  };
+
+  const readNumber = (...values: Array<unknown>) => {
+    for (const value of values) {
+      if (typeof value === "number" && Number.isFinite(value)) {
+        return value;
+      }
+    }
+    return undefined;
+  };
+
+  const idToken = readString(
+    (candidate as { idToken?: unknown }).idToken,
+    (candidate as { IdToken?: unknown }).IdToken,
+  );
+  const accessToken = readString(
+    (candidate as { accessToken?: unknown }).accessToken,
+    (candidate as { AccessToken?: unknown }).AccessToken,
+  );
+  const refreshToken = readString(
+    (candidate as { refreshToken?: unknown }).refreshToken,
+    (candidate as { RefreshToken?: unknown }).RefreshToken,
+  );
+  const tokenType = readString(
+    (candidate as { tokenType?: unknown }).tokenType,
+    (candidate as { TokenType?: unknown }).TokenType,
+  );
+  const expiresIn = readNumber(
+    (candidate as { expiresIn?: unknown }).expiresIn,
+    (candidate as { ExpiresIn?: unknown }).ExpiresIn,
+  );
+
+  if (!idToken && !accessToken && !refreshToken) {
+    return undefined;
+  }
+
+  return {
+    idToken,
+    accessToken,
+    refreshToken,
+    tokenType,
+    expiresIn,
+  };
+}
+
+function extractProfileFromVerifyResponse(
+  response: VerifyOtpResponse,
+): PasswordlessAuthProfile | undefined {
+  const normalizeBoolean = (value: unknown): boolean | undefined => {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") {
+      if (value.toLowerCase() === "true") return true;
+      if (value.toLowerCase() === "false") return false;
+    }
+    return undefined;
+  };
+
+  const normalizeString = (value: unknown): string | undefined =>
+    typeof value === "string" && value.trim().length > 0 ? value : undefined;
+
+  const groups = Array.isArray(response.groups)
+    ? response.groups.filter((g): g is string => typeof g === "string" && g.length > 0)
+    : undefined;
+
+  const profile: PasswordlessAuthProfile = {
+    sub: normalizeString(response.sub),
+    username: normalizeString(response.username),
+    name: normalizeString(response.name),
+    email: normalizeString(response.email),
+    emailVerified: normalizeBoolean(response.emailVerified ?? response.emailPopulated),
+    phone: normalizeString(response.phone),
+    phoneVerified: normalizeBoolean(response.phoneVerified),
+    zoneinfo: normalizeString(response.zoneinfo),
+    location: response.location ?? null,
+    groups,
+    memberSince: normalizeString(response.createdTime) ?? null,
+    lastLogin: normalizeString(response.lastUpdatedTime) ?? null,
+    userStatus: normalizeString(response.userStatus),
+    enabled: normalizeBoolean(response.enabled),
+  };
+
+  const hasProfileData =
+    !!profile.sub ||
+    !!profile.email ||
+    !!profile.phone ||
+    (Array.isArray(profile.groups) && profile.groups.length > 0);
+
+  return hasProfileData ? profile : undefined;
 }
 
 /**
@@ -176,8 +302,13 @@ export async function confirmPasswordlessAuth(
       );
     }
 
+    const tokens = extractTokensFromVerifyResponse(response);
+    const profile = extractProfileFromVerifyResponse(response);
+
     return {
       authenticated: true,
+      tokens,
+      profile,
     };
   } catch (error: any) {
     if (error instanceof PasswordlessAuthError) {

@@ -34,7 +34,49 @@ export type VerifyOtpRequest = {
 
 export type VerifyOtpResponse = {
   success?: boolean;
+  verified?: boolean;
   message?: string;
+  sub?: string;
+  username?: string;
+  name?: string;
+  email?: string;
+  emailPopulated?: boolean;
+  emailVerified?: boolean;
+  phone?: string;
+  phoneVerified?: boolean;
+  zoneinfo?: string;
+  location?: string | null;
+  groups?: string[];
+  createdTime?: string;
+  lastUpdatedTime?: string;
+  userStatus?: string;
+  enabled?: boolean;
+  idToken?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  tokenType?: string;
+  expiresIn?: number;
+  tokens?: {
+    idToken?: string;
+    accessToken?: string;
+    refreshToken?: string;
+    tokenType?: string;
+    expiresIn?: number;
+  };
+  authenticationResult?: {
+    IdToken?: string;
+    AccessToken?: string;
+    RefreshToken?: string;
+    TokenType?: string;
+    ExpiresIn?: number;
+  };
+  AuthenticationResult?: {
+    IdToken?: string;
+    AccessToken?: string;
+    RefreshToken?: string;
+    TokenType?: string;
+    ExpiresIn?: number;
+  };
   metadata?: {
     httpStatusCode?: number;
     requestId?: string;
@@ -62,6 +104,14 @@ export class PasswordlessAuthError extends Error {
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+}
+
+function normalizeAuthApiBaseUrl(baseUrl: string): string {
+  const normalized = normalizeBaseUrl(baseUrl.trim());
+  if (normalized.endsWith("/v2")) {
+    return normalized.slice(0, -3);
+  }
+  return normalized;
 }
 
 function buildIdentifierPayload(input: SendOtpRequest | VerifyOtpRequest) {
@@ -166,9 +216,12 @@ export function createPasswordlessAuthClient(
 
 // Create default client with base URL from environment
 function initializeClient() {
-  const baseUrl =
+  const configuredBaseUrl =
     import.meta.env.PUBLIC_AUTH_API_URL ||
-    "https://ltohdaduj0.execute-api.us-west-2.amazonaws.com/Prod";
+    import.meta.env.PUBLIC_SKICYCLERUN_API ||
+    "https://api.skicyclerun.com";
+
+  const baseUrl = normalizeAuthApiBaseUrl(configuredBaseUrl);
 
   return createPasswordlessAuthClient({ baseUrl });
 }

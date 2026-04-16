@@ -1,7 +1,7 @@
 {
   "name": "skicyclerun.com",
   "type": "module",
-  "version": "2026-04-14 V05.001",
+  "version": "2026-04-16 V05.000",
   "scripts": {
     "dev": "astro dev",
     "prebuild": "npx npm-check-updates -u && npm install",
@@ -42,7 +42,7 @@
     "fast-glob": "3.3.3",
     "patch-package": "^8.0.1",
     "postinstall-postinstall": "^2.1.0",
-    "prettier": "3.8.2",
+    "prettier": "3.8.3",
     "prettier-plugin-astro": "0.14.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "serve": "14.2.6",

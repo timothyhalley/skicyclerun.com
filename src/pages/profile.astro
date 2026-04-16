@@ -171,9 +171,10 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
       return null;
     }
 
-    async function fetchUserProfile(email, token) {
+    async function fetchUserProfile(email, phone, token) {
       debugLog("api", "[Profile] fetchUserProfile called with:", {
         email,
+        phone,
         hasToken: !!token,
         tokenPreview: token ? token.substring(0, 50) + "..." : "none",
       });
@@ -192,12 +193,15 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
         } else {
           debugLog(
             "api",
-            "[Profile] No bearer token available; attempting profile lookup with authenticated email only"
+            "[Profile] No bearer token available; attempting profile lookup with identifier"
           );
         }
 
-        // API endpoint requires email query param to match against token
-        const url = `https://api.skicyclerun.com/v2/profile?email=${encodeURIComponent(email)}`;
+        // Use email for lookup; fall back to phone for SMS-only users
+        const queryParam = email
+          ? `email=${encodeURIComponent(email)}`
+          : `phone=${encodeURIComponent(phone)}`;
+        const url = `https://api.skicyclerun.com/v2/profile?${queryParam}`;
         debugLog("api", "[Profile] 🚀 Making API request to:", url);
         debugLog("api", "[Profile] 📤 Request headers:", headers);
 
@@ -233,8 +237,10 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
           phoneVerified: data.phoneVerified,
           geo: data.location, // API returns 'location', map to 'geo'
           groups: data.groups || [],
-          memberSince: data.memberSince,
-          lastLogin: data.lastLogin,
+          memberSince:
+            data.memberSince || data.createdTime || data.userCreateDate || null,
+          lastLogin:
+            data.lastLogin || data.lastUpdatedTime || data.userLastModifiedDate || null,
           userStatus: data.userStatus,
         };
       } catch (err) {
@@ -385,7 +391,8 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
           return;
         }
 
-        const email = authState.email;
+        const email = authState.email || null;
+        const phone = authState.phone || null;
         const token = authState.idToken || authState.accessToken;
         debugLog(
           "auth",
@@ -414,14 +421,17 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
 
           renderUserCard({
             email,
-            emailVerified: true,
+            emailVerified: authState.emailVerified !== false,
             phone: authState.phone || null,
-            phoneVerified: !!authState.phone,
-            geo: null,
-            groups: [],
-            lastLogin: null,
-            memberSince: null,
-            userStatus: "ACTIVE",
+            phoneVerified:
+              typeof authState.phoneVerified === "boolean"
+                ? authState.phoneVerified
+                : !!authState.phone,
+            geo: authState.location || authState.zoneinfo || null,
+            groups: Array.isArray(authState.groups) ? authState.groups : [],
+            lastLogin: authState.lastLogin || null,
+            memberSince: authState.memberSince || null,
+            userStatus: authState.userStatus || "ACTIVE",
           });
 
           loading.style.display = "none";
@@ -433,24 +443,27 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
         }
 
         debugLog("api", "[Profile] Calling fetchUserProfile...");
-        const profile = await fetchUserProfile(email, token);
+        const profile = await fetchUserProfile(email, phone, token);
         debugLog("api", "[Profile] fetchUserProfile result:", profile);
 
-        if (!profile || !profile.email) {
+        if (!profile || (!profile.email && !profile.phone)) {
           debugLog(
             "api",
             "[Profile] Falling back to a local OTP-only profile view because the API did not return profile data"
           );
           renderUserCard({
             email,
-            emailVerified: true,
+            emailVerified: authState.emailVerified !== false,
             phone: authState.phone || null,
-            phoneVerified: !!authState.phone,
-            geo: null,
-            groups: [],
-            lastLogin: null,
-            memberSince: null,
-            userStatus: "ACTIVE",
+            phoneVerified:
+              typeof authState.phoneVerified === "boolean"
+                ? authState.phoneVerified
+                : !!authState.phone,
+            geo: authState.location || authState.zoneinfo || null,
+            groups: Array.isArray(authState.groups) ? authState.groups : [],
+            lastLogin: authState.lastLogin || null,
+            memberSince: authState.memberSince || null,
+            userStatus: authState.userStatus || "ACTIVE",
           });
 
           loading.style.display = "none";

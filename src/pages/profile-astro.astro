@@ -186,8 +186,10 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
       phoneVerified: data.phoneVerified,
       geo: data.location,
       groups: data.groups || [],
-      memberSince: data.memberSince,
-      lastLogin: data.lastLogin,
+      memberSince:
+        data.memberSince || data.createdTime || data.userCreateDate || null,
+      lastLogin:
+        data.lastLogin || data.lastUpdatedTime || data.userLastModifiedDate || null,
       userStatus: data.userStatus,
     };
   }
