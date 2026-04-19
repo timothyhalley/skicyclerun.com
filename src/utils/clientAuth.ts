@@ -174,7 +174,9 @@ function writeProfileCache(cache: StoredProfileCache) {
   }
 }
 
-function getCachedGroups(identifier: string | null | undefined): string[] | null {
+function getCachedGroups(
+  identifier: string | null | undefined,
+): string[] | null {
   if (!identifier) return null;
   const cache = readProfileCache();
   if (!cache) return null;
@@ -301,7 +303,11 @@ export function storePasswordlessSession(session: {
     localStorage.setItem(OTP_SESSION_KEY, JSON.stringify(storedSession));
 
     const cacheKey = storedSession.email || storedSession.phone;
-    if (cacheKey && Array.isArray(storedSession.groups) && storedSession.groups.length > 0) {
+    if (
+      cacheKey &&
+      Array.isArray(storedSession.groups) &&
+      storedSession.groups.length > 0
+    ) {
       writeProfileCache({
         key: cacheKey,
         groups: storedSession.groups,

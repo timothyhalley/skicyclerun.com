@@ -149,7 +149,9 @@ function extractProfileFromVerifyResponse(
     typeof value === "string" && value.trim().length > 0 ? value : undefined;
 
   const groups = Array.isArray(response.groups)
-    ? response.groups.filter((g): g is string => typeof g === "string" && g.length > 0)
+    ? response.groups.filter(
+        (g): g is string => typeof g === "string" && g.length > 0,
+      )
     : undefined;
 
   const profile: PasswordlessAuthProfile = {
@@ -157,7 +159,9 @@ function extractProfileFromVerifyResponse(
     username: normalizeString(response.username),
     name: normalizeString(response.name),
     email: normalizeString(response.email),
-    emailVerified: normalizeBoolean(response.emailVerified ?? response.emailPopulated),
+    emailVerified: normalizeBoolean(
+      response.emailVerified ?? response.emailPopulated,
+    ),
     phone: normalizeString(response.phone),
     phoneVerified: normalizeBoolean(response.phoneVerified),
     zoneinfo: normalizeString(response.zoneinfo),
@@ -198,7 +202,9 @@ export async function startPasswordlessAuth(
 
   const challenge = options.preferredChallenge || "EMAIL_OTP";
   const normalizedPhone =
-    challenge === "SMS_OTP" ? options.phoneNumber?.trim() || normalizedIdentifier : undefined;
+    challenge === "SMS_OTP"
+      ? options.phoneNumber?.trim() || normalizedIdentifier
+      : undefined;
 
   DebugConsole.auth(
     "[PasswordlessAuth] Starting OTP auth for:",
@@ -210,7 +216,10 @@ export async function startPasswordlessAuth(
   try {
     const request: SendOtpRequest = {
       preferredChallenge: challenge,
-      email: challenge === "EMAIL_OTP" ? normalizedEmail || normalizedIdentifier : normalizedEmail,
+      email:
+        challenge === "EMAIL_OTP"
+          ? normalizedEmail || normalizedIdentifier
+          : normalizedEmail,
       phoneNumber: normalizedPhone,
     };
 
@@ -281,10 +290,10 @@ export async function confirmPasswordlessAuth(
       phoneNumber: session.phoneNumber,
     };
 
-    DebugConsole.auth(
-      "[PasswordlessAuth] Calling /v2/auth/verify-otp with:",
-      { ...request, code: "***" },
-    );
+    DebugConsole.auth("[PasswordlessAuth] Calling /v2/auth/verify-otp with:", {
+      ...request,
+      code: "***",
+    });
 
     const response = await samAuthClient.verifyOtp(request);
 
@@ -295,8 +304,7 @@ export async function confirmPasswordlessAuth(
 
     if (!response.success) {
       throw new PasswordlessAuthError(
-        response.message ||
-          "OTP verification failed.",
+        response.message || "OTP verification failed.",
         502,
         response,
       );

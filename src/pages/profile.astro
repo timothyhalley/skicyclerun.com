@@ -188,12 +188,12 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
             "api",
             "[Profile] ✅ Added Authorization header with Bearer token (length:",
             token.length,
-            ")"
+            ")",
           );
         } else {
           debugLog(
             "api",
-            "[Profile] No bearer token available; attempting profile lookup with identifier"
+            "[Profile] No bearer token available; attempting profile lookup with identifier",
           );
         }
 
@@ -240,7 +240,10 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
           memberSince:
             data.memberSince || data.createdTime || data.userCreateDate || null,
           lastLogin:
-            data.lastLogin || data.lastUpdatedTime || data.userLastModifiedDate || null,
+            data.lastLogin ||
+            data.lastUpdatedTime ||
+            data.userLastModifiedDate ||
+            null,
           userStatus: data.userStatus,
         };
       } catch (err) {
@@ -262,7 +265,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
     }) {
       const container = document.getElementById("user-card-container");
       const statueUrl = statueImageSrc;
-      const name = email ? email.split("@")[0] : (phone || "User");
+      const name = email ? email.split("@")[0] : phone || "User";
 
       // Format dates as YYYY-MM-DD HH:MM in local time
       const formatDateTime = (dateStr) => {
@@ -279,7 +282,11 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
       const formattedLastLogin = formatDateTime(lastLogin) || "Current session";
       const formattedMemberSince = formatDateTime(memberSince) || "Unknown";
       const groupsDisplay = groups?.length ? groups : ["User"];
-      const emailStatus = email ? (emailVerified ? "✓ Verified" : "Unverified") : null;
+      const emailStatus = email
+        ? emailVerified
+          ? "✓ Verified"
+          : "Unverified"
+        : null;
       const phoneStatus = phone
         ? phoneVerified
           ? "✓ Verified"
@@ -297,7 +304,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
           (g) =>
             '<span class="px-3 py-1 rounded-full text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium">' +
             g +
-            "</span>"
+            "</span>",
         )
         .join("");
 
@@ -379,10 +386,14 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
         const authState = await getAuthState();
         debugLog("auth", "[Profile] Auth state received:", authState);
 
-        if (!authState || !authState.signedIn || (!authState.email && !authState.phone)) {
+        if (
+          !authState ||
+          !authState.signedIn ||
+          (!authState.email && !authState.phone)
+        ) {
           debugLog(
             "auth",
-            "[Profile] User not authenticated, showing not-auth section"
+            "[Profile] User not authenticated, showing not-auth section",
           );
           loading.style.display = "none";
           notAuth.style.display = "block";
@@ -399,24 +410,24 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
           "[Profile] User authenticated - Email:",
           email,
           "Has token:",
-          !!token
+          !!token,
         );
 
         if (token) {
           debugLog(
             "auth",
             "[Profile] Token type:",
-            authState.idToken ? "idToken" : "accessToken"
+            authState.idToken ? "idToken" : "accessToken",
           );
           debugLog(
             "auth",
             "[Profile] Token preview:",
-            token.substring(0, 50) + "..."
+            token.substring(0, 50) + "...",
           );
         } else {
           debugLog(
             "api",
-            "[Profile] No bearer token in OTP-only mode; rendering local profile without API call"
+            "[Profile] No bearer token in OTP-only mode; rendering local profile without API call",
           );
 
           renderUserCard({
@@ -449,7 +460,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
         if (!profile || (!profile.email && !profile.phone)) {
           debugLog(
             "api",
-            "[Profile] Falling back to a local OTP-only profile view because the API did not return profile data"
+            "[Profile] Falling back to a local OTP-only profile view because the API did not return profile data",
           );
           renderUserCard({
             email,
@@ -534,7 +545,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
 
     function setupButtons() {
       const logoutBtns = document.querySelectorAll(
-        "#logout-btn, #error-logout-btn"
+        "#logout-btn, #error-logout-btn",
       );
 
       logoutBtns.forEach((btn) => {
@@ -565,7 +576,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
 
       // Setup Sign In button manually
       const signInBtn = document.querySelector(
-        "#profile-not-authenticated [data-auth-btn]"
+        "#profile-not-authenticated [data-auth-btn]",
       );
       if (signInBtn) {
         debugLog("auth", "[Profile] Setting up Sign In button click handler");
@@ -597,7 +608,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
 
             debugError(
               "auth",
-              "[Profile] No OTP auth handler available (passwordless dialog not initialized)"
+              "[Profile] No OTP auth handler available (passwordless dialog not initialized)",
             );
           } catch (error) {
             debugError("auth", "[Profile] Sign in error:", error);
@@ -624,7 +635,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
       debugLog(
         "auth",
         "[Profile] localStorage available:",
-        typeof localStorage !== "undefined"
+        typeof localStorage !== "undefined",
       );
 
       // Wait for auth to be available
@@ -633,12 +644,12 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
       debugLog(
         "auth",
         "[Profile] window.__passwordlessAuth available:",
-        !!window.__passwordlessAuth
+        !!window.__passwordlessAuth,
       );
       debugLog(
         "auth",
         "[Profile] window.__authBridge available:",
-        !!window.__authBridge
+        !!window.__authBridge,
       );
 
       // Check localStorage tokens directly
@@ -646,7 +657,9 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
         const otpSession = localStorage.getItem("passwordless_auth_session");
         debugLog("auth", "[Profile] Direct localStorage check:", {
           hasOtpSession: !!otpSession,
-          otpSessionPreview: otpSession ? otpSession.substring(0, 60) + "..." : null,
+          otpSessionPreview: otpSession
+            ? otpSession.substring(0, 60) + "..."
+            : null,
         });
       }
 

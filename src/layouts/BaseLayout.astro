@@ -31,9 +31,8 @@ const {
 
 const socialImageURL = new URL(
   ogImage ?? SkiCycleRunConfig.ogImage ?? "og.png",
-  Astro.url.origin
+  Astro.url.origin,
 ).href;
-
 ---
 
 <!doctype html>
@@ -177,7 +176,10 @@ const socialImageURL = new URL(
             const cache = JSON.parse(raw);
             const cacheKey = cache?.key || cache?.email;
             if (!cacheKey || !cache?.updatedAt) return [];
-            if (String(cacheKey).toLowerCase() !== String(identifier).toLowerCase()) {
+            if (
+              String(cacheKey).toLowerCase() !==
+              String(identifier).toLowerCase()
+            ) {
               return [];
             }
             const updatedAt = Date.parse(cache.updatedAt);
@@ -237,7 +239,7 @@ const socialImageURL = new URL(
           document.dispatchEvent(
             new CustomEvent("auth:state-change", {
               detail: { isAuthenticated: false },
-            })
+            }),
           );
           debug("auth", "Logged out");
 

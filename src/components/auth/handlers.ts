@@ -478,7 +478,9 @@ export function createAuthHandlers(ctx: AuthHandlersContext) {
         tone: "info",
         text: METHOD_COPY[ctx.selectedMethod].sending,
       });
-      DebugConsole.api("[PasswordlessAuthDialog] POST /v2/auth/send-otp (resend)");
+      DebugConsole.api(
+        "[PasswordlessAuthDialog] POST /v2/auth/send-otp (resend)",
+      );
       const newSession = await resendPasswordlessCode(ctx.session);
       ctx.setSession(newSession);
       const resolvedMethod = normalizeMethod(
