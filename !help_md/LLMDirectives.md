@@ -88,10 +88,10 @@ contract in `!help_md/SAM-AUTH-LAMBDA-SPEC.md` has been updated first.
 - `SuperUsers` is additive, not exclusive.
 - A `SuperUsers` member is also expected to be in `GeneralUsers`.
 - API `groups` should be sorted by Cognito `Precedence` ascending (lower number
-	means higher authority), so client logic can treat `groups[0]` as highest role.
+  means higher authority), so client logic can treat `groups[0]` as highest role.
 - Current required user mapping from backend contract:
-	- `skicyclerun` => `SuperUsers` + `GeneralUsers`
-	- `amsherrin` => `GeneralUsers`
+  - `skicyclerun` => `SuperUsers` + `GeneralUsers`
+  - `amsherrin` => `GeneralUsers`
 
 If you observe a behavior that seems wrong on the backend (e.g., groups not
 returned, user not created, wrong token format), the correct action is:

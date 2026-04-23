@@ -216,7 +216,9 @@ exports.handler = async (event) => {
           GroupName: SUPERUSER_GROUP,
         }),
       );
-      console.log(`[AutoConfirm] Added ${event.userName} to ${SUPERUSER_GROUP}`);
+      console.log(
+        `[AutoConfirm] Added ${event.userName} to ${SUPERUSER_GROUP}`,
+      );
     }
   } catch (err) {
     // Non-fatal: log and continue — do not throw, or the signup will fail.
@@ -292,7 +294,10 @@ if (!groupNames.has(GENERAL_GROUP)) {
   groupNames.add(GENERAL_GROUP);
 }
 
-if (SUPERUSER_USERNAMES.has(String(username).toLowerCase()) && !groupNames.has(SUPERUSER_GROUP)) {
+if (
+  SUPERUSER_USERNAMES.has(String(username).toLowerCase()) &&
+  !groupNames.has(SUPERUSER_GROUP)
+) {
   await cognitoClient.send(
     new AdminAddUserToGroupCommand({
       UserPoolId: process.env.USER_POOL_ID,
@@ -402,16 +407,16 @@ Run once with appropriate AWS credentials. Requires `cognito-idp:ListUsers`,
 
 ## User Pool Reference
 
-| Parameter                   | Value                                         |
-| --------------------------- | --------------------------------------------- |
-| Region                      | `us-west-2`                                   |
-| User Pool ID                | `us-west-2_nkPiRBTSr`                         |
-| Auth flows                  | `ALLOW_USER_AUTH`, `ALLOW_REFRESH_TOKEN_AUTH` |
-| OTP challenge types         | `EMAIL_OTP`, `SMS_OTP`                        |
-| Group model                 | `GeneralUsers` baseline, `SuperUsers` additive |
-| Group ordering in API       | Sort by Cognito `Precedence` ascending         |
-| User mapping                | `skicyclerun` => `SuperUsers` + `GeneralUsers`; `amsherrin` => `GeneralUsers` |
-| PreSignUp Lambda            | `SkiCycleRun_AutoConfirm`                     |
+| Parameter             | Value                                                                         |
+| --------------------- | ----------------------------------------------------------------------------- |
+| Region                | `us-west-2`                                                                   |
+| User Pool ID          | `us-west-2_nkPiRBTSr`                                                         |
+| Auth flows            | `ALLOW_USER_AUTH`, `ALLOW_REFRESH_TOKEN_AUTH`                                 |
+| OTP challenge types   | `EMAIL_OTP`, `SMS_OTP`                                                        |
+| Group model           | `GeneralUsers` baseline, `SuperUsers` additive                                |
+| Group ordering in API | Sort by Cognito `Precedence` ascending                                        |
+| User mapping          | `skicyclerun` => `SuperUsers` + `GeneralUsers`; `amsherrin` => `GeneralUsers` |
+| PreSignUp Lambda      | `SkiCycleRun_AutoConfirm`                                                     |
 
 ---
 
