@@ -4,21 +4,25 @@ import TagPosts from "@layouts/TagPosts.astro";
 import getUniqueTags from "@utils/getUniqueTags";
 import getPostsByTag from "@utils/getPostsByTag";
 import getPagination from "@utils/getPagination";
+import { isDebugEnabled } from "@utils/debugFlag";
 import { SkiCycleRunConfig } from "skicyclerun.config";
 
 export async function getStaticPaths() {
   const posts = await getCollection("blog");
   const tags = getUniqueTags(posts);
+  const isDebug = isDebugEnabled();
 
   const paths = tags.flatMap(({ tag, tagName }) => {
     const tagPosts = getPostsByTag(posts, tag);
     const totalPages = Math.ceil(
-      tagPosts.length / SkiCycleRunConfig.postsPerPage
+      tagPosts.length / SkiCycleRunConfig.postsPerPage,
     );
 
-    console.log(
-      `[tags pagination] ${tag}: ${tagPosts.length} posts, ${totalPages} pages`
-    );
+    if (isDebug) {
+      console.log(
+        `[tags pagination] ${tag}: ${tagPosts.length} posts, ${totalPages} pages`,
+      );
+    }
 
     // Generate paths for pages 2, 3, 4, etc.
     const pages = Array.from({ length: totalPages - 1 }, (_, i) => {
@@ -40,10 +44,12 @@ export async function getStaticPaths() {
       };
     });
 
-    console.log(
-      `[tags pagination] ${tag} generated pages:`,
-      pages.map((p) => `/tags/${p.params.tag}/${p.params.page}`)
-    );
+    if (isDebug) {
+      console.log(
+        `[tags pagination] ${tag} generated pages:`,
+        pages.map((p) => `/tags/${p.params.tag}/${p.params.page}`),
+      );
+    }
     return pages;
   });
 

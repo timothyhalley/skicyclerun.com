@@ -1,14 +1,18 @@
 ---
 import { getCollection } from "astro:content";
 import { generatePostStaticPaths } from "@utils/generatePostStaticPaths";
+import { isDebugEnabled } from "@utils/debugFlag";
 
 const posts = await getCollection("blog");
 const paths = generatePostStaticPaths(posts, ["TECH", "BETA"], "/tech");
+const isDebug = isDebugEnabled();
 
-console.log(
-  "Generated paths for /tech:",
-  paths.map((p) => p.params.slug)
-);
+if (isDebug) {
+  console.log(
+    "Generated paths for /tech:",
+    paths.map((p) => p.params.slug),
+  );
+}
 
 const pathInfo = paths.map((p) => ({
   slug: p.params.slug,

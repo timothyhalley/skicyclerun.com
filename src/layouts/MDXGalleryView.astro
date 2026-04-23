@@ -5,100 +5,74 @@ const visibleCount = Math.max(1, Number(matrix) * Number(matrix));
 ---
 
 <div class="mdx-gallery" data-gallery-matrix={matrix}>
-  {
-    photos && photos.length ? (
-      <div
-        class="grid"
-        style={`grid-template-columns: repeat(${matrix}, 1fr); grid-template-rows: repeat(${matrix}, 1fr);`}
-      >
-        {Array.from({ length: visibleCount }).map((_, i) => {
-          const p = photos[i] || null;
-          return (
-            <div class="grid-item" data-slot-index={i}>
-              {p ? (
-                <img
-                  src={p.src}
-                  alt={p.alt ?? `Photo ${i + 1}`}
-                  loading="lazy"
-                  decoding="async"
-                  data-visible-index={i}
-                />
-              ) : (
-                <div class="placeholder" />
-              )}
-            </div>
-          );
-        })}
-      </div>
-    ) : (
-      <p>No photos in this album.</p>
-    )
-  }
+  <!-- 2×2 Grid (4 images visible, page-chunk navigation) -->
+  <div
+    class="gallery-grid"
+    style={`grid-template-columns: repeat(${matrix}, 1fr);`}
+  >
+    {
+      Array.from({ length: visibleCount }).map((_, i) => {
+        const p = photos[i] || null;
+        return (
+          <div class="gallery-item" data-slot-index={i}>
+            {p ? (
+              <img
+                src={p.src}
+                alt={p.alt ?? `Photo ${i + 1}`}
+                loading="lazy"
+                decoding="async"
+                data-visible-index={i}
+                class="gallery-img"
+              />
+            ) : (
+              <div class="gallery-placeholder" />
+            )}
+          </div>
+        );
+      })
+    }
+  </div>
 
-  {/* Embed the photo list for client script (Astro JSON block) */}
+  <!-- Embed photos for client JS rotation logic -->
   <script
     type="application/json"
     id="gallery-photos"
     set:html={JSON.stringify(photos).replace(/</g, "\\u003c")}
   />
 
-  {/* Inline client script with logs */}
   <script is:inline>
     (() => {
       function init() {
-        console.log("[Gallery] init called, readyState:", document.readyState);
         const containers = Array.from(
-          document.querySelectorAll(".mdx-gallery")
+          document.querySelectorAll(".mdx-gallery"),
         );
-        if (!containers.length) {
-          console.log("[Gallery] No containers found");
-          return;
-        }
+        if (!containers.length) return;
 
-        containers.forEach((container, cIdx) => {
-          if (container.dataset.galleryInitialized === "1") {
-            console.log("[Gallery] Container", cIdx, "already initialized");
-            return;
-          }
+        containers.forEach((container) => {
+          if (container.dataset.galleryInitialized === "1") return;
 
-          console.log("[Gallery] Initializing container", cIdx);
-          const grid = container.querySelector(".grid");
-          if (!grid) {
-            console.log("[Gallery] Missing grid in container", cIdx);
-            return;
-          }
+          const grid = container.querySelector(".gallery-grid");
+          if (!grid) return;
 
           let photos = [];
-          let dataEl;
           try {
-            dataEl =
+            const dataEl =
               container.querySelector(
-                'script[type="application/json"]#gallery-photos'
+                'script[type="application/json"]#gallery-photos',
               ) || document.getElementById("gallery-photos");
             if (dataEl) {
-              const raw = (dataEl.textContent || "").trim();
-              console.log("[Gallery] Raw JSON length:", raw.length);
-              photos = JSON.parse(raw);
-              console.log("[Gallery] Photos parsed:", photos.length, "items");
-            } else {
-              console.log("[Gallery] No data element found in container", cIdx);
+              photos = JSON.parse((dataEl.textContent || "").trim());
             }
           } catch (e) {
-            console.log("[Gallery] JSON parse error:", e);
+            console.error("[Gallery] JSON parse error:", e);
           }
 
-          if (!Array.isArray(photos) || photos.length === 0) {
-            console.log("[Gallery] No valid photos array in container", cIdx);
-            return;
-          }
+          if (!Array.isArray(photos) || photos.length === 0) return;
 
           const matrix =
             Number(container.getAttribute("data-gallery-matrix")) || 2;
           const visibleCount = matrix * matrix;
-          let visibleIndices = Array.from(
-            { length: visibleCount },
-            (_, i) => i % photos.length
-          );
+          let pageIndex = 0;
 
           const slots = Array.from(grid.querySelectorAll("[data-slot-index]"));
 
@@ -106,7 +80,7 @@ const visibleCount = Math.max(1, Number(matrix) * Number(matrix));
             slotEl.innerHTML = "";
             if (!photo) {
               const ph = document.createElement("div");
-              ph.className = "placeholder";
+              ph.className = "gallery-placeholder";
               slotEl.appendChild(ph);
               return;
             }
@@ -115,6 +89,7 @@ const visibleCount = Math.max(1, Number(matrix) * Number(matrix));
             img.alt = photo.alt || photo.altText || "";
             img.loading = "lazy";
             img.decoding = "async";
+            img.className = "gallery-img";
             img.style.width = "100%";
             img.style.height = "100%";
             img.style.objectFit = "cover";
@@ -122,31 +97,58 @@ const visibleCount = Math.max(1, Number(matrix) * Number(matrix));
             slotEl.appendChild(img);
           }
 
+          function getPageIndices(idx) {
+            const start = idx * visibleCount;
+            return Array.from(
+              { length: visibleCount },
+              (_, offset) => (start + offset) % photos.length,
+            );
+          }
+
+          function getPageCount() {
+            return Math.max(1, Math.ceil(photos.length / visibleCount));
+          }
+
           function renderVisible() {
+            const pageCount = getPageCount();
+            pageIndex = pageIndex % pageCount;
+            const visibleIndices = getPageIndices(pageIndex);
             slots.forEach((s, i) => {
               const photo = photos[visibleIndices[i]] || null;
               renderSlot(s, photo);
             });
-            console.log("[Gallery] Rendered indices:", visibleIndices);
+            console.debug(
+              `[Gallery] render page ${pageIndex + 1}/${pageCount} with indices [${visibleIndices.join(", ")}] (total photos: ${photos.length})`,
+            );
           }
 
-          // initial render
+          // Initial render
           renderVisible();
 
-          // Attach click listener to any slot: rotates all images clockwise
+          // Attach click listeners — advance to next fixed page-chunk on tap
           slots.forEach((slot) => {
             slot.style.cursor = "pointer";
             slot.addEventListener("click", () => {
-              // Rotate visibleIndices clockwise
-              const last = visibleIndices.pop();
-              visibleIndices.unshift((last + 1) % photos.length);
-              console.log("[Gallery] Rotated indices:", visibleIndices);
+              const pageCount = getPageCount();
+              pageIndex = (pageIndex + 1) % pageCount;
               renderVisible();
             });
           });
 
+          // Dynamic update from PhotoLayout (art style / API)
+          container.addEventListener("gallery-update", (e) => {
+            const newPhotos = e.detail?.photos;
+            if (Array.isArray(newPhotos) && newPhotos.length > 0) {
+              photos = newPhotos;
+              pageIndex = 0;
+              renderVisible();
+              console.debug(
+                `[Gallery] received gallery-update with ${photos.length} photos; reset to page 1`,
+              );
+            }
+          });
+
           container.dataset.galleryInitialized = "1";
-          console.log("[Gallery] Initialization complete for container", cIdx);
         });
       }
 
@@ -158,38 +160,146 @@ const visibleCount = Math.max(1, Number(matrix) * Number(matrix));
       document.addEventListener("astro:after-swap", init);
     })();
   </script>
-</div>
 
-<style>
-  .mdx-gallery .grid {
-    display: grid;
-    gap: 0.5rem;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-  }
-  .mdx-gallery .grid .grid-item {
-    position: relative;
-    overflow: hidden;
-    cursor: pointer;
-    aspect-ratio: 1 / 1;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .mdx-gallery img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-    aspect-ratio: 1 / 1;
-    background: rgb(var(--color-fill));
-  }
-  .mdx-gallery .placeholder {
-    background: #ececec;
-    width: 100%;
-    height: 100%;
-    aspect-ratio: 1 / 1;
-  }
-</style>
+  <style>
+    .mdx-gallery {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      padding: 0.45rem;
+      background:
+        radial-gradient(
+          130% 130% at 8% 6%,
+          rgba(var(--color-accent), 0.14),
+          rgba(var(--color-fill), 0.45) 42%,
+          rgba(var(--color-fill), 0.88) 100%
+        ),
+        rgb(var(--color-fill));
+      animation: gallery-enter 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .gallery-grid {
+      display: grid;
+      gap: clamp(0.3rem, 1vw, 0.6rem);
+      width: 100%;
+      height: 100%;
+    }
+
+    .gallery-item {
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: clamp(0.6rem, 1.8vw, 1rem);
+      border: 1px solid rgba(var(--color-border), 0.42);
+      background: rgba(var(--color-card), 0.55);
+      backdrop-filter: blur(9px) saturate(118%);
+      -webkit-backdrop-filter: blur(9px) saturate(118%);
+      transition:
+        transform 0.16s ease-out,
+        box-shadow 0.2s ease-out,
+        border-color 0.2s ease-out;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        0 10px 30px rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      animation: gallery-item-enter 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .gallery-item:nth-child(1) {
+      animation-delay: 90ms;
+    }
+
+    .gallery-item:nth-child(2) {
+      animation-delay: 130ms;
+    }
+
+    .gallery-item:nth-child(3) {
+      animation-delay: 170ms;
+    }
+
+    .gallery-item:nth-child(4) {
+      animation-delay: 210ms;
+    }
+
+    .gallery-item:nth-child(n + 5) {
+      animation-delay: 250ms;
+    }
+
+    .gallery-item:hover {
+      border-color: rgba(var(--color-accent), 0.42);
+      transform: translateY(-1px);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.22),
+        0 16px 34px rgba(0, 0, 0, 0.25);
+    }
+
+    .gallery-item:active {
+      transform: scale(0.97);
+      box-shadow: inset 0 0 0 1px rgba(var(--color-accent), 0.28);
+    }
+
+    .gallery-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition:
+        opacity 0.3s ease,
+        transform 0.35s ease,
+        filter 0.35s ease;
+    }
+
+    .gallery-item:hover .gallery-img {
+      transform: scale(1.03);
+      filter: saturate(1.06) brightness(1.02);
+    }
+
+    .gallery-placeholder {
+      background: rgb(var(--color-fill));
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1 / 1;
+    }
+
+    @media (max-width: 768px) {
+      .mdx-gallery {
+        padding: 0.25rem;
+      }
+    }
+
+    @keyframes gallery-enter {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes gallery-item-enter {
+      from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .mdx-gallery,
+      .gallery-item {
+        animation: none;
+        opacity: 1;
+      }
+    }
+  </style>
+</div>

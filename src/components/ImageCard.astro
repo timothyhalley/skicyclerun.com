@@ -34,6 +34,38 @@ const styleMax =
   alt={resolvedAlt}
   loading="lazy"
   decoding="async"
-  class={`block h-full w-full rounded-lg object-cover object-center ${twCSS}`}
+  class={`image-card-liquid block h-full w-full object-cover object-center ${twCSS}`}
   style={`${styleMax} width: 100%; height: auto;`}
 />
+
+<style>
+  .image-card-liquid {
+    border-radius: clamp(0.7rem, 1.5vw, 1rem);
+    border: 1px solid rgba(var(--color-border), 0.46);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 12px 28px rgba(0, 0, 0, 0.2);
+    transition:
+      transform 0.2s ease,
+      filter 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .image-card-liquid:hover {
+    transform: translateY(-1px) scale(1.01);
+    filter: saturate(1.04) brightness(1.02);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      0 16px 34px rgba(0, 0, 0, 0.24);
+  }
+
+  .image-card-liquid:active {
+    transform: scale(0.99);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .image-card-liquid {
+      transition: none;
+    }
+  }
+</style>

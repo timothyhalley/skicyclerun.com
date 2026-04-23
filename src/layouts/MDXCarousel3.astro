@@ -1,9 +1,6 @@
 ---
-// MDXCarousel3: presentational carousel that accepts an array of photos and an optional carouselId.
-// Responsibilities:
-// - Render the slides and controls
-// - Initialize its own client-side behavior (autoplay, modal, prev/next)
-// Do not fetch data or read frontmatter here — that is the job of the master `PhotoLayout.astro`.
+// MDXCarousel3: scroll-snap carousel, iOS-native swipe navigation.
+// .carousel-track / .carousel-slide class names preserved for PhotoLayout compatibility.
 const {
   photos = [],
   carouselId = `carousel-${Math.random().toString(36).slice(2, 8)}`,
@@ -11,7 +8,12 @@ const {
 ---
 
 <section class="carousel-container" id={carouselId}>
-  <div class="carousel-track" id={`${carouselId}-track`}>
+  <!-- Scroll-snap track: native iOS swipe -->
+  <div
+    class="carousel-track"
+    id={`${carouselId}-track`}
+    style="-webkit-overflow-scrolling: touch;"
+  >
     {
       photos.map((photo, index) => (
         <div class="carousel-slide" data-src={photo.src}>
@@ -21,7 +23,7 @@ const {
             loading="lazy"
             decoding="async"
             class="clickable-image"
-            style="width: 85%; aspect-ratio: 1 / 1; max-width: 888px; max-height: 888px; display: block; border-radius: 6px; margin: 0 auto; background: rgb(var(--color-fill));"
+            draggable="false"
           />
         </div>
       ))
@@ -29,82 +31,267 @@ const {
   </div>
 
   <div class="controls">
-    <button id={`${carouselId}-prevBtn`}>⬅️ Prev</button>
-    <button id={`${carouselId}-toggleBtn`}>⏯️ Play/Pause</button>
-    <button id={`${carouselId}-nextBtn`}>➡️ Next</button>
+    <button id={`${carouselId}-prevBtn`} aria-label="Previous">‹</button>
+    <button id={`${carouselId}-toggleBtn`} aria-label="Play/Pause">⏸</button>
+    <button id={`${carouselId}-nextBtn`} aria-label="Next">›</button>
+  </div>
+
+  <!-- Slide counter -->
+  <div id={`${carouselId}-counter`} class="carousel-counter">
+    {photos.length > 0 ? `1 / ${photos.length}` : ""}
   </div>
 
   <div id={`${carouselId}-modal`} class="modal">
-    <img id={`${carouselId}-modalImage`} src="" alt="Large view" />
+    <img
+      id={`${carouselId}-modalImage`}
+      src=""
+      alt="Full view"
+      draggable="false"
+    />
   </div>
 
   <slot />
 
   <style>
-    /* Controls height used to prevent overlap with image while keeping square visuals */
     .carousel-container {
       position: relative;
       overflow: hidden;
       width: 100%;
-      max-width: 960px;
+      max-width: none;
       margin: auto;
-      --controls-height: 56px;
+      height: 100%;
+      min-height: clamp(320px, 68vh, 920px);
+      aspect-ratio: var(--carousel-aspect, 1 / 1);
+      --controls-height: 52px;
+      background:
+        radial-gradient(
+          130% 145% at 10% 6%,
+          rgba(var(--color-accent), 0.16),
+          rgba(var(--color-fill), 0.4) 42%,
+          rgba(var(--color-fill), 0.92) 100%
+        ),
+        rgb(var(--color-fill));
+      animation: carousel-enter 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }
+    /* Scroll-snap track */
     .carousel-track {
       display: flex;
-      transition: transform 0.5s ease-in-out;
+      overflow-x: scroll;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      width: 100%;
+      height: 100%;
+    }
+    .carousel-track::-webkit-scrollbar {
+      display: none;
     }
     .carousel-slide {
       min-width: 100%;
+      width: 100%;
+      height: 100%;
       box-sizing: border-box;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      aspect-ratio: 1 / 1;
-      background: rgb(var(--color-fill));
+      background: transparent;
+      scroll-snap-align: center;
+      flex-shrink: 0;
     }
+
+    .carousel-slide::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 5.4rem;
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.34),
+        rgba(0, 0, 0, 0.09),
+        rgba(0, 0, 0, 0)
+      );
+      pointer-events: none;
+      z-index: 1;
+    }
+
     .controls {
       position: absolute;
       left: 0;
       right: 0;
-      bottom: 8px;
+      bottom: 0.72rem;
       display: flex;
       justify-content: center;
-      gap: 1rem;
+      gap: 0.62rem;
       z-index: 50;
       pointer-events: auto;
+      animation: controls-enter 640ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      animation-delay: 120ms;
     }
+
     .controls button {
-      background: rgba(var(--color-card), 0.95);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(
+        135deg,
+        rgba(var(--color-card), 0.84),
+        rgba(var(--color-fill), 0.38)
+      );
       color: rgb(var(--color-text-base));
-      border: 1px solid rgb(var(--color-border));
-      padding: 0.5rem 0.75rem;
-      border-radius: 6px;
+      border: 1px solid rgba(var(--color-border), 0.56);
+      width: 2.65rem;
+      height: 2.65rem;
+      border-radius: 999px;
+      font-size: 1.18rem;
+      line-height: 1;
       cursor: pointer;
-      transition: background 0.2s ease;
+      transition:
+        transform 0.16s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease;
+      text-align: center;
+      backdrop-filter: blur(12px) saturate(126%);
+      -webkit-backdrop-filter: blur(12px) saturate(126%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        0 10px 30px rgba(0, 0, 0, 0.28);
     }
+
     .controls button:hover {
-      background: rgb(var(--color-card));
+      border-color: rgba(var(--color-accent), 0.48);
+      background: rgba(var(--color-card), 0.9);
+      transform: translateY(-1px);
     }
-    /* Image sizing: square at ~90% of container, never hidden by controls */
+
+    .controls button:active {
+      transform: scale(0.95);
+    }
+
     .carousel-slide img.clickable-image {
-      width: 90%;
-      max-height: calc(100% - var(--controls-height));
-      aspect-ratio: 1 / 1;
+      width: 100%;
+      height: 100%;
+      padding: 0.45rem 0.45rem 3.65rem;
       object-fit: contain;
-      background: rgb(var(--color-fill));
+      background: transparent;
       display: block;
       margin: 0 auto;
-      border-radius: 6px;
+      border-radius: 0.78rem;
+      select: none;
+      transition:
+        transform 0.23s ease,
+        filter 0.23s ease;
+      position: relative;
+      z-index: 0;
     }
+
+    .carousel-slide img.clickable-image:active {
+      transform: scale(0.985);
+      filter: brightness(1.05);
+    }
+
+    .carousel-counter {
+      position: absolute;
+      top: 0.8rem;
+      right: 0.8rem;
+      color: rgba(255, 255, 255, 0.88);
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(0, 0, 0, 0.34);
+      padding: 0.26rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      pointer-events: none;
+      backdrop-filter: blur(10px) saturate(130%);
+      -webkit-backdrop-filter: blur(10px) saturate(130%);
+      white-space: nowrap;
+      z-index: 55;
+      animation: controls-enter 640ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      animation-delay: 180ms;
+    }
+
+    @media (max-width: 768px) {
+      .controls {
+        bottom: 0.5rem;
+        gap: 0.5rem;
+      }
+
+      .controls button {
+        width: 2.35rem;
+        height: 2.35rem;
+        font-size: 1.04rem;
+      }
+
+      .carousel-slide img.clickable-image {
+        padding: 0.25rem 0.25rem 3.15rem;
+      }
+
+      .carousel-counter {
+        top: 0.52rem;
+        right: 0.52rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .carousel-slide img.clickable-image {
+        padding-bottom: 2.9rem;
+      }
+    }
+
+    @media (min-width: 680px) and (max-width: 940px) {
+      .carousel-container {
+        min-height: min(70svh, 680px);
+      }
+
+      .controls {
+        bottom: 0.48rem;
+        gap: 0.42rem;
+      }
+
+      .controls button {
+        width: 2.22rem;
+        height: 2.22rem;
+        font-size: 0.98rem;
+      }
+
+      .carousel-slide img.clickable-image {
+        padding: 0.24rem 0.24rem 2.95rem;
+        border-radius: 0.62rem;
+      }
+
+      .carousel-counter {
+        top: 0.48rem;
+        right: 0.48rem;
+        font-size: 0.68rem;
+        padding: 0.22rem 0.45rem;
+      }
+    }
+
+    @media (min-width: 941px) and (max-width: 1100px) {
+      .controls {
+        gap: 0.5rem;
+      }
+
+      .controls button {
+        width: 2.42rem;
+        height: 2.42rem;
+        font-size: 1.04rem;
+      }
+
+      .carousel-slide img.clickable-image {
+        padding-bottom: 3.18rem;
+      }
+    }
+
     .modal {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.92);
       display: none;
       justify-content: center;
       align-items: center;
@@ -114,192 +301,244 @@ const {
       max-width: 90%;
       max-height: 90%;
       border-radius: 8px;
+      transition: transform 0.3s ease;
+    }
+
+    @keyframes carousel-enter {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.988);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes controls-enter {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .carousel-container,
+      .controls,
+      .carousel-counter {
+        animation: none;
+      }
     }
   </style>
 
-  <script type="module">
-    // Initialize any carousel instances found on the page. This is robust to
-    // Astro hoisting/bundling (no reliance on document.currentScript) and will
-    // work even when carousels are initially hidden.
+  <script is:inline>
     (function initCarousels() {
-      function setupCarousel(container, forceReinit = false) {
+      function setupCarousel(container, forceReinit) {
         if (!container) return;
         if (container.dataset.carouselInitialized && !forceReinit) return;
+
+        // Increment instance version so stale timers/listeners can self-ignore.
+        const currentVersion =
+          Number(container.dataset.carouselVersion || "0") + 1;
+        const version = String(currentVersion);
+        container.dataset.carouselVersion = version;
+        const isActiveInstance = () =>
+          container.dataset.carouselVersion === version;
 
         const id = container.id;
         const track = container.querySelector(".carousel-track");
         const slides = track
           ? Array.from(track.querySelectorAll(".carousel-slide"))
           : [];
-        const modal = document.getElementById(`${id}-modal`);
-        const modalImage = document.getElementById(`${id}-modalImage`);
-        const prevBtn = document.getElementById(`${id}-prevBtn`);
-        const nextBtn = document.getElementById(`${id}-nextBtn`);
-        const toggleBtn = document.getElementById(`${id}-toggleBtn`);
+        const modal = document.getElementById(id + "-modal");
+        const modalImage = document.getElementById(id + "-modalImage");
+        const counterEl = document.getElementById(id + "-counter");
 
         if (!track || slides.length === 0) {
-          // Nothing to do
           container.dataset.carouselInitialized = "1";
           return;
         }
 
-        // Clear any existing interval if reinitializing
-        if (forceReinit) {
-          const oldIntervalId = container.dataset.carouselInterval;
-          if (oldIntervalId) {
-            clearInterval(Number(oldIntervalId));
+        function clearAutoplayInterval() {
+          const active = container.dataset.carouselInterval;
+          if (active) {
+            clearInterval(Number(active));
             delete container.dataset.carouselInterval;
           }
         }
 
+        // Clear existing autoplay interval on reinit.
+        clearAutoplayInterval();
+
         let currentIndex = 0;
-        let isPlaying = true;
-        let intervalId = null;
+        let isPlaying = container.dataset.carouselPlaying !== "0";
 
-        function updateCarousel() {
-          track.style.transform = `translateX(-${currentIndex * 100}%)`;
+        function getSlideWidth() {
+          return track.clientWidth || 0;
         }
 
-        function nextSlide() {
-          currentIndex = (currentIndex + 1) % slides.length;
-          updateCarousel();
+        function goToSlide(idx) {
+          if (!isActiveInstance()) return;
+          currentIndex = (idx + slides.length) % slides.length;
+          track.scrollTo({
+            left: currentIndex * getSlideWidth(),
+            behavior: "smooth",
+          });
+          updateCounter();
         }
 
-        function prevSlide() {
-          currentIndex = (currentIndex - 1 + slides.length) % slides.length;
-          updateCarousel();
+        function updateCounter() {
+          if (!isActiveInstance()) return;
+          if (counterEl)
+            counterEl.textContent = `${currentIndex + 1} / ${slides.length}`;
         }
 
         function setPlaying(playing) {
+          if (!isActiveInstance()) return;
           isPlaying = !!playing;
-          if (toggleBtn)
-            toggleBtn.textContent = isPlaying ? "⏸️ Pause" : "▶️ Play";
-          if (intervalId) clearInterval(intervalId);
+          container.dataset.carouselPlaying = isPlaying ? "1" : "0";
+          const toggleBtn = document.getElementById(id + "-toggleBtn");
+          if (toggleBtn) toggleBtn.textContent = isPlaying ? "⏸" : "▶";
+          clearAutoplayInterval();
           if (isPlaying) {
-            intervalId = setInterval(() => nextSlide(), 4000);
-            // store id so it can be cleared later if needed
+            const intervalId = window.setInterval(() => {
+              if (!isActiveInstance()) {
+                clearInterval(intervalId);
+                return;
+              }
+              goToSlide(currentIndex + 1);
+            }, 4000);
             container.dataset.carouselInterval = String(intervalId);
           }
         }
 
+        function restartAutoplayTimer() {
+          if (!isActiveInstance()) return;
+          if (!isPlaying) return;
+          clearAutoplayInterval();
+          const intervalId = window.setInterval(() => {
+            if (!isActiveInstance()) {
+              clearInterval(intervalId);
+              return;
+            }
+            goToSlide(currentIndex + 1);
+          }, 4000);
+          container.dataset.carouselInterval = String(intervalId);
+        }
+
         function openModal(src) {
+          if (!isActiveInstance()) return;
           if (modal && modalImage && src) {
             modalImage.src = src;
             modal.style.display = "flex";
-            console.log("[Carousel] Opening modal with image:", src);
           }
         }
 
         function closeModal() {
+          if (!isActiveInstance()) return;
           if (modal) {
             modal.style.display = "none";
             if (modalImage) modalImage.src = "";
           }
         }
 
-        // Remove old event listeners if reinitializing
-        if (forceReinit) {
-          const newPrevBtn = prevBtn?.cloneNode(true);
-          const newNextBtn = nextBtn?.cloneNode(true);
-          const newToggleBtn = toggleBtn?.cloneNode(true);
+        // Clone buttons to strip stale listeners on reinit
+        ["prevBtn", "nextBtn", "toggleBtn"].forEach((btnKey) => {
+          const btn = document.getElementById(id + "-" + btnKey);
+          if (btn) {
+            const clone = btn.cloneNode(true);
+            btn.parentNode?.replaceChild(clone, btn);
+          }
+        });
 
-          if (prevBtn && newPrevBtn)
-            prevBtn.parentNode?.replaceChild(newPrevBtn, prevBtn);
-          if (nextBtn && newNextBtn)
-            nextBtn.parentNode?.replaceChild(newNextBtn, nextBtn);
-          if (toggleBtn && newToggleBtn)
-            toggleBtn.parentNode?.replaceChild(newToggleBtn, toggleBtn);
-
-          // Update references
-          const updatedPrevBtn = document.getElementById(`${id}-prevBtn`);
-          const updatedNextBtn = document.getElementById(`${id}-nextBtn`);
-          const updatedToggleBtn = document.getElementById(`${id}-toggleBtn`);
-
-          // Wire new buttons
-          updatedPrevBtn?.addEventListener("click", (e) => {
+        // Wire fresh button references
+        document
+          .getElementById(id + "-prevBtn")
+          ?.addEventListener("click", (e) => {
             e.preventDefault();
-            prevSlide();
+            goToSlide(currentIndex - 1);
+            restartAutoplayTimer();
           });
-          updatedNextBtn?.addEventListener("click", (e) => {
+        document
+          .getElementById(id + "-nextBtn")
+          ?.addEventListener("click", (e) => {
             e.preventDefault();
-            nextSlide();
+            goToSlide(currentIndex + 1);
+            restartAutoplayTimer();
           });
-          updatedToggleBtn?.addEventListener("click", (e) => {
+        document
+          .getElementById(id + "-toggleBtn")
+          ?.addEventListener("click", (e) => {
             e.preventDefault();
+            e.stopPropagation();
             setPlaying(!isPlaying);
           });
 
-          // Clone slides to remove old event listeners
-          slides.forEach((slide, idx) => {
-            const newSlide = slide.cloneNode(true);
-            slide.parentNode?.replaceChild(newSlide, slide);
-            slides[idx] = newSlide; // Update reference
-
-            newSlide.addEventListener("click", () => {
-              const src =
-                newSlide.getAttribute("data-src") ||
-                newSlide.querySelector("img")?.src;
-              console.log(
-                `[Carousel] Clicked slide ${idx}, opening modal with:`,
-                src
-              );
-              openModal(src);
-            });
+        // Clone slides to strip stale listeners
+        slides.forEach((slide, idx) => {
+          const clone = slide.cloneNode(true);
+          slide.parentNode?.replaceChild(clone, slide);
+          slides[idx] = clone;
+          clone.addEventListener("click", () => {
+            const src = clone.dataset.src || clone.querySelector("img")?.src;
+            openModal(src);
           });
-        } else {
-          // Wire buttons (initial setup)
-          prevBtn?.addEventListener("click", (e) => {
-            e.preventDefault();
-            prevSlide();
-          });
-          nextBtn?.addEventListener("click", (e) => {
-            e.preventDefault();
-            nextSlide();
-          });
-          toggleBtn?.addEventListener("click", (e) => {
-            e.preventDefault();
-            setPlaying(!isPlaying);
-          });
-
-          slides.forEach((slide, idx) => {
-            slide.addEventListener("click", () => {
-              const src =
-                slide.getAttribute("data-src") ||
-                slide.querySelector("img")?.src;
-              console.log(
-                `[Carousel] Clicked slide ${idx}, opening modal with:`,
-                src
-              );
-              openModal(src);
-            });
-          });
-        }
+        });
 
         modal?.addEventListener("click", closeModal);
 
-        // Start autoplay
-        setPlaying(true);
+        // Sync currentIndex when user swipes natively
+        let snapTimer;
+        track.addEventListener(
+          "scroll",
+          () => {
+            if (!isActiveInstance()) return;
+            clearTimeout(snapTimer);
+            snapTimer = setTimeout(() => {
+              if (!isActiveInstance()) return;
+              const w = getSlideWidth();
+              if (w > 0) {
+                const idx = Math.round(track.scrollLeft / w);
+                if (idx !== currentIndex) {
+                  currentIndex = idx;
+                  updateCounter();
+                  restartAutoplayTimer();
+                }
+              }
+            }, 60);
+          },
+          { passive: true },
+        );
 
-        // mark initialized
+        // Reset scroll position on reinit
+        track.scrollLeft = 0;
+        currentIndex = 0;
+        updateCounter();
+        setPlaying(true); // Carousel: auto-play by default
+
         container.dataset.carouselInitialized = "1";
-        console.log(`[Carousel] Initialized with ${slides.length} slides`);
+        console.log(
+          "[Carousel] Initialized with",
+          slides.length,
+          "slides (scroll-snap)",
+        );
       }
 
       function initAll() {
-        const containers = Array.from(
-          document.querySelectorAll(".carousel-container")
-        );
-        containers.forEach((c) => setupCarousel(c, false));
+        document
+          .querySelectorAll(".carousel-container")
+          .forEach((c) => setupCarousel(c, false));
       }
 
-      // Listen for reinit events from PhotoLayout
       document.addEventListener("reinit-carousel", (e) => {
-        const containerId = e.detail?.containerId;
-        if (containerId) {
-          const container = document.getElementById(containerId);
-          console.log(`[Carousel] Reinitializing carousel: ${containerId}`);
-          setupCarousel(container, true);
-        }
+        const container = e.detail?.containerId
+          ? document.getElementById(e.detail.containerId)
+          : null;
+        if (container) setupCarousel(container, true);
       });
 
       if (document.readyState === "loading") {
@@ -307,8 +546,6 @@ const {
       } else {
         initAll();
       }
-
-      // Reinitialize after Astro partial swaps/navigation
       document.addEventListener("astro:after-swap", initAll);
     })();
   </script>

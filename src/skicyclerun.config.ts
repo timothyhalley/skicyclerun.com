@@ -13,14 +13,14 @@ export const SkiCycleRunConfig = {
   postsPerPage: 5,
   blogType: BLOG_TYPES[3], // "GENERAL"
   scheduledPostMargin: 15 * 60 * 1000,
-  version: "2026-04-19 V06.000",
+  version: "2026-04-23 V07.000",
   maxWidth: 1024,
   // maximum photos to request/display in MDXLayout galleries (4x4 => 16)
   galleryMaxPhotos: 16,
 
   // Photo API configuration
   photoApi: {
-    buildTimePhotos: 150, // Photos fetched during SSG build
+    buildTimePhotos: 16, // Initial random set for fast first render
     dynamicPhotos: 250, // Photos fetched for dynamic "Full Library" mode
   },
 

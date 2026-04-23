@@ -10,6 +10,7 @@ import { SkiCycleRunConfig } from "skicyclerun.config";
 import { getPhotoCover } from "@utils/getPhotoCover";
 import { getBlogSection } from "@constants/blogTypes";
 import { getPostSlug } from "@utils/slugify";
+import { isDebugEnabled } from "@utils/debugFlag";
 
 export interface Props {
   currentPage: number;
@@ -31,9 +32,12 @@ const coverImages = await Promise.all(
     getPhotoCover(post.data.cover ?? "images/default-cover.png"),
   ),
 );
-console.log(
-  `[Posts.astro] Loaded cover images for ${coverImages.length} posts.`,
-);
+const isDebug = isDebugEnabled();
+if (isDebug) {
+  console.log(
+    `[Posts.astro] Loaded cover images for ${coverImages.length} posts.`,
+  );
+}
 ---
 
 <BaseLayout

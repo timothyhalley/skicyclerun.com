@@ -20,35 +20,44 @@ const first = photos && photos.length ? photos[0] : null;
         decoding="async"
         data-current-index={0}
         class="hero-image"
-        style="cursor: pointer; width: 100%; height: 100%; object-fit: contain; aspect-ratio: 1 / 1; display: block; background: rgb(var(--color-fill)); transition: transform 0.2s ease, filter 0.2s ease;"
+        draggable="false"
+        style="cursor: pointer;"
       />
+      <!-- Photo counter pill -->
+      <div id="hero-counter" class="hero-counter-pill">
+        {photos.length > 1 ? `1 / ${photos.length}` : ''}
+      </div>
       {frontmatter.title && (
-        <figcaption class="mt-2 text-sm text-skin-muted">
+        <figcaption class="hero-caption text-sm text-skin-muted">
           {frontmatter.title}
         </figcaption>
       )}
 
         <script is:inline>
 (() => {
+          const debug = window.debugLog
+            ? (...args) => window.debugLog("ui", ...args)
+            : () => {};
+
   function init() {
-    console.log("[Hero] init() called");
+            debug("[Hero] init() called");
     const container = document.querySelector("figure[data-photos-json]");
     if (!container) {
-      console.log("[Hero] No container found");
+              debug("[Hero] No container found");
       return;
     }
-    console.log("[Hero] Container found");
+            debug("[Hero] Container found");
     if (container.dataset.heroInitialized === "1") {
-      console.log("[Hero] Already initialized");
+              debug("[Hero] Already initialized");
       return;
     }
 
     const img = container.querySelector("img");
     if (!img) {
-      console.log("[Hero] No img found");
+              debug("[Hero] No img found");
       return;
     }
-    console.log("[Hero] Img found");
+            debug("[Hero] Img found");
 
     let photos = [];
     let dataEl;
@@ -56,59 +65,66 @@ const first = photos && photos.length ? photos[0] : null;
       dataEl = container.querySelector('script[type="application/json"]#hero-photos') || document.getElementById('hero-photos');
       if (dataEl) {
         const raw = (dataEl.textContent || '').trim();
-        console.log("[Hero] Raw JSON text:", raw);
+        debug("[Hero] Raw JSON text:", raw);
         photos = JSON.parse(raw);
-        console.log("[Hero] Photos parsed:", photos.length, "items");
+        debug("[Hero] Photos parsed:", photos.length, "items");
       } else {
-        console.log("[Hero] No data element found");
+        debug("[Hero] No data element found");
       }
     } catch (e) {
-      console.log("[Hero] JSON parse error:", e);
-      console.log("[Hero] Error details - raw text was:", dataEl ? (dataEl.textContent || '').trim() : 'no element');
+      debug("[Hero] JSON parse error:", e);
+      debug("[Hero] Error details - raw text was:", dataEl ? (dataEl.textContent || '').trim() : 'no element');
     }
 
     if (!Array.isArray(photos) || photos.length === 0) {
-      console.log("[Hero] No valid photos array");
+      debug("[Hero] No valid photos array");
       return;
     }
 
     // Ensure index is tracked on the <img>
     if (!img.dataset.currentIndex) img.dataset.currentIndex = "0";
-    console.log("[Hero] Initial index set to:", img.dataset.currentIndex);
+    debug("[Hero] Initial index set to:", img.dataset.currentIndex);
+
+    const counterEl = container.querySelector('#hero-counter');
+    function updateHeroCounter(idx) {
+      if (counterEl && photos.length > 1) {
+        counterEl.textContent = `${idx + 1} / ${photos.length}`;
+      }
+    }
 
     img.addEventListener("click", () => {
-      console.log("[Hero] Click detected");
       let idx = Number(img.dataset.currentIndex) || 0;
-      console.log("[Hero] Current index:", idx);
       idx = (idx + 1) % photos.length;
-      console.log("[Hero] New index:", idx);
       img.dataset.currentIndex = String(idx);
       const p = photos[idx];
-      console.log("[Hero] Photo to display:", p);
       if (p) {
-        img.src = p.src;
-        img.alt = p.alt || p.altText || "Hero image";
-        console.log("[Hero] Image updated to:", p.src);
-      } else {
-        console.log("[Hero] No photo at index", idx);
+        // Bounce-scale feedback then swap src
+        img.style.transform = 'scale(0.93)';
+        img.style.opacity = '0.7';
+        setTimeout(() => {
+          img.src = p.src;
+          img.alt = p.alt || p.altText || "Hero image";
+          img.style.transform = '';
+          img.style.opacity = '';
+          updateHeroCounter(idx);
+        }, 120);
       }
     });
-    console.log("[Hero] Click listener added");
 
     container.dataset.heroInitialized = "1";
-    console.log("[Hero] Initialization complete");
+    debug("[Hero] Initialization complete");
   }
 
-  console.log("[Hero] Script loaded, readyState:", document.readyState);
+  debug("[Hero] Script loaded, readyState:", document.readyState);
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
-    console.log("[Hero] Added DOMContentLoaded listener");
+    debug("[Hero] Added DOMContentLoaded listener");
   } else {
     init();
   }
 
   document.addEventListener("astro:after-swap", () => {
-    console.log("[Hero] astro:after-swap detected");
+    debug("[Hero] astro:after-swap detected");
     init();
   });
 })();
@@ -122,41 +138,100 @@ const first = photos && photos.length ? photos[0] : null;
 <style>
   .mdx-hero {
     width: 100%;
-    aspect-ratio: 1 / 1;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgb(var(--color-fill));
+    background: transparent;
     margin: 0;
     padding: 0;
   }
   .hero-figure {
+    position: relative;
     width: 100%;
     height: 100%;
     margin: 0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    aspect-ratio: 1 / 1;
-    background: none;
+    background: radial-gradient(
+      140% 150% at 10% 8%,
+      rgba(var(--color-accent), 0.16),
+      rgba(var(--color-fill), 0.35) 40%,
+      rgba(var(--color-fill), 0.9) 100%
+    );
+    overflow: hidden;
   }
   .hero-figure img {
     width: 100%;
     height: 100%;
     object-fit: contain;
     display: block;
-    background: rgb(var(--color-fill));
+    background: transparent;
+    transition:
+      transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity 0.26s ease,
+      filter 0.26s ease;
+  }
+
+  .hero-counter-pill {
+    position: absolute;
+    right: 0.8rem;
+    top: 0.8rem;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.34);
+    padding: 0.24rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    pointer-events: none;
+    backdrop-filter: blur(10px) saturate(130%);
+    -webkit-backdrop-filter: blur(10px) saturate(130%);
+    white-space: nowrap;
+    z-index: 3;
+  }
+
+  .hero-caption {
+    position: absolute;
+    top: 0.8rem;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    padding: 0.32rem 0.7rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(var(--color-border), 0.42);
+    background: rgba(var(--color-card), 0.6);
+    color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px) saturate(126%);
+    -webkit-backdrop-filter: blur(10px) saturate(126%);
+    pointer-events: none;
+    white-space: nowrap;
+    max-width: calc(100% - 7.5rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 3;
   }
   
-  /* Hover effect to indicate clickability */
   .hero-image:hover {
     transform: scale(1.02);
-    filter: brightness(1.05);
+    filter: brightness(1.05) saturate(1.03);
   }
   
   .hero-image:active {
-    transform: scale(0.98);
+    transform: scale(0.985);
+  }
+
+  @media (max-width: 768px) {
+    .hero-counter-pill {
+      right: 0.55rem;
+      top: 0.55rem;
+    }
+
+    .hero-caption {
+      top: 0.55rem;
+      max-width: calc(100% - 6.25rem);
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
   }
 </style>

@@ -6,6 +6,7 @@ import "@styles/auth-styles.css"; // Import auth-related styles
 import "@styles/searchbar.css"; // Import search-related styles
 import Footer from "@components/Footer.astro";
 import PasswordlessAuthDialog from "@components/PasswordlessAuthDialog";
+import { isDebugEnabled } from "@utils/debugFlag";
 
 export interface Props {
   title?: string;
@@ -33,6 +34,9 @@ const socialImageURL = new URL(
   ogImage ?? SkiCycleRunConfig.ogImage ?? "og.png",
   Astro.url.origin,
 ).href;
+
+// Never enable browser debug logging in production builds.
+const isDebugOutputEnabled = isDebugEnabled();
 ---
 
 <!doctype html>
@@ -90,9 +94,7 @@ const socialImageURL = new URL(
     <!-- Debug state for inline scripts -->
     <meta
       name="debug-enabled"
-      content={import.meta.env.PUBLIC_DEBUG_OUTPUT === "true"
-        ? "true"
-        : "false"}
+      content={isDebugOutputEnabled ? "true" : "false"}
     />
 
     <!-- Load debug helper for inline scripts (loads before inline scripts run) -->
@@ -289,7 +291,7 @@ const socialImageURL = new URL(
     <!-- Load auth icon script from public folder (external, defer to avoid inline CSP) -->
     <script src="/scripts/simple-auth-icon.js" defer></script>
     <slot />
-    <PasswordlessAuthDialog client:load />
+    <PasswordlessAuthDialog client:only="react" />
     <Footer />
   </body>
 </html>

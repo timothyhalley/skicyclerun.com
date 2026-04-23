@@ -1,5 +1,6 @@
 ---
 import { SkiCycleRunConfig } from "../skicyclerun.config";
+import { isDebugEnabled } from "../utils/debugFlag";
 // ImageMetadata is no longer exported from astro in newer versions
 // import type { ImageMetadata } from "astro";
 export function getRndValue(images: any) {
@@ -16,7 +17,7 @@ export async function getLocalImages() {
 }
 
 export async function getImgMeta(imgPath: string) {
-  console.log("getImgMeta: ", imgPath);
+  if (isDebugEnabled()) console.log("getImgMeta: ", imgPath);
   return imgPath;
 }
 
@@ -90,6 +91,11 @@ export async function getAlbumPhotos(
 
         for (const candidate of candidates) {
           const photoURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${encodeURIComponent(candidate)}/&numPhotos=${SkiCycleRunConfig.photoApi.buildTimePhotos}${loraParam}`;
+          if (isDebugEnabled()) {
+            console.log(
+              `[Library:getAlbumPhotos] Initial photo fetch URL: ${photoURL}`,
+            );
+          }
           const res = await fetch(photoURL);
           const data = await res.json();
           const parsed = parsePhotoArray(data);
@@ -133,29 +139,30 @@ export async function getAlbumPhotos(
       } catch (apiError) {
         const loraParam =
           loraStyle === "random" ? "" : `&loraStyle=${loraStyle}`;
-        console.warn("\n⚠️ Photo API failed, falling back to local images");
-        console.warn(
-          "📍 URL:",
-          `${import.meta.env.PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/v2/"}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=${SkiCycleRunConfig.photoApi.buildTimePhotos}${loraParam}`,
-        );
-        console.warn(
-          "🔴 Error type:",
-          apiError instanceof Error ? apiError.name : typeof apiError,
-        );
-        console.warn(
-          "🔴 Error message:",
-          apiError instanceof Error ? apiError.message : String(apiError),
-        );
-        console.warn("📦 Album:", album);
-        console.warn("🎨 LoRA Style:", loraStyle);
-        console.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+        console.warn("Photo API failed, falling back to local images");
+        if (isDebugEnabled()) {
+          console.warn(
+            "URL:",
+            `${import.meta.env.PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/v2/"}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=${SkiCycleRunConfig.photoApi.buildTimePhotos}${loraParam}`,
+          );
+          console.warn(
+            "Error type:",
+            apiError instanceof Error ? apiError.name : typeof apiError,
+          );
+          console.warn(
+            "Error message:",
+            apiError instanceof Error ? apiError.message : String(apiError),
+          );
+          console.warn("Album:", album);
+          console.warn("LoRA Style:", loraStyle);
+        }
         photos = await getAlbumPhotos("local");
       }
     }
 
     return photos;
   } catch (error) {
-    console.log("ERROR:getAlbumPhotos", error);
+    if (isDebugEnabled()) console.log("ERROR:getAlbumPhotos", error);
     // Final fallback to empty array to prevent build failures
     return [];
   }
@@ -176,7 +183,7 @@ export function findKeyWithValue(
   obj: Record<string, any>,
 ) {
   for (const key in obj) {
-    console.log("findKeyWithValue: key == ", key);
+    if (isDebugEnabled()) console.log("findKeyWithValue: key == ", key);
     if (key.includes(searchString)) {
       return { key, value: obj[key] };
     }
@@ -212,8 +219,10 @@ export function getImage(imgSrc: unknown, imgObj: Record<string, any>) {
     return null;
   }
 
-  console.log("🔍 Available image keys:", Object.keys(imgObj));
-  console.log("🔍 Looking for match with:", imgSrc);
+  if (isDebugEnabled()) {
+    console.log("🔍 Available image keys:", Object.keys(imgObj));
+    console.log("🔍 Looking for match with:", imgSrc);
+  }
 
   const result = findSubstring(imgSrc, imgObj);
   if (!result) {

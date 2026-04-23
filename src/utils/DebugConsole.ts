@@ -1,3 +1,5 @@
+import { isDebugEnabled as resolveDebugEnabled } from "./debugFlag";
+
 /**
  * DebugConsole - Environment-aware debug logging utility
  *
@@ -12,7 +14,7 @@
  *   DebugConsole.auth('Token received:', token);
  */
 
-const isDebugEnabled = import.meta.env.PUBLIC_DEBUG_OUTPUT === "true";
+const isDebugEnabled = resolveDebugEnabled();
 
 export const DebugConsole = {
   /**

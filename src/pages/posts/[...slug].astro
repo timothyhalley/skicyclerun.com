@@ -6,6 +6,7 @@ import {
   generatePostStaticPaths,
   type PostPageProps,
 } from "@utils/generatePostStaticPaths";
+import { isDebugEnabled } from "@utils/debugFlag";
 import { POSTS_TYPES } from "@constants/blogTypes";
 
 // Generate static paths for all posts and pagination
@@ -14,13 +15,16 @@ export const prerender = true;
 export async function getStaticPaths() {
   const posts = await getCollection("blog");
   const paths = generatePostStaticPaths(posts, POSTS_TYPES, "/posts");
-  try {
-    // Log the slugs being generated for /posts to help diagnose 404s like /posts/montreal-architecture
-    const slugs = paths
-      .filter((p: any) => p && p.params && typeof p.params.slug === "string")
-      .map((p: any) => p.params.slug);
-    console.log("[posts] getStaticPaths generated slugs:", slugs);
-  } catch {}
+  const isDebug = isDebugEnabled();
+  if (isDebug) {
+    try {
+      // Log generated slugs only during explicit local debugging.
+      const slugs = paths
+        .filter((p: any) => p && p.params && typeof p.params.slug === "string")
+        .map((p: any) => p.params.slug);
+      console.log("[posts] getStaticPaths generated slugs:", slugs);
+    } catch {}
+  }
   return paths;
 }
 

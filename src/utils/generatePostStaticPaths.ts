@@ -3,6 +3,7 @@ import { slugifyStr } from "./slugify";
 import { getPostSlug } from "./slugify";
 import { SkiCycleRunConfig } from "../skicyclerun.config";
 import postFilter from "./postFilter";
+import { isDebugEnabled } from "./debugFlag";
 
 export interface PostPageProps {
   post?: CollectionEntry<"blog">;
@@ -20,9 +21,9 @@ export interface PostPageProps {
 export function generatePostStaticPaths(
   posts: CollectionEntry<"blog">[],
   filterTypes: string[] = [],
-  _basePath: string = ""
+  _basePath: string = "",
 ) {
-  const isDev = import.meta.env.DEV;
+  const isDev = isDebugEnabled();
   const debug = (...args: any[]) => {
     if (isDev) console.log("[generatePostStaticPaths]", ...args);
   };
@@ -31,29 +32,30 @@ export function generatePostStaticPaths(
 
   // Apply same filtering and sorting as the index page does via getFilteredPosts/getSortedPosts
   // 1. Filter by type
-  const typeFiltered = filterTypes.length > 0 
-    ? posts.filter((post) => filterTypes.includes(post.data.type))
-    : posts;
-  
+  const typeFiltered =
+    filterTypes.length > 0
+      ? posts.filter((post) => filterTypes.includes(post.data.type))
+      : posts;
+
   // 2. Filter by draft/scheduling (postFilter)
   const published = typeFiltered.filter(postFilter);
-  
+
   // 3. Sort by date (newest first) - CRITICAL for pagination consistency
   const filteredPosts = published.sort(
     (a, b) =>
       Math.floor(
-        new Date(b.data.modDatetime ?? b.data.pubDatetime).getTime() / 1000
+        new Date(b.data.modDatetime ?? b.data.pubDatetime).getTime() / 1000,
       ) -
       Math.floor(
-        new Date(a.data.modDatetime ?? a.data.pubDatetime).getTime() / 1000
-      )
+        new Date(a.data.modDatetime ?? a.data.pubDatetime).getTime() / 1000,
+      ),
   );
 
-  debug("FILTERED", { 
-    filteredCount: filteredPosts.length, 
+  debug("FILTERED", {
+    filteredCount: filteredPosts.length,
     typeFilteredCount: typeFiltered.length,
     publishedCount: published.length,
-    originalCount: posts.length 
+    originalCount: posts.length,
   });
 
   // Simple pipeline: post detail routes and paginated listing routes.
@@ -61,14 +63,14 @@ export function generatePostStaticPaths(
     .map((post) => {
       // Astro v6 (glob loader): post.slug is gone — use getPostSlug().
       const slug = getPostSlug(post);
-      
+
       if (isDev) {
         debug("SLUG", { id: post.id, slug });
       }
-      
+
       // Only emit if slug exists and isn't the base path
       if (!slug || slug === "tech" || slug === "posts") return null;
-      
+
       return {
         params: { slug },
         props: { post },
@@ -80,24 +82,28 @@ export function generatePostStaticPaths(
   const pageSize = SkiCycleRunConfig.postsPerPage;
   const totalPages = Math.max(1, Math.ceil(filteredPosts.length / pageSize));
   const paginatedPaths: any[] = [];
-  
-  debug("PAGINATION", { 
-    postCount: filteredPosts.length, 
-    pageSize, 
+
+  debug("PAGINATION", {
+    postCount: filteredPosts.length,
+    pageSize,
     totalPages,
-    willGeneratePages: totalPages > 1 ? `2 to ${totalPages}` : 'none (only 1 page needed)'
+    willGeneratePages:
+      totalPages > 1 ? `2 to ${totalPages}` : "none (only 1 page needed)",
   });
-  
+
   // Only generate pagination for pages 2+, since page 1 is handled by index.astro
   for (let page = 2; page <= totalPages; page++) {
-    const pageData = filteredPosts.slice((page - 1) * pageSize, page * pageSize);
+    const pageData = filteredPosts.slice(
+      (page - 1) * pageSize,
+      page * pageSize,
+    );
     // Remove leading slash from basePath if present to avoid double slashes
-    const basePath = _basePath.replace(/^\/+/, '');
+    const basePath = _basePath.replace(/^\/+/, "");
     const prevUrl = page === 2 ? `/${basePath}` : `/${basePath}/${page - 1}`;
     const nextUrl = page < totalPages ? `/${basePath}/${page + 1}` : undefined;
-    
+
     debug("PAGINATION PAGE", { page, prevUrl, nextUrl, basePath });
-    
+
     paginatedPaths.push({
       params: { slug: String(page) },
       props: {
@@ -118,7 +124,9 @@ export function generatePostStaticPaths(
   debug("DONE", {
     postDetailCount: postDetailPaths.length,
     paginatedCount: paginatedPaths.length,
-    postSlugs: postDetailPaths.filter((p) => p?.params?.slug).map((p) => p.params.slug),
+    postSlugs: postDetailPaths
+      .filter((p) => p?.params?.slug)
+      .map((p) => p.params.slug),
     paginatedPages: paginatedPaths.map((p) => `${_basePath}/${p.params.slug}`),
   });
   return [...postDetailPaths, ...paginatedPaths];

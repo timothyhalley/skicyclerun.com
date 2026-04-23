@@ -1,12 +1,13 @@
 ---
-import { SkiCycleRunConfig } from "../skicyclerun.config";
 import { getAlbumPhotos } from "@components/Library.astro";
+import { SkiCycleRunConfig } from "../skicyclerun.config";
 import MDXCarousel3 from "./MDXCarousel3.astro";
 import MDXHeroView from "./MDXHeroView.astro";
 import MDXGalleryView from "./MDXGalleryView.astro";
 
 const { frontmatter } = Astro.props;
 const album = frontmatter?.album;
+const dynamicPhotoLimit = SkiCycleRunConfig.photoApi.dynamicPhotos;
 if (!album) throw new Error("PhotoLayout requires frontmatter.album to be set");
 
 const photos = await getAlbumPhotos(album);
@@ -16,8 +17,12 @@ if (!photos || photos.length === 0) {
 }
 ---
 
-<article class="photo-layout" data-album={album}>
-  <header class="mb-2">
+<article
+  class="photo-layout"
+  data-album={album}
+  data-dynamic-photo-limit={dynamicPhotoLimit}
+>
+  <header class="photo-layout-header mb-2">
     {
       frontmatter.title && (
         <h1 class="text-3xl font-bold">{frontmatter.title}</h1>
@@ -30,22 +35,21 @@ if (!photos || photos.length === 0) {
     }
   </header>
 
-  <div class="relative mb-2">
+  <div class="photo-controls-wrap relative mb-0">
     <!-- Click hint tooltip - positioned on same line as radio controls, centered -->
     <div
       id="click-hint"
       class="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 transition-opacity duration-500 animate-bounce"
       style="z-index: 30; pointer-events: none;"
     >
-      <div
-        class="bg-skin-accent text-skin-inverted text-base font-medium px-3 py-1.5 rounded-full shadow-lg whitespace-nowrap border border-skin-line"
-      >
-        👇 Tap photo
-      </div>
+      <div class="click-hint-pill">👇 Tap photo</div>
     </div>
 
-    <nav class="flex justify-end" aria-label="Photo view selector">
-      <div class="flex gap-4">
+    <nav
+      class="photo-view-nav flex justify-end"
+      aria-label="Photo view selector"
+    >
+      <div class="photo-view-nav-group flex gap-4">
         <label class="cursor-pointer">
           <input type="radio" name="photo-view" value="hero" /> Hero
         </label>
@@ -59,7 +63,7 @@ if (!photos || photos.length === 0) {
     </nav>
   </div>
 
-  <div class="relative">
+  <div class="photo-stage relative mt-1">
     <section class="photo-view relative">
       <div id="photo-hero" style="display:none">
         <MDXHeroView photos={photos} frontmatter={frontmatter} />
@@ -73,7 +77,9 @@ if (!photos || photos.length === 0) {
     </section>
   </div>
 
-  <div class="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm">
+  <div
+    class="photo-style-controls mt-4 flex flex-wrap items-center justify-center gap-3 text-sm"
+  >
     <label for="lora-style" class="font-medium">Art Style:</label>
     <select
       id="lora-style"
@@ -90,8 +96,7 @@ if (!photos || photos.length === 0) {
     <label class="cursor-pointer flex items-center gap-2">
       <input type="checkbox" id="use-dynamic" class="cursor-pointer" />
       <span class="font-medium"
-        >Full Image Library <span class="text-skin-muted italic">(slower)</span
-        ></span
+        >Full Album <span class="text-skin-muted italic">(slower)</span></span
       >
     </label>
   </div>
@@ -104,20 +109,25 @@ if (!photos || photos.length === 0) {
   <!-- Render page MDX content inside the master layout -->
   <slot />
 
-  <script
-    define:vars={{
-      dynamicPhotosCount: SkiCycleRunConfig.photoApi.dynamicPhotos,
-    }}
-  >
+  <script>
     document.addEventListener("DOMContentLoaded", function () {
       const radios = Array.from(
         document.querySelectorAll('input[name="photo-view"]'),
       );
-      const dynamicCheckbox = document.getElementById("use-dynamic");
-      const loraSelect = document.getElementById("lora-style");
+      const dynamicCheckbox = document.getElementById(
+        "use-dynamic",
+      ) as HTMLInputElement | null;
+      const loraSelect = document.getElementById(
+        "lora-style",
+      ) as HTMLSelectElement | null;
       const album = document
         .querySelector(".photo-layout")
         ?.getAttribute("data-album");
+      const dynamicPhotoLimit = Number(
+        document
+          .querySelector(".photo-layout")
+          ?.getAttribute("data-dynamic-photo-limit") || "250",
+      );
       const loadingEl = document.getElementById("dynamic-loading");
       const clickHint = document.getElementById("click-hint");
 
@@ -127,30 +137,25 @@ if (!photos || photos.length === 0) {
         carousel: document.getElementById("photo-carousel"),
       };
 
-      // Hide click hint after first interaction or after 15 seconds
-      // Hide click hint after first interaction or after 3 seconds
-      let hintDismissed = false;
-      const dismissHint = () => {
-        if (!hintDismissed && clickHint) {
-          hintDismissed = true;
+      // Always start with fast initial mode; full library is explicit opt-in.
+      if (dynamicCheckbox) {
+        dynamicCheckbox.checked = false;
+      }
+
+      // Show the selector hint only once on initial load, then hide after 2 seconds.
+      if (clickHint) {
+        setTimeout(() => {
           clickHint.style.opacity = "0";
           setTimeout(() => {
             clickHint.style.display = "none";
           }, 500);
-        }
-      };
-
-      // Auto-dismiss hint after 3 seconds
-      setTimeout(dismissHint, 3000);
-      // Dismiss on any click in photo view area
-      document
-        .querySelector(".photo-view")
-        ?.addEventListener("click", dismissHint, { once: true });
+        }, 2000);
+      }
 
       let dynamicPhotosLoaded = false;
-      let dynamicPhotos = [];
-      let staticPhotos = []; // Store original static photos
-      let currentLoraStyle = "random"; // Default
+      let dynamicPhotos: any[] = [];
+      let dynamicPhotosFullSet: any[] = [];
+      let staticPhotos: any[] = []; // Store original static photos
 
       // Get initial static photos from the page (try all views)
       function getStaticPhotos() {
@@ -235,17 +240,43 @@ if (!photos || photos.length === 0) {
         return filtered;
       }
 
-      async function loadDynamicPhotos(loraStyle = "random") {
-        // Reset cache if style changed
-        if (currentLoraStyle !== loraStyle) {
-          console.log(
-            `[PhotoLayout] LoRA style changed from ${currentLoraStyle} to ${loraStyle} - invalidating cache`,
-          );
-          dynamicPhotosLoaded = false;
-          currentLoraStyle = loraStyle;
-        }
+      function parseApiPhotoArray(payload) {
+        if (Array.isArray(payload)) return payload;
+        if (payload && Array.isArray(payload.photos)) return payload.photos;
+        if (payload && Array.isArray(payload.data)) return payload.data;
+        if (payload && Array.isArray(payload.items)) return payload.items;
+        return [];
+      }
 
-        if (dynamicPhotosLoaded && dynamicPhotos.length > 0) {
+      function buildAlbumCandidates(rawAlbum) {
+        const base = `${rawAlbum || ""}`.trim();
+        if (!base) return [];
+
+        const camelToDash = base.replace(/([a-z0-9])([A-Z])/g, "$1-$2");
+        const dashToCamel = base.replace(/-([a-zA-Z0-9])/g, (_, c) =>
+          `${c}`.toUpperCase(),
+        );
+
+        const candidates = [
+          base,
+          base.toLowerCase(),
+          base.replace(/\s+/g, "-"),
+          base.replace(/\s+/g, ""),
+          camelToDash,
+          camelToDash.toLowerCase(),
+          dashToCamel,
+          dashToCamel.toLowerCase(),
+        ];
+
+        return [...new Set(candidates.filter(Boolean))];
+      }
+
+      async function loadDynamicPhotos(loraStyle = "random") {
+        if (dynamicPhotosLoaded && dynamicPhotosFullSet.length > 0) {
+          dynamicPhotos = filterStaticPhotosByStyle(
+            dynamicPhotosFullSet,
+            loraStyle,
+          );
           console.log(
             `[PhotoLayout] Using cached dynamic photos for style: ${loraStyle}`,
           );
@@ -258,30 +289,88 @@ if (!photos || photos.length === 0) {
           if (loadingEl) loadingEl.style.display = "flex";
 
           const baseUrl =
-            window.PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/v2/";
-          const loraParam =
-            loraStyle === "random" ? "" : `&loraStyle=${loraStyle}`;
-          const photoURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=${dynamicPhotosCount}${loraParam}`;
+            (window as typeof window & { PUBLIC_SKICYCLERUN_API?: string })
+              .PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/v2/";
+          const candidates = buildAlbumCandidates(album);
+          let photoArray: any[] = [];
+          let usedAlbum = "";
 
-          console.log(`[PhotoLayout] Fetching photos from API: ${photoURL}`);
-          const res = await fetch(photoURL);
-          const data = await res.json();
+          for (const candidate of candidates) {
+            // Full library mode must use the full album endpoint.
+            const photoURL = `${baseUrl}getphotos?album=${encodeURIComponent(candidate)}`;
+            console.log(
+              `[PhotoLayout] Fetching full library from API: ${photoURL}`,
+            );
 
-          if (Array.isArray(data) && data.length > 0) {
-            dynamicPhotos = data.map((p, i) => {
-              const src = typeof p === "string" ? p : p?.src;
-              return {
-                src,
-                altText: p?.altText || `Photo ${i + 1}`,
-                sourceType: "remote",
-              };
-            });
+            const res = await fetch(photoURL);
+            const data = await res.json();
+            const parsed = parseApiPhotoArray(data);
+
+            if (parsed.length > 0) {
+              photoArray = parsed;
+              usedAlbum = candidate;
+              break;
+            }
+          }
+
+          // Backward-compatible fallback for environments that do not expose getphotos.
+          if (photoArray.length === 0) {
+            for (const candidate of candidates) {
+              const fallbackURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${encodeURIComponent(candidate)}/&numPhotos=${dynamicPhotoLimit}`;
+              console.warn(
+                `[PhotoLayout] Full-library endpoint returned empty, trying fallback: ${fallbackURL}`,
+              );
+              const res = await fetch(fallbackURL);
+              const data = await res.json();
+              const parsed = parseApiPhotoArray(data);
+              if (parsed.length > 0) {
+                photoArray = parsed;
+                usedAlbum = candidate;
+                break;
+              }
+            }
+          }
+
+          if (photoArray.length > 0) {
+            const normalized = photoArray
+              .map((p, i) => {
+                const src =
+                  typeof p === "string"
+                    ? p
+                    : p?.src || p?.url || p?.image || p?.imageUrl;
+                if (!src) return null;
+                return {
+                  src,
+                  altText: p?.altText || `Photo ${i + 1}`,
+                  alt: p?.alt,
+                  loraStyle: p?.loraStyle || p?.lora_style || p?.style,
+                  sourceType: "remote",
+                };
+              })
+              .filter(Boolean);
+
+            dynamicPhotosFullSet =
+              dynamicPhotoLimit > 0
+                ? normalized.slice(0, dynamicPhotoLimit)
+                : normalized;
+
+            dynamicPhotos = filterStaticPhotosByStyle(
+              dynamicPhotosFullSet,
+              loraStyle,
+            );
             dynamicPhotosLoaded = true;
             console.log(
-              `✅ Loaded ${dynamicPhotos.length} photos from API with style: ${loraStyle}`,
+              `✅ Loaded ${dynamicPhotosFullSet.length} full-library photos from API; filtered to ${dynamicPhotos.length} for style: ${loraStyle}`,
             );
+            if (usedAlbum && usedAlbum !== `${album}`) {
+              console.warn(
+                `[PhotoLayout] Full library album "${album}" resolved as "${usedAlbum}"`,
+              );
+            }
           } else {
-            console.warn("No photos returned from API");
+            console.warn(
+              `[PhotoLayout] No full-library photos returned from API for album "${album}"`,
+            );
           }
 
           if (loadingEl) loadingEl.style.display = "none";
@@ -319,7 +408,9 @@ if (!photos || photos.length === 0) {
             console.log("[PhotoLayout] Hero JSON updated");
           }
 
-          const heroImg = heroContainer.querySelector("img");
+          const heroImg = heroContainer.querySelector(
+            "img",
+          ) as HTMLImageElement | null;
           if (heroImg && photos[0]) {
             heroImg.src = photos[0].src;
             heroImg.alt = photos[0].altText || "Photo";
@@ -331,12 +422,21 @@ if (!photos || photos.length === 0) {
           if (heroImg) {
             const heroFigure = heroContainer.querySelector(
               "figure[data-photos-json]",
-            );
+            ) as HTMLElement | null;
             if (heroFigure) {
               delete heroFigure.dataset.heroInitialized;
 
+              // Reset counter to 1/N before cloning
+              const counterEl = heroFigure.querySelector(
+                "#hero-counter",
+              ) as HTMLElement | null;
+              if (counterEl) {
+                counterEl.textContent =
+                  photos.length > 1 ? `1 / ${photos.length}` : "";
+              }
+
               // Clone image to remove all event listeners
-              const newImg = heroImg.cloneNode(true);
+              const newImg = heroImg.cloneNode(true) as HTMLImageElement;
               heroImg.parentNode?.replaceChild(newImg, heroImg);
 
               // Re-attach click handler with new photos array
@@ -346,11 +446,20 @@ if (!photos || photos.length === 0) {
                 newImg.dataset.currentIndex = String(idx);
                 const p = photos[idx];
                 if (p) {
-                  newImg.src = p.src;
-                  newImg.alt = p.altText || `Photo ${idx + 1}`;
-                  console.log(
-                    `[PhotoLayout] Hero clicked - showing photo ${idx + 1}/${photos.length}`,
-                  );
+                  newImg.style.transform = "scale(0.93)";
+                  newImg.style.opacity = "0.7";
+                  setTimeout(() => {
+                    newImg.src = p.src;
+                    newImg.alt = p.altText || `Photo ${idx + 1}`;
+                    newImg.style.transform = "";
+                    newImg.style.opacity = "";
+                    if (counterEl && photos.length > 1) {
+                      counterEl.textContent = `${idx + 1} / ${photos.length}`;
+                    }
+                    console.log(
+                      `[PhotoLayout] Hero clicked - showing photo ${idx + 1}/${photos.length}`,
+                    );
+                  }, 120);
                 }
               });
               console.log(
@@ -360,97 +469,29 @@ if (!photos || photos.length === 0) {
           }
         }
 
-        // Update Gallery view - find all gallery images
+        // Update Gallery view — dispatch event for MDXGalleryView to handle
         const galleryContainer = sections.gallery;
         if (galleryContainer && photos.length > 0) {
           const galleryDiv = galleryContainer.querySelector(".mdx-gallery");
           if (galleryDiv) {
-            // Remove initialization flag to force re-initialization
-            delete galleryDiv.dataset.galleryInitialized;
-
-            // Update the JSON data for gallery
-            const galleryJsonScript = galleryContainer.querySelector(
-              'script[type="application/json"]#gallery-photos',
+            galleryDiv.dispatchEvent(
+              new CustomEvent("gallery-update", {
+                detail: { photos },
+                bubbles: false,
+              }),
             );
-            if (galleryJsonScript) {
-              galleryJsonScript.textContent = JSON.stringify(photos).replace(
-                /</g,
-                "\\u003c",
-              );
-              console.log("[PhotoLayout] Gallery JSON updated");
-            }
-
-            // Get gallery grid and recreate the click handlers
-            const grid = galleryDiv.querySelector(".grid");
-            if (grid) {
-              const matrix =
-                Number(galleryDiv.getAttribute("data-gallery-matrix")) || 2;
-              const visibleCount = matrix * matrix;
-              let startIndex = 0; // Track where the current window begins
-
-              const slots = Array.from(
-                grid.querySelectorAll("[data-slot-index]"),
-              );
-
-              function renderSlot(slotEl, photo) {
-                slotEl.innerHTML = "";
-                if (!photo) {
-                  const ph = document.createElement("div");
-                  ph.className = "placeholder";
-                  slotEl.appendChild(ph);
-                  return;
-                }
-                const img = document.createElement("img");
-                img.src = photo.src;
-                img.alt = photo.alt || photo.altText || "";
-                img.loading = "lazy";
-                img.decoding = "async";
-                img.style.width = "100%";
-                img.style.height = "100%";
-                img.style.objectFit = "cover";
-                img.style.display = "block";
-                slotEl.appendChild(img);
-              }
-
-              function renderVisible() {
-                slots.forEach((s, i) => {
-                  const photo =
-                    photos[(startIndex + i) % photos.length] || null;
-                  renderSlot(s, photo);
-                });
-              }
-
-              // Initial render with new photos
-              renderVisible();
-
-              // Remove old click handlers by cloning each slot
-              slots.forEach((slot, idx) => {
-                const newSlot = slot.cloneNode(true);
-                slot.parentNode?.replaceChild(newSlot, slot);
-                slots[idx] = newSlot; // Update reference
-
-                // Re-attach click handler with new photos array
-                newSlot.style.cursor = "pointer";
-                newSlot.addEventListener("click", () => {
-                  // Advance the gallery window by the full visible count
-                  startIndex = (startIndex + visibleCount) % photos.length;
-                  console.log(
-                    `[PhotoLayout] Gallery advanced by ${visibleCount}, startIndex now ${startIndex}`,
-                  );
-                  renderVisible();
-                });
-              });
-
-              console.log(
-                `[PhotoLayout] Gallery reinitialized with ${photos.length} photos`,
-              );
-            }
+            console.log(
+              `[PhotoLayout] Gallery update event dispatched (${photos.length} photos)`,
+            );
           }
         }
-
         // Update Carousel view
         const carouselContainer = sections.carousel;
         if (carouselContainer) {
+          const carouselRoot = carouselContainer.querySelector(
+            ".carousel-container",
+          ) as HTMLElement | null;
+
           // Update the JSON data for carousel
           const carouselJsonScript = carouselContainer.querySelector(
             'script[type="application/json"]',
@@ -466,53 +507,60 @@ if (!photos || photos.length === 0) {
           // Find the carousel track and slides
           const track = carouselContainer.querySelector(".carousel-track");
           if (track) {
-            const slides = Array.from(
+            // Rebuild slides using clones of existing SSR nodes so Astro-scoped CSS still applies.
+            const existingSlides = Array.from(
               track.querySelectorAll(".carousel-slide"),
             );
+            const templateSlide = existingSlides[0] || null;
 
-            // Update each slide's data-src and image
-            slides.forEach((slide, i) => {
-              if (photos[i]) {
-                slide.setAttribute("data-src", photos[i].src);
+            if (templateSlide) {
+              track.replaceChildren();
+              photos.forEach((photo, i) => {
+                const slide = templateSlide.cloneNode(true);
+                if (!(slide instanceof HTMLElement)) return;
+
+                slide.setAttribute("data-src", photo.src);
                 const img = slide.querySelector("img");
                 if (img) {
-                  img.src = photos[i].src;
-                  img.alt = photos[i].altText || `Photo ${i + 1}`;
+                  img.src = photo.src;
+                  img.alt = photo.altText || `Photo ${i + 1}`;
                 }
-              }
-            });
 
-            // Reset carousel to first slide and reinitialize
-            if (carouselContainer.dataset.carouselInitialized) {
-              delete carouselContainer.dataset.carouselInitialized;
+                track.appendChild(slide);
+              });
+            }
 
-              // Clear any existing interval
-              const intervalId = carouselContainer.dataset.carouselInterval;
+            // Reset carousel to first slide and force re-initialize on every data swap.
+            if (carouselRoot) {
+              delete carouselRoot.dataset.carouselInitialized;
+
+              const intervalId = carouselRoot.dataset.carouselInterval;
               if (intervalId) {
                 clearInterval(Number(intervalId));
-                delete carouselContainer.dataset.carouselInterval;
+                delete carouselRoot.dataset.carouselInterval;
               }
 
-              // Reset transform
-              track.style.transform = "translateX(0%)";
+              if (track) track.scrollLeft = 0;
 
-              // Trigger re-initialization by dispatching event
               const event = new CustomEvent("reinit-carousel", {
-                detail: { containerId: carouselContainer.id },
+                detail: { containerId: carouselRoot.id },
               });
               document.dispatchEvent(event);
             }
 
             console.log(
-              `[PhotoLayout] Carousel slides updated with ${slides.length} photos and reinitialized`,
+              `[PhotoLayout] Carousel slides rebuilt with ${photos.length} photos and reinitialized`,
             );
           }
         }
       }
 
-      async function update() {
-        console.log("[PhotoLayout] update() called");
+      // Track whether this is the very first update call (page load).
+      // On first load all three views already have the correct SSR photos — no
+      // updateViewContent call is needed; we only show/hide the right section.
+      let isInitialLoad = true;
 
+      async function update() {
         const checked = document.querySelector(
           'input[name="photo-view"]:checked',
         );
@@ -520,107 +568,361 @@ if (!photos || photos.length === 0) {
         const useDynamic = dynamicCheckbox?.checked || false;
         const loraStyle = loraSelect?.value || "random";
 
-        console.log(
-          `[PhotoLayout] Current view: ${value}, useDynamic: ${useDynamic}, loraStyle: ${loraStyle}`,
-        );
-
-        // Show/hide views based on radio selection
+        // Always: show/hide the selected view section
         Object.keys(sections).forEach((k) => {
           const el = sections[k];
           if (!el) return;
           el.style.display = k === value ? "" : "none";
         });
 
+        if (isInitialLoad && !useDynamic && loraStyle === "random") {
+          // SSR already embedded the correct 16 photos in every view — nothing to do.
+          isInitialLoad = false;
+          return;
+        }
+        isInitialLoad = false;
+
         if (useDynamic) {
-          // Full Image Library checked - load from API
-          console.log("[PhotoLayout] Loading dynamic photos from API...");
+          // Full Image Library — load all photos from API
           const photos = await loadDynamicPhotos(loraStyle);
           if (photos.length > 0) {
             updateViewContent(photos);
           }
         } else {
-          // Full Image Library unchecked - filter static photos by art style
-          console.log("[PhotoLayout] Using static photos, will filter...");
+          // Static photos filtered by art style
           if (staticPhotos.length === 0) {
-            console.log("[PhotoLayout] staticPhotos empty, loading now...");
             staticPhotos = getStaticPhotos();
           }
-          console.log(
-            `[PhotoLayout] Have ${staticPhotos.length} static photos before filtering`,
-          );
-
           const filteredPhotos = filterStaticPhotosByStyle(
             staticPhotos,
             loraStyle,
           );
-          console.log(
-            `[PhotoLayout] After filtering: ${filteredPhotos.length} photos`,
-          );
-
           if (filteredPhotos.length > 0) {
-            console.log(
-              "[PhotoLayout] Calling updateViewContent with filtered photos...",
-            );
             updateViewContent(filteredPhotos);
-          } else {
-            console.warn("[PhotoLayout] No filtered photos to display!");
           }
         }
       }
 
       radios.forEach((r) => r.addEventListener("change", update));
-
-      // Handle checkbox change - toggles between static filtered and dynamic API photos
       dynamicCheckbox?.addEventListener("change", update);
+      loraSelect?.addEventListener("change", () => update());
 
-      // Handle LoRA style changes - always triggers update (filters static or loads dynamic)
-      loraSelect?.addEventListener("change", async function () {
-        console.log(
-          "[PhotoLayout] Art style dropdown changed to:",
-          loraSelect.value,
-        );
-        await update();
-      });
-
-      // Initialize static photos AFTER DOM is ready
-      console.log("[PhotoLayout] Starting initialization...");
-
-      // Small delay to ensure all views are rendered
-      setTimeout(() => {
-        staticPhotos = getStaticPhotos();
-        console.log(
-          `[PhotoLayout] Initialized with ${staticPhotos.length} static photos`,
-        );
-
-        if (staticPhotos.length > 0) {
-          // Log some sample data to verify structure
-          console.log("[PhotoLayout] Sample photo structure:", staticPhotos[0]);
-        }
-
-        // Apply initial view and filter
-        update();
-      }, 100);
+      // On load: show the correct default section (gallery). Views are already
+      // populated from SSR — no API call needed here.
+      update();
     });
   </script>
 </article>
 
 <style>
   .photo-layout {
-    max-width: 72rem;
+    --photo-frame-max-width: 1024px;
+    --photo-frame-radius: clamp(0.9rem, 2.6vw, 1.8rem);
+    --photo-frame-aspect: 1 / 1;
+    --photo-nav-label-padding: 0.35rem 0.72rem;
+    --photo-nav-gap: 0.55rem;
+    --photo-stage-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+    width: min(100%, var(--photo-frame-max-width));
+    max-width: var(--photo-frame-max-width);
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 clamp(0.35rem, 2.4vw, 1.25rem);
+    box-sizing: border-box;
+  }
+
+  .photo-layout-header {
+    max-width: min(100%, var(--photo-frame-max-width));
     margin: 0 auto;
-    padding: 0 1rem;
+    padding: 0.2rem 0.4rem 0;
+    animation: photo-enter-up 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .photo-controls-wrap {
+    max-width: min(100%, var(--photo-frame-max-width));
+    margin: 0 auto;
+    animation: photo-enter-up 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: 60ms;
+  }
+
+  .click-hint-pill {
+    color: rgb(var(--color-text-base));
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 0.45rem 0.8rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+    border: 1px solid rgba(var(--color-border), 0.68);
+    background: linear-gradient(
+      135deg,
+      rgba(var(--color-card), 0.85),
+      rgba(var(--color-fill), 0.5)
+    );
+    backdrop-filter: blur(14px) saturate(130%);
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.22);
+  }
+
+  .photo-view-nav-group {
+    gap: var(--photo-nav-gap);
+    padding: 0.34rem;
+    border-radius: 999px;
+    border: 1px solid rgba(var(--color-border), 0.5);
+    background: linear-gradient(
+      135deg,
+      rgba(var(--color-card), 0.8),
+      rgba(var(--color-fill), 0.35)
+    );
+    backdrop-filter: blur(14px) saturate(130%);
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
+  }
+
+  .photo-view-nav-group label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: var(--photo-nav-label-padding);
+    border-radius: 999px;
+    color: rgb(var(--color-text-muted));
+    font-weight: 600;
+    line-height: 1;
+    transition:
+      color 0.18s ease,
+      background 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.16s ease;
+  }
+
+  .photo-view-nav-group label:has(input:checked) {
+    color: rgb(var(--color-text-base));
+    background: rgba(var(--color-card), 0.95);
+    box-shadow:
+      inset 0 0 0 1px rgba(var(--color-border), 0.5),
+      0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  .photo-view-nav-group label:active {
+    transform: scale(0.97);
+  }
+
+  .photo-view-nav-group input[type="radio"] {
+    margin: 0;
+    accent-color: rgb(var(--color-accent));
+  }
+
+  .photo-stage {
+    max-width: min(100%, var(--photo-frame-max-width));
+    margin: 0.25rem auto 0;
+    animation: photo-enter-up 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: 110ms;
+  }
+
+  /* Keep selector row visually attached to the photo frame */
+  .photo-layout nav[aria-label="Photo view selector"] {
+    margin-bottom: 0.25rem;
+    line-height: 1.1;
+  }
+
+  .photo-layout nav[aria-label="Photo view selector"] .flex {
+    margin: 0;
+    align-items: center;
   }
 
   /* Keep the photo view area a fixed viewport so hero/gallery/carousel share same box */
+  .photo-view {
+    margin-top: 0;
+    padding-top: 0;
+    line-height: 0;
+  }
+
   .photo-view > div {
+    --carousel-aspect: var(--photo-frame-aspect);
     width: 100%;
-    max-width: 1024px;
+    max-width: var(--photo-frame-max-width);
     margin-left: auto;
     margin-right: auto;
-    aspect-ratio: 1 / 1;
-    background: rgb(var(--color-fill));
+    margin-top: 0;
+    aspect-ratio: var(--photo-frame-aspect);
+    max-height: min(84svh, 980px);
+    background:
+      radial-gradient(
+        120% 140% at 15% 10%,
+        rgba(var(--color-accent), 0.16),
+        rgba(var(--color-fill), 0.45) 40%,
+        rgba(var(--color-fill), 0.96) 100%
+      ),
+      rgb(var(--color-fill));
     position: relative;
     overflow: hidden;
+    border-radius: var(--photo-frame-radius);
+    border: 1px solid rgba(var(--color-border), 0.45);
+    box-shadow:
+      var(--photo-stage-shadow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  }
+
+  .photo-style-controls {
+    max-width: min(100%, var(--photo-frame-max-width));
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0.5rem 0.7rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(var(--color-border), 0.48);
+    background: rgba(var(--color-card), 0.72);
+    backdrop-filter: blur(16px) saturate(125%);
+    -webkit-backdrop-filter: blur(16px) saturate(125%);
+    animation: photo-enter-up 720ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: 150ms;
+  }
+
+  .photo-style-controls select {
+    border-color: rgba(var(--color-border), 0.6);
+    background: rgba(var(--color-fill), 0.72);
+  }
+
+  @media (max-width: 768px) {
+    .photo-layout {
+      --photo-frame-radius: 0.95rem;
+      padding: 0 max(0.15rem, env(safe-area-inset-left)) 0
+        max(0.15rem, env(safe-area-inset-right));
+    }
+
+    .photo-view-nav {
+      justify-content: center;
+    }
+
+    .photo-layout nav[aria-label="Photo view selector"] {
+      font-size: 0.9rem;
+    }
+
+    .photo-layout nav[aria-label="Photo view selector"] .flex {
+      gap: 0.4rem;
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .photo-view-nav-group label {
+      flex: 1;
+      justify-content: center;
+      min-height: 2rem;
+    }
+
+    .photo-view > div {
+      max-width: 100%;
+      max-height: min(78svh, 760px);
+    }
+  }
+
+  /* iPad 50/50 and narrow split widths */
+  @media (min-width: 680px) and (max-width: 940px) {
+    .photo-layout {
+      --photo-frame-radius: 0.9rem;
+      --photo-frame-aspect: 7 / 9;
+      --photo-nav-label-padding: 0.28rem 0.52rem;
+      --photo-nav-gap: 0.34rem;
+      --photo-stage-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+      padding: 0 0.45rem;
+    }
+
+    .photo-layout-header {
+      padding-inline: 0.15rem;
+    }
+
+    .photo-layout nav[aria-label="Photo view selector"] {
+      font-size: 0.84rem;
+    }
+
+    .photo-view-nav-group {
+      padding: 0.24rem;
+    }
+
+    .photo-view-nav-group label {
+      gap: 0.28rem;
+    }
+
+    .photo-style-controls {
+      gap: 0.55rem;
+      padding: 0.42rem 0.5rem;
+      font-size: 0.82rem;
+      border-radius: 0.9rem;
+    }
+
+    .photo-view > div {
+      max-height: min(72svh, 680px);
+    }
+  }
+
+  /* iPad 33/67 and medium split widths */
+  @media (min-width: 941px) and (max-width: 1100px) {
+    .photo-layout {
+      --photo-frame-aspect: 4 / 5;
+      --photo-nav-label-padding: 0.32rem 0.62rem;
+      --photo-nav-gap: 0.42rem;
+      padding: 0 0.6rem;
+    }
+
+    .photo-layout nav[aria-label="Photo view selector"] {
+      font-size: 0.88rem;
+    }
+
+    .photo-style-controls {
+      padding: 0.48rem 0.62rem;
+      font-size: 0.86rem;
+    }
+
+    .photo-view > div {
+      max-height: min(76svh, 760px);
+    }
+  }
+
+  /* iPhone portrait: slightly taller frame to better match camera roll feel */
+  @media (max-width: 767px) and (orientation: portrait) {
+    .photo-layout {
+      --photo-frame-aspect: 4 / 5;
+    }
+  }
+
+  /* iPhone landscape: wider cinematic stage */
+  @media (max-width: 767px) and (orientation: landscape) {
+    .photo-layout {
+      --photo-frame-aspect: 16 / 10;
+    }
+  }
+
+  /* iPad portrait and split views */
+  @media (min-width: 768px) and (max-width: 1180px) and (orientation: portrait) {
+    .photo-layout {
+      --photo-frame-aspect: 3 / 4;
+    }
+  }
+
+  /* iPad landscape */
+  @media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
+    .photo-layout {
+      --photo-frame-aspect: 4 / 3;
+    }
+  }
+
+  @keyframes photo-enter-up {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.986);
+      filter: saturate(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: saturate(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .photo-layout-header,
+    .photo-controls-wrap,
+    .photo-stage,
+    .photo-style-controls {
+      animation: none;
+    }
   }
 
   /* Loading overlay */

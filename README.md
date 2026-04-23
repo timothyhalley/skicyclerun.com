@@ -79,6 +79,10 @@ A modern, high-performance blog and travel documentation platform built with Ast
 - **Search**: [Fuse.js](https://fusejs.io/) - Fuzzy search
 - **Language**: [TypeScript](https://www.typescriptlang.org/) - Type safety
 
+## 📚 Internal Guides
+
+- Photo layout bootstrap guide: [!help_md/!IMAGE-SCALE-AND-LIQUID-GLASS-GUIDE.md](./!help_md/!IMAGE-SCALE-AND-LIQUID-GLASS-GUIDE.md)
+
 ## 🚀 Quick Start
 
 ### Prerequisites
