@@ -9,8 +9,24 @@ export interface UserDisplayOptions {
  * @param options - User display configuration
  * @returns Formatted display string
  */
+const GROUP_RANK: Record<string, number> = {
+  SuperUsers: 3,
+  PowerUsers: 2,
+  GeneralUsers: 1,
+};
+
+/** Returns only the highest-ranked group from the list. */
+function bestGroup(groups: string[]): string | null {
+  if (!groups.length) return null;
+  return groups.reduce((best, g) =>
+    (GROUP_RANK[g] ?? 0) > (GROUP_RANK[best] ?? 0) ? g : best
+  );
+}
+
 export function formatUserDisplay(options: UserDisplayOptions): string {
   const { email, groups, compact = false } = options;
+
+  const topGroup = bestGroup(groups);
 
   if (compact) {
     // Extract username (left side of @)
@@ -19,20 +35,15 @@ export function formatUserDisplay(options: UserDisplayOptions): string {
     const trimmedUsername =
       username.length > 12 ? username.substring(0, 12) : username;
 
-    // Format groups - remove "users" suffix from each group
-    const formattedGroups = groups
-      .map((g) => g.replace(/[-_]?users?$/i, "").trim())
-      .filter(Boolean);
-
-    // Use star symbol as separator
-    if (formattedGroups.length > 0) {
-      return `${trimmedUsername}★${formattedGroups.join(", ")}`;
+    if (topGroup) {
+      const label = topGroup.replace(/[-_]?users?$/i, "").trim();
+      return `${trimmedUsername}★${label}`;
     }
     return trimmedUsername;
   }
 
   // Full format for larger screens
-  const groupDisplay = groups.length ? groups.join(", ") : "none";
+  const groupDisplay = topGroup ?? "none";
   return `${email} • ${groupDisplay}`;
 }
 
