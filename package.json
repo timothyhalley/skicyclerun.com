@@ -1,7 +1,7 @@
 {
   "name": "skicyclerun.com",
   "type": "module",
-  "version": "2026-04-23 V07.001",
+  "version": "2026-04-23 V07.002",
   "scripts": {
     "dev": "astro dev",
     "prebuild": "npx npm-check-updates -u && npm install",
