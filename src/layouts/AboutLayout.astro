@@ -4,6 +4,7 @@ import Breadcrumbs from "@layouts/Breadcrumbs.astro";
 import Header from "@components/Header.astro";
 import BaseLayout from "./BaseLayout.astro";
 import type { SvgComponent } from "astro/types";
+import versionInfo from "@version" assert { type: "json" };
 
 // Import SVG assets as Astro components using glob
 const svgImages = import.meta.glob<SvgComponent>("/src/assets/svg_imgs/*.svg", {
@@ -59,6 +60,11 @@ if (frontmatter.background) {
       >
         <slot />
       </article>
+      <div class="flex justify-end mt-6 relative z-10">
+        <span class="text-xs font-mono px-3 py-1 rounded-full border border-skin-line bg-skin-card text-skin-muted select-none">
+          🛠️ {versionInfo.version}
+        </span>
+      </div>
     </div>
   </Breadcrumbs>
 </BaseLayout>
