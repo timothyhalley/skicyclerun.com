@@ -31,11 +31,6 @@ export default defineConfig({
   devToolbar: {
     enabled: false,
   },
-  image: {
-    service: {
-      entrypoint: "astro/assets/services/noop",
-    },
-  },
   vite: {
     plugins: [tailwindcss()],
     resolve: {

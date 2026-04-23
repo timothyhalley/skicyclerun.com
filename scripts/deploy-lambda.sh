@@ -18,9 +18,15 @@ zip -j scripts/auto-confirm-user.zip scripts/auto-confirm-user.js
 echo "Creating IAM Role..."
 aws iam create-role --role-name CognitoAutoConfirmRole --assume-role-policy-document '{"Version": "2012-10-17","Statement": [{ "Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]}' 2>/dev/null || echo "Role already exists, continuing..."
 
-# 4. Attach Policy
-echo "Attaching Policy..."
+# 4. Attach Policies
+echo "Attaching Policies..."
 aws iam attach-role-policy --role-name CognitoAutoConfirmRole --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+# Inline policy to allow the Lambda to call AdminAddUserToGroup on the User Pool
+aws iam put-role-policy \
+  --role-name CognitoAutoConfirmRole \
+  --policy-name AllowCognitoGroupAssignment \
+  --policy-document "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"cognito-idp:AdminAddUserToGroup\"],\"Resource\":\"arn:aws:cognito-idp:us-west-2:${ACCOUNT_ID}:userpool/us-west-2_nkPiRBTSr\"}]}"
 
 echo "Waiting 10s for role propagation..."
 sleep 10
