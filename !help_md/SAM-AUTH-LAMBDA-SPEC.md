@@ -100,7 +100,7 @@ Verifies the OTP and returns JWT tokens plus the user's full profile.
   "phoneVerified": false,
   "zoneinfo": "America/Los_Angeles",
   "location": "usa/wa",
-  "groups": ["GeneralUsers"],
+  "groups": ["SuperUsers", "GeneralUsers"],
   "userStatus": "CONFIRMED",
   "enabled": true,
   "createdTime": "2026-01-15T08:00:00Z",
@@ -116,6 +116,10 @@ Verifies the OTP and returns JWT tokens plus the user's full profile.
 > **Critical:** `groups` must be a non-empty string array for the frontend to
 > correctly gate protected content. An empty or missing `groups` array causes the
 > frontend to fall back to a display-only `["User"]` label with no real access.
+>
+> **Ordering contract:** API should return groups sorted by Cognito precedence
+> (`Precedence`: lower number = higher authority), so `groups[0]` is always the
+> highest role.
 
 #### verify-otp — Error response (HTTP 4xx/5xx)
 
@@ -142,6 +146,17 @@ The `SkiCycleRun_AutoConfirm` PreSignUp Lambda auto-confirms new users but does
 **not** add them to any Cognito group. Cognito group assignment (`AdminAddUserToGroup`)
 must be performed explicitly — it is never automatic.
 
+### Group Model (Required)
+
+- `GeneralUsers` is the baseline group for all users.
+- `SuperUsers` is additive, not exclusive.
+- Any `SuperUsers` member must also be in `GeneralUsers`.
+
+### User Mapping (Required)
+
+- `skicyclerun` => `SuperUsers` + `GeneralUsers`
+- `amsherrin` => `GeneralUsers`
+
 ### Fix Required in SAM Repo
 
 There are two valid implementation locations. **Option A is preferred** because it
@@ -160,7 +175,9 @@ const {
 } = require("@aws-sdk/client-cognito-identity-provider");
 
 const cognitoClient = new CognitoIdentityProviderClient({});
-const DEFAULT_GROUP = "GeneralUsers";
+const GENERAL_GROUP = "GeneralUsers";
+const SUPERUSER_GROUP = "SuperUsers";
+const SUPERUSER_USERNAMES = new Set(["skicyclerun"]);
 
 exports.handler = async (event) => {
   event.response.autoConfirmUser = true;
@@ -180,14 +197,27 @@ exports.handler = async (event) => {
   }
 
   try {
+    // Baseline group for every user.
     await cognitoClient.send(
       new AdminAddUserToGroupCommand({
         UserPoolId: event.userPoolId,
         Username: event.userName,
-        GroupName: DEFAULT_GROUP,
+        GroupName: GENERAL_GROUP,
       }),
     );
-    console.log(`[AutoConfirm] Added ${event.userName} to ${DEFAULT_GROUP}`);
+    console.log(`[AutoConfirm] Added ${event.userName} to ${GENERAL_GROUP}`);
+
+    // Additive elevation: superusers keep GeneralUsers and also get SuperUsers.
+    if (SUPERUSER_USERNAMES.has(String(event.userName).toLowerCase())) {
+      await cognitoClient.send(
+        new AdminAddUserToGroupCommand({
+          UserPoolId: event.userPoolId,
+          Username: event.userName,
+          GroupName: SUPERUSER_GROUP,
+        }),
+      );
+      console.log(`[AutoConfirm] Added ${event.userName} to ${SUPERUSER_GROUP}`);
+    }
   } catch (err) {
     // Non-fatal: log and continue — do not throw, or the signup will fail.
     console.error(`[AutoConfirm] Group assignment failed: ${err.message}`);
@@ -236,6 +266,10 @@ const {
   AdminAddUserToGroupCommand,
 } = require("@aws-sdk/client-cognito-identity-provider");
 
+const GENERAL_GROUP = "GeneralUsers";
+const SUPERUSER_GROUP = "SuperUsers";
+const SUPERUSER_USERNAMES = new Set(["skicyclerun"]);
+
 // After successful auth:
 const groupsResult = await cognitoClient.send(
   new AdminListGroupsForUserCommand({
@@ -244,18 +278,47 @@ const groupsResult = await cognitoClient.send(
   }),
 );
 
-const groups = groupsResult.Groups.map((g) => g.GroupName);
+const groupsFromCognito = groupsResult.Groups ?? [];
+const groupNames = new Set(groupsFromCognito.map((g) => g.GroupName));
 
-if (groups.length === 0) {
+if (!groupNames.has(GENERAL_GROUP)) {
   await cognitoClient.send(
     new AdminAddUserToGroupCommand({
       UserPoolId: process.env.USER_POOL_ID,
       Username: username,
-      GroupName: "GeneralUsers",
+      GroupName: GENERAL_GROUP,
     }),
   );
-  groups.push("GeneralUsers");
+  groupNames.add(GENERAL_GROUP);
 }
+
+if (SUPERUSER_USERNAMES.has(String(username).toLowerCase()) && !groupNames.has(SUPERUSER_GROUP)) {
+  await cognitoClient.send(
+    new AdminAddUserToGroupCommand({
+      UserPoolId: process.env.USER_POOL_ID,
+      Username: username,
+      GroupName: SUPERUSER_GROUP,
+    }),
+  );
+  groupNames.add(SUPERUSER_GROUP);
+}
+
+// Re-read groups so precedence metadata is current after any additions.
+const updatedGroupsResult = await cognitoClient.send(
+  new AdminListGroupsForUserCommand({
+    UserPoolId: process.env.USER_POOL_ID,
+    Username: username,
+  }),
+);
+
+const groups = (updatedGroupsResult.Groups ?? [])
+  .slice()
+  .sort((a, b) => {
+    const aPrecedence = a.Precedence ?? Number.MAX_SAFE_INTEGER;
+    const bPrecedence = b.Precedence ?? Number.MAX_SAFE_INTEGER;
+    return aPrecedence - bPrecedence;
+  })
+  .map((g) => g.GroupName);
 
 // Include groups in the response body sent back to the frontend:
 return {
@@ -345,7 +408,9 @@ Run once with appropriate AWS credentials. Requires `cognito-idp:ListUsers`,
 | User Pool ID                | `us-west-2_nkPiRBTSr`                         |
 | Auth flows                  | `ALLOW_USER_AUTH`, `ALLOW_REFRESH_TOKEN_AUTH` |
 | OTP challenge types         | `EMAIL_OTP`, `SMS_OTP`                        |
-| Default group for new users | `GeneralUsers`                                |
+| Group model                 | `GeneralUsers` baseline, `SuperUsers` additive |
+| Group ordering in API       | Sort by Cognito `Precedence` ascending         |
+| User mapping                | `skicyclerun` => `SuperUsers` + `GeneralUsers`; `amsherrin` => `GeneralUsers` |
 | PreSignUp Lambda            | `SkiCycleRun_AutoConfirm`                     |
 
 ---
