@@ -1,5 +1,6 @@
 ---
 // filepath: src/components/PostCards.astro
+import { Image } from "astro:assets";
 import type { ImageMetadata } from "astro";
 
 export interface Props {
@@ -52,15 +53,19 @@ const { title, author, pubDatetime, tags, description, cover, href } =
       {
         cover ? (
           <a href={href} class="image-container">
-            <img
-              src={
-                typeof cover === "object" && cover && "src" in cover
-                  ? cover.src
-                  : cover
-              }
-              alt={title}
-              loading="lazy"
-            />
+            {typeof cover === "object" && "src" in cover ? (
+              <Image
+                src={cover}
+                alt={title}
+                widths={[220, 320, 440]}
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 30vw, 220px"
+                format="webp"
+                quality={70}
+                loading="lazy"
+              />
+            ) : (
+              <img src={cover} alt={title} loading="lazy" decoding="async" />
+            )}
           </a>
         ) : (
           <div class="no-image">
