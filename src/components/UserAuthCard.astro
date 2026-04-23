@@ -202,7 +202,7 @@ import ProfileFace from "@svg_imgs/profile_face1.svg";
         "[UserAuthCard] Updating UI - auth:",
         !!auth?.signedIn,
         "profile:",
-        !!profile
+        !!profile,
       );
 
       const inView = document.getElementById("signed-in-view");
@@ -247,7 +247,11 @@ import ProfileFace from "@svg_imgs/profile_face1.svg";
         const _allGroups = user.groups ?? [];
         const _groupRank = { SuperUsers: 3, PowerUsers: 2, GeneralUsers: 1 };
         const _topGroup = _allGroups.length
-          ? [_allGroups.reduce((best, g) => ((_groupRank[g] ?? 0) > (_groupRank[best] ?? 0) ? g : best))]
+          ? [
+              _allGroups.reduce((best, g) =>
+                (_groupRank[g] ?? 0) > (_groupRank[best] ?? 0) ? g : best,
+              ),
+            ]
           : [];
         _topGroup.forEach((g) => {
           const span = document.createElement("span");

@@ -19,7 +19,7 @@ const GROUP_RANK: Record<string, number> = {
 function bestGroup(groups: string[]): string | null {
   if (!groups.length) return null;
   return groups.reduce((best, g) =>
-    (GROUP_RANK[g] ?? 0) > (GROUP_RANK[best] ?? 0) ? g : best
+    (GROUP_RANK[g] ?? 0) > (GROUP_RANK[best] ?? 0) ? g : best,
   );
 }
 
@@ -55,7 +55,7 @@ export function formatUserDisplay(options: UserDisplayOptions): string {
  */
 export function formatCopyright(
   year: number,
-  compact: boolean = false
+  compact: boolean = false,
 ): string {
   if (compact) {
     // Ultra-compact for small devices: © 2025

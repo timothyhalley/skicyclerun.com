@@ -101,9 +101,9 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
             class="mt-6 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900"
           >
             <p class="text-sm text-blue-800 dark:text-blue-200">
-              <strong>💡 Tip:</strong> You can sign in with either your verified
-              email or phone number. Keep at least one verified to maintain access
-              to your account.
+              <strong>💡 Tip:</strong> You can sign in with either your verified email
+              or phone number. Keep at least one verified to maintain access to your
+              account.
             </p>
           </div>
         </div>
@@ -189,7 +189,10 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
       memberSince:
         data.memberSince || data.createdTime || data.userCreateDate || null,
       lastLogin:
-        data.lastLogin || data.lastUpdatedTime || data.userLastModifiedDate || null,
+        data.lastLogin ||
+        data.lastUpdatedTime ||
+        data.userLastModifiedDate ||
+        null,
       userStatus: data.userStatus,
     };
   }
@@ -230,7 +233,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
               </div>
             </div>
           </div>
-          ${profile.groups?.length ? `<div class="flex gap-2 flex-wrap mt-4">${[profile.groups.reduce((best: string, g: string) => ({ SuperUsers: 3, PowerUsers: 2, GeneralUsers: 1 }[g] ?? 0) > ({ SuperUsers: 3, PowerUsers: 2, GeneralUsers: 1 }[best] ?? 0) ? g : best)].map((g: string) => `<span class="px-3 py-1 rounded-full text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium">${g}</span>`).join("")}</div>` : ""}
+          ${profile.groups?.length ? `<div class="flex gap-2 flex-wrap mt-4">${[profile.groups.reduce((best: string, g: string) => (({ SuperUsers: 3, PowerUsers: 2, GeneralUsers: 1 })[g] ?? 0) > ({ SuperUsers: 3, PowerUsers: 2, GeneralUsers: 1 }[best] ?? 0) ? g : best)].map((g: string) => `<span class="px-3 py-1 rounded-full text-sm bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-medium">${g}</span>`).join("")}</div>` : ""}
         `;
       }
 
@@ -247,7 +250,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
         const emailEditor = document.createElement("div");
         emailEditor.innerHTML = await (
           await fetch(
-            `/api/render-attribute-editor?attribute=email&value=${encodeURIComponent(profile.email)}&verified=${profile.emailVerified}&canUpdate=${canUpdate}`
+            `/api/render-attribute-editor?attribute=email&value=${encodeURIComponent(profile.email)}&verified=${profile.emailVerified}&canUpdate=${canUpdate}`,
           )
         ).text();
         emailContainer.appendChild(emailEditor);
@@ -259,7 +262,7 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
         const phoneEditor = document.createElement("div");
         phoneEditor.innerHTML = await (
           await fetch(
-            `/api/render-attribute-editor?attribute=phone&value=${encodeURIComponent(profile.phone || "")}&verified=${profile.phoneVerified}&canUpdate=${canUpdate}`
+            `/api/render-attribute-editor?attribute=phone&value=${encodeURIComponent(profile.phone || "")}&verified=${profile.phoneVerified}&canUpdate=${canUpdate}`,
           )
         ).text();
         phoneContainer.appendChild(phoneEditor);
@@ -326,10 +329,10 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
 
     // Listen for auth changes
     document.addEventListener("auth-changed", () =>
-      setTimeout(loadProfile, 200)
+      setTimeout(loadProfile, 200),
     );
     document.addEventListener("auth:state-change", () =>
-      setTimeout(loadProfile, 200)
+      setTimeout(loadProfile, 200),
     );
   });
 </script>

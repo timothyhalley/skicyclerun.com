@@ -283,7 +283,11 @@ import EasterIslandStatue from "@svg_imgs/profile_face1.svg";
       const formattedMemberSince = formatDateTime(memberSince) || "Unknown";
       const GROUP_RANK = { SuperUsers: 3, PowerUsers: 2, GeneralUsers: 1 };
       const groupsDisplay = groups?.length
-        ? [groups.reduce((best, g) => ((GROUP_RANK[g] ?? 0) > (GROUP_RANK[best] ?? 0) ? g : best))]
+        ? [
+            groups.reduce((best, g) =>
+              (GROUP_RANK[g] ?? 0) > (GROUP_RANK[best] ?? 0) ? g : best,
+            ),
+          ]
         : ["User"];
       const emailStatus = email
         ? emailVerified
