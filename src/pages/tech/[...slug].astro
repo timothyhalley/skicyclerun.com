@@ -12,7 +12,7 @@ import {
   generatePostStaticPaths,
   type PostPageProps,
 } from "@utils/generatePostStaticPaths";
-import { isDebugEnabled } from "@utils/debugFlag";
+import { DebugConsole } from "@utils/DebugConsole";
 import { TECH_TYPES } from "@constants/blogTypes";
 
 export const prerender = true;
@@ -20,16 +20,15 @@ export const prerender = true;
 export async function getStaticPaths() {
   const posts = await getCollection("blog");
   const paths = generatePostStaticPaths(posts, TECH_TYPES, "/tech");
-  const isDebug = isDebugEnabled();
-  if (isDebug) {
+  if (DebugConsole.isEnabled()) {
     const postSlugs = paths
       .filter((p) => p.params.slug)
       .map((p) => p.params.slug);
     const paginated = paths
       .filter((p) => p.params.page)
       .map((p) => `${p.params.section}/${p.params.page}`);
-    console.log("Generated post slugs for /tech:", postSlugs);
-    console.log("Generated paginated paths for /tech:", paginated);
+    DebugConsole.nav("Generated post slugs for /tech:", postSlugs);
+    DebugConsole.nav("Generated paginated paths for /tech:", paginated);
   }
   return paths;
 }

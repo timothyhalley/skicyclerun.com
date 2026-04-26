@@ -3,7 +3,7 @@ import { slugifyStr } from "./slugify";
 import { getPostSlug } from "./slugify";
 import { SkiCycleRunConfig } from "../skicyclerun.config";
 import postFilter from "./postFilter";
-import { isDebugEnabled } from "./debugFlag";
+import { DebugConsole } from "./DebugConsole";
 
 export interface PostPageProps {
   post?: CollectionEntry<"blog">;
@@ -23,9 +23,8 @@ export function generatePostStaticPaths(
   filterTypes: string[] = [],
   _basePath: string = "",
 ) {
-  const isDev = isDebugEnabled();
   const debug = (...args: any[]) => {
-    if (isDev) console.log("[generatePostStaticPaths]", ...args);
+    DebugConsole.nav("[generatePostStaticPaths]", ...args);
   };
 
   debug("START", { totalPosts: posts?.length ?? 0, filterTypes });
@@ -64,7 +63,7 @@ export function generatePostStaticPaths(
       // Astro v6 (glob loader): post.slug is gone — use getPostSlug().
       const slug = getPostSlug(post);
 
-      if (isDev) {
+      if (DebugConsole.isEnabled()) {
         debug("SLUG", { id: post.id, slug });
       }
 

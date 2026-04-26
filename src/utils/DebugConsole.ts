@@ -52,34 +52,34 @@ export const DebugConsole = {
     if (isDebugEnabled) console.info("[DEBUG]", ...args);
   },
 
-  // Category-specific loggers with emojis for easy filtering
+  // Category-specific loggers with explicit [DEBUG] prefixes for easy filtering
 
   /**
    * Authentication & authorization logs
    */
   auth: (...args: unknown[]) => {
-    if (isDebugEnabled) console.log("🔐 [AUTH]", ...args);
+    if (isDebugEnabled) console.log("[DEBUG][AUTH]", ...args);
   },
 
   /**
    * API call logs
    */
   api: (...args: unknown[]) => {
-    if (isDebugEnabled) console.log("📡 [API]", ...args);
+    if (isDebugEnabled) console.log("[DEBUG][API]", ...args);
   },
 
   /**
    * Navigation & routing logs
    */
   nav: (...args: unknown[]) => {
-    if (isDebugEnabled) console.log("🧭 [NAV]", ...args);
+    if (isDebugEnabled) console.log("[DEBUG][NAV]", ...args);
   },
 
   /**
    * UI component logs
    */
   ui: (...args: unknown[]) => {
-    if (isDebugEnabled) console.log("🎨 [UI]", ...args);
+    if (isDebugEnabled) console.log("[DEBUG][UI]", ...args);
   },
 
   /**

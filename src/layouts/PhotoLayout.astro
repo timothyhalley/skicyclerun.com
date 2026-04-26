@@ -4,6 +4,7 @@ import { SkiCycleRunConfig } from "../skicyclerun.config";
 import MDXCarousel3 from "./MDXCarousel3.astro";
 import MDXHeroView from "./MDXHeroView.astro";
 import MDXGalleryView from "./MDXGalleryView.astro";
+import { DebugConsole } from "../utils/DebugConsole";
 
 const { frontmatter } = Astro.props;
 const album = frontmatter?.album;
@@ -13,7 +14,7 @@ if (!album) throw new Error("PhotoLayout requires frontmatter.album to be set");
 const photos = await getAlbumPhotos(album);
 if (!photos || photos.length === 0) {
   // Render a friendly fallback instead of throwing to avoid breaking the page
-  console.warn(`Album \"${album}\" returned no photos`);
+  DebugConsole.warn(`Album \"${album}\" returned no photos`);
 }
 ---
 
@@ -111,6 +112,17 @@ if (!photos || photos.length === 0) {
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
+      const debugEnabled = import.meta.env.PUBLIC_DEBUG_OUTPUT === "true";
+      const debugLog = (...args) => {
+        if (debugEnabled) console.log("[DEBUG][UI]", ...args);
+      };
+      const debugWarn = (...args) => {
+        if (debugEnabled) console.warn("[DEBUG][WARN]", ...args);
+      };
+      const debugError = (...args) => {
+        if (debugEnabled) console.error("[DEBUG][ERROR]", ...args);
+      };
+
       const radios = Array.from(
         document.querySelectorAll('input[name="photo-view"]'),
       );
@@ -169,13 +181,13 @@ if (!photos || photos.length === 0) {
               try {
                 const photos = JSON.parse(scriptTag.textContent || "[]");
                 if (photos.length > 0) {
-                  console.log(
+                  debugLog(
                     `[PhotoLayout] Found ${photos.length} static photos in ${viewName} view`,
                   );
                   return photos;
                 }
               } catch (e) {
-                console.warn(
+                debugWarn(
                   `[PhotoLayout] Failed to parse static photos from ${viewName}:`,
                   e,
                 );
@@ -183,20 +195,18 @@ if (!photos || photos.length === 0) {
             }
           }
         }
-        console.warn("[PhotoLayout] No static photos found in any view");
+        debugWarn("[PhotoLayout] No static photos found in any view");
         return [];
       }
 
       // Filter static photos by art style
       function filterStaticPhotosByStyle(photos, style) {
-        console.log(
+        debugLog(
           `[PhotoLayout] filterStaticPhotosByStyle called with ${photos.length} photos, style: ${style}`,
         );
 
         if (style === "random" || !style) {
-          console.log(
-            "[PhotoLayout] No filtering - showing all photos (random)",
-          );
+          debugLog("[PhotoLayout] No filtering - showing all photos (random)");
           return photos;
         }
 
@@ -219,19 +229,19 @@ if (!photos || photos.length === 0) {
           }
 
           const matches = loraStyle === style;
-          console.log(
+          debugLog(
             `[PhotoLayout] Photo: ${photo.src.split("/").pop()}, extracted style: ${loraStyle}, matches ${style}: ${matches}`,
           );
           return matches;
         });
 
-        console.log(
+        debugLog(
           `[PhotoLayout] Filtered ${photos.length} photos to ${filtered.length} for style: ${style}`,
         );
 
         // If filtering resulted in no photos, return all photos instead of empty array
         if (filtered.length === 0) {
-          console.warn(
+          debugWarn(
             `[PhotoLayout] No photos match style "${style}", returning all photos instead`,
           );
           return photos;
@@ -277,7 +287,7 @@ if (!photos || photos.length === 0) {
             dynamicPhotosFullSet,
             loraStyle,
           );
-          console.log(
+          debugLog(
             `[PhotoLayout] Using cached dynamic photos for style: ${loraStyle}`,
           );
           return dynamicPhotos;
@@ -298,7 +308,7 @@ if (!photos || photos.length === 0) {
           for (const candidate of candidates) {
             // Full library mode must use the full album endpoint.
             const photoURL = `${baseUrl}getphotos?album=${encodeURIComponent(candidate)}`;
-            console.log(
+            debugLog(
               `[PhotoLayout] Fetching full library from API: ${photoURL}`,
             );
 
@@ -317,7 +327,7 @@ if (!photos || photos.length === 0) {
           if (photoArray.length === 0) {
             for (const candidate of candidates) {
               const fallbackURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${encodeURIComponent(candidate)}/&numPhotos=${dynamicPhotoLimit}`;
-              console.warn(
+              debugWarn(
                 `[PhotoLayout] Full-library endpoint returned empty, trying fallback: ${fallbackURL}`,
               );
               const res = await fetch(fallbackURL);
@@ -359,16 +369,16 @@ if (!photos || photos.length === 0) {
               loraStyle,
             );
             dynamicPhotosLoaded = true;
-            console.log(
+            debugLog(
               `✅ Loaded ${dynamicPhotosFullSet.length} full-library photos from API; filtered to ${dynamicPhotos.length} for style: ${loraStyle}`,
             );
             if (usedAlbum && usedAlbum !== `${album}`) {
-              console.warn(
+              debugWarn(
                 `[PhotoLayout] Full library album "${album}" resolved as "${usedAlbum}"`,
               );
             }
           } else {
-            console.warn(
+            debugWarn(
               `[PhotoLayout] No full-library photos returned from API for album "${album}"`,
             );
           }
@@ -376,7 +386,7 @@ if (!photos || photos.length === 0) {
           if (loadingEl) loadingEl.style.display = "none";
           return dynamicPhotos;
         } catch (error) {
-          console.error("Failed to load dynamic photos:", error);
+          debugError("Failed to load dynamic photos:", error);
           if (loadingEl) {
             loadingEl.innerHTML =
               '<p class="error">Failed to load photos from API</p>';
@@ -389,7 +399,7 @@ if (!photos || photos.length === 0) {
       }
 
       function updateViewContent(photos) {
-        console.log(
+        debugLog(
           `[PhotoLayout] Updating view content with ${photos.length} photos`,
         );
 
@@ -405,7 +415,7 @@ if (!photos || photos.length === 0) {
               /</g,
               "\\u003c",
             );
-            console.log("[PhotoLayout] Hero JSON updated");
+            debugLog("[PhotoLayout] Hero JSON updated");
           }
 
           const heroImg = heroContainer.querySelector(
@@ -415,7 +425,7 @@ if (!photos || photos.length === 0) {
             heroImg.src = photos[0].src;
             heroImg.alt = photos[0].altText || "Photo";
             heroImg.dataset.currentIndex = "0"; // Reset to first image
-            console.log("[PhotoLayout] Hero image updated to:", photos[0].src);
+            debugLog("[PhotoLayout] Hero image updated to:", photos[0].src);
           }
 
           // Remove old event listeners by cloning the image element
@@ -456,13 +466,13 @@ if (!photos || photos.length === 0) {
                     if (counterEl && photos.length > 1) {
                       counterEl.textContent = `${idx + 1} / ${photos.length}`;
                     }
-                    console.log(
+                    debugLog(
                       `[PhotoLayout] Hero clicked - showing photo ${idx + 1}/${photos.length}`,
                     );
                   }, 120);
                 }
               });
-              console.log(
+              debugLog(
                 "[PhotoLayout] Hero click handler reattached with new photos",
               );
             }
@@ -480,7 +490,7 @@ if (!photos || photos.length === 0) {
                 bubbles: false,
               }),
             );
-            console.log(
+            debugLog(
               `[PhotoLayout] Gallery update event dispatched (${photos.length} photos)`,
             );
           }
@@ -501,7 +511,7 @@ if (!photos || photos.length === 0) {
               /</g,
               "\\u003c",
             );
-            console.log("[PhotoLayout] Carousel JSON updated");
+            debugLog("[PhotoLayout] Carousel JSON updated");
           }
 
           // Find the carousel track and slides
@@ -548,7 +558,7 @@ if (!photos || photos.length === 0) {
               document.dispatchEvent(event);
             }
 
-            console.log(
+            debugLog(
               `[PhotoLayout] Carousel slides rebuilt with ${photos.length} photos and reinitialized`,
             );
           }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { ImageMetadata } from "astro";
+import { DebugConsole } from "@utils/DebugConsole";
 
 interface Photo {
   src: string | undefined;
@@ -50,7 +51,7 @@ export default function RemotePhotoGallery({ album }: { album: string }) {
         const photoURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=150`;
         const res = await fetch(photoURL);
         const data = await res.json();
-        console.log("✅ API Response Data:", data);
+        DebugConsole.api("[RemotePhotoGallery] API response data:", data);
 
         if (Array.isArray(data)) {
           const remotePhotos = data.map((p: any, i: number) => {
@@ -63,14 +64,14 @@ export default function RemotePhotoGallery({ album }: { album: string }) {
           });
           setPhotos(remotePhotos);
         } else {
-          console.warn(
+          DebugConsole.warn(
             "⚠️ Unexpected response format from photo API, falling back to local images",
           );
           const local = await getLocalPhotos();
           setPhotos(local);
         }
       } catch (error) {
-        console.warn(
+        DebugConsole.warn(
           "⚠️ Photo API failed, falling back to local images:",
           error,
         );
@@ -93,14 +94,14 @@ export default function RemotePhotoGallery({ album }: { album: string }) {
 
   const handleImageClick = () => {
     setCycleOffset((prev) => (prev + 1) % photos.length);
-    console.log(
+    DebugConsole.ui(
       `🔄 Cycling photos, new offset: ${(cycleOffset + 1) % photos.length}`,
     );
   };
 
   const toggleView = () => {
     setViewMode((prev) => (prev === "gallery" ? "hero" : "gallery"));
-    console.log(
+    DebugConsole.ui(
       `🧨 Toggled view to: ${viewMode === "gallery" ? "hero" : "gallery"}`,
     );
   };
@@ -113,7 +114,9 @@ export default function RemotePhotoGallery({ album }: { album: string }) {
     return <div className="p-4 text-center">No photos available</div>;
   }
 
-  console.log(`📸 Rendering ${photos.length} photos in ${viewMode} mode`);
+  DebugConsole.ui(
+    `[RemotePhotoGallery] Rendering ${photos.length} photos in ${viewMode} mode`,
+  );
 
   // Calculate which photos to display based on cycle offset
   const getPhotoAtIndex = (index: number) =>

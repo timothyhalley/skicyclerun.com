@@ -18,49 +18,40 @@
     return meta && meta.content === "true";
   }
 
+  const PREFIXES = {
+    auth: "[DEBUG][AUTH]",
+    api: "[DEBUG][API]",
+    nav: "[DEBUG][NAV]",
+    ui: "[DEBUG][UI]",
+  };
+
+  function prefix(category) {
+    return PREFIXES[category] || "[DEBUG]";
+  }
+
   // Create global debug helpers
   window.debugLog = function (category, ...args) {
     if (!isDebugEnabled()) return;
-
-    const prefix =
-      {
-        auth: "🔐 [AUTH]",
-        api: "📡 [API]",
-        nav: "🧭 [NAV]",
-        ui: "🎨 [UI]",
-      }[category] || "[DEBUG]";
-
-    console.log(prefix, ...args);
+    console.log(prefix(category), ...args);
   };
 
   window.debugWarn = function (category, ...args) {
     if (!isDebugEnabled()) return;
-
-    const prefix =
-      {
-        auth: "🔐 [AUTH]",
-        api: "📡 [API]",
-        nav: "🧭 [NAV]",
-        ui: "🎨 [UI]",
-      }[category] || "[DEBUG]";
-
-    console.warn(prefix, ...args);
+    console.warn(prefix(category), ...args);
   };
 
   window.debugError = function (category, ...args) {
     if (!isDebugEnabled()) return;
-
-    const prefix =
-      {
-        auth: "🔐 [AUTH]",
-        api: "📡 [API]",
-        nav: "🧭 [NAV]",
-        ui: "🎨 [UI]",
-      }[category] || "[DEBUG]";
-
-    console.error(prefix, ...args);
+    console.error(prefix(category), ...args);
   };
 
   // Helper to check if debug is enabled
   window.isDebugEnabled = isDebugEnabled;
+
+  // Startup banner — one line so you instantly know the gate state
+  const state = isDebugEnabled() ? "ON" : "OFF";
+  const style = isDebugEnabled()
+    ? "background:#16a34a;color:#fff;padding:2px 6px;border-radius:3px;font-weight:bold"
+    : "background:#6b7280;color:#fff;padding:2px 6px;border-radius:3px";
+  console.log("%c[DEBUG] %s", style, `Debug output: ${state}`);
 })();

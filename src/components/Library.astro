@@ -1,6 +1,7 @@
 ---
 import { SkiCycleRunConfig } from "../skicyclerun.config";
 import { isDebugEnabled } from "../utils/debugFlag";
+import { DebugConsole } from "../utils/DebugConsole";
 // ImageMetadata is no longer exported from astro in newer versions
 // import type { ImageMetadata } from "astro";
 export function getRndValue(images: any) {
@@ -17,7 +18,7 @@ export async function getLocalImages() {
 }
 
 export async function getImgMeta(imgPath: string) {
-  if (isDebugEnabled()) console.log("getImgMeta: ", imgPath);
+  DebugConsole.ui("[Library:getImgMeta]", imgPath);
   return imgPath;
 }
 
@@ -91,11 +92,9 @@ export async function getAlbumPhotos(
 
         for (const candidate of candidates) {
           const photoURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${encodeURIComponent(candidate)}/&numPhotos=${SkiCycleRunConfig.photoApi.buildTimePhotos}${loraParam}`;
-          if (isDebugEnabled()) {
-            console.log(
-              `[Library:getAlbumPhotos] Initial photo fetch URL: ${photoURL}`,
-            );
-          }
+          DebugConsole.api(
+            `[Library:getAlbumPhotos] Initial photo fetch URL: ${photoURL}`,
+          );
           const res = await fetch(photoURL);
           const data = await res.json();
           const parsed = parsePhotoArray(data);
@@ -126,12 +125,12 @@ export async function getAlbumPhotos(
           });
 
           if (usedAlbum && usedAlbum !== `${album}`) {
-            console.warn(
+            DebugConsole.warn(
               `ℹ️ Album "${album}" resolved using variant "${usedAlbum}"`,
             );
           }
         } else {
-          console.warn(
+          DebugConsole.warn(
             `⚠️ No remote photos found for album "${album}", falling back to local images`,
           );
           photos = await getAlbumPhotos("local");
@@ -139,22 +138,22 @@ export async function getAlbumPhotos(
       } catch (apiError) {
         const loraParam =
           loraStyle === "random" ? "" : `&loraStyle=${loraStyle}`;
-        console.warn("Photo API failed, falling back to local images");
+        DebugConsole.warn("Photo API failed, falling back to local images");
         if (isDebugEnabled()) {
-          console.warn(
+          DebugConsole.api(
             "URL:",
             `${import.meta.env.PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/v2/"}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=${SkiCycleRunConfig.photoApi.buildTimePhotos}${loraParam}`,
           );
-          console.warn(
+          DebugConsole.warn(
             "Error type:",
             apiError instanceof Error ? apiError.name : typeof apiError,
           );
-          console.warn(
+          DebugConsole.warn(
             "Error message:",
             apiError instanceof Error ? apiError.message : String(apiError),
           );
-          console.warn("Album:", album);
-          console.warn("LoRA Style:", loraStyle);
+          DebugConsole.warn("Album:", album);
+          DebugConsole.warn("LoRA Style:", loraStyle);
         }
         photos = await getAlbumPhotos("local");
       }
@@ -162,7 +161,7 @@ export async function getAlbumPhotos(
 
     return photos;
   } catch (error) {
-    if (isDebugEnabled()) console.log("ERROR:getAlbumPhotos", error);
+    DebugConsole.error("ERROR:getAlbumPhotos", error);
     // Final fallback to empty array to prevent build failures
     return [];
   }
@@ -183,7 +182,7 @@ export function findKeyWithValue(
   obj: Record<string, any>,
 ) {
   for (const key in obj) {
-    if (isDebugEnabled()) console.log("findKeyWithValue: key == ", key);
+    DebugConsole.ui("findKeyWithValue: key ==", key);
     if (key.includes(searchString)) {
       return { key, value: obj[key] };
     }
@@ -209,24 +208,22 @@ export function findSubstring(
       return imageModules[key];
     }
   }
-  console.warn("❌ No match found for:", imageName);
+  DebugConsole.warn("No match found for:", imageName);
   return null;
 }
 
 export function getImage(imgSrc: unknown, imgObj: Record<string, any>) {
   if (typeof imgSrc !== "string") {
-    console.warn("⚠️ getImage received non-string imgSrc:", imgSrc);
+    DebugConsole.warn("getImage received non-string imgSrc:", imgSrc);
     return null;
   }
 
-  if (isDebugEnabled()) {
-    console.log("🔍 Available image keys:", Object.keys(imgObj));
-    console.log("🔍 Looking for match with:", imgSrc);
-  }
+  DebugConsole.ui("Available image keys:", Object.keys(imgObj));
+  DebugConsole.ui("Looking for match with:", imgSrc);
 
   const result = findSubstring(imgSrc, imgObj);
   if (!result) {
-    console.warn("⚠️ getImage could not find match for:", imgSrc);
+    DebugConsole.warn("getImage could not find match for:", imgSrc);
   }
   return result;
 }
@@ -251,7 +248,7 @@ export function getFileName(path: unknown): string {
   if (matchResult) {
     return `${matchResult[1]}.${matchResult[2]}`;
   }
-  console.warn("⚠️ - getFileName received non-string path:", path);
+  DebugConsole.warn("getFileName received non-string path:", path);
   return "imageNotFound";
 }
 ---
