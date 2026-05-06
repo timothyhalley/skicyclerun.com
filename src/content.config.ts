@@ -21,6 +21,7 @@ const blog = defineCollection({
       slug: z.string().optional(),
       class: z.string().optional(),
       album: z.string().optional(),
+      travelmap: z.string().optional(),
       lat: z.number().optional(),
       lon: z.number().optional(),
       auth_required: z.boolean().optional(),

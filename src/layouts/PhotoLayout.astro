@@ -1,13 +1,16 @@
 ---
 import { getAlbumPhotos } from "@components/Library.astro";
+import { Image } from "astro:assets";
 import { SkiCycleRunConfig } from "../skicyclerun.config";
 import MDXCarousel3 from "./MDXCarousel3.astro";
 import MDXHeroView from "./MDXHeroView.astro";
 import MDXGalleryView from "./MDXGalleryView.astro";
 import { DebugConsole } from "../utils/DebugConsole";
+import { getPhotoByName } from "../utils/getPhotoCover";
 
 const { frontmatter } = Astro.props;
 const album = frontmatter?.album;
+const travelMap = getPhotoByName(frontmatter?.travelmap ?? null);
 const dynamicPhotoLimit = SkiCycleRunConfig.photoApi.dynamicPhotos;
 if (!album) throw new Error("PhotoLayout requires frontmatter.album to be set");
 
@@ -109,6 +112,23 @@ if (!photos || photos.length === 0) {
 
   <!-- Render page MDX content inside the master layout -->
   <slot />
+
+  {
+    travelMap && (
+      <figure class="travel-map-wrap">
+        <Image
+          src={travelMap}
+          alt={`${frontmatter?.title || "Travel"} map`}
+          widths={[800, 1200, 1600]}
+          sizes="(max-width: 1024px) 100vw, 1024px"
+          format="webp"
+          quality={80}
+          loading="lazy"
+          class="travel-map-image"
+        />
+      </figure>
+    )
+  }
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
@@ -965,5 +985,21 @@ if (!photos || photos.length === 0) {
     color: rgb(var(--color-text-muted));
     text-align: center;
     padding: 2rem;
+  }
+
+  .travel-map-wrap {
+    margin: 1.6rem auto 0;
+    width: min(100%, var(--photo-frame-max-width));
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid rgba(var(--color-border), 0.45);
+    background: rgba(var(--color-card), 0.6);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+  }
+
+  .travel-map-image {
+    width: 100%;
+    height: auto;
+    display: block;
   }
 </style>

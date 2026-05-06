@@ -1,13 +1,13 @@
-import type { ImageMetadata } from 'astro';
+import type { ImageMetadata } from "astro";
 
 const imageModules = import.meta.glob<{ default: ImageMetadata }>(
-  '/src/assets/images/**/*.{png,jpg,jpeg,webp,avif,gif,svg}',
-  { eager: true }
+  "/src/assets/**/*.{png,jpg,jpeg,webp,avif,gif,svg}",
+  { eager: true },
 );
 
 const DEFAULTS = [
-  '/src/assets/images/default-cover.png',
-  '/src/assets/images/default-cover.jpg',
+  "/src/assets/images/default-cover.png",
+  "/src/assets/images/default-cover.jpg",
 ];
 let DEFAULT_COVER: ImageMetadata | null = null;
 for (const p of DEFAULTS) {
@@ -18,9 +18,11 @@ for (const p of DEFAULTS) {
   }
 }
 
-function matchByFilename(name: string | undefined | null): ImageMetadata | null {
+function matchByFilename(
+  name: string | undefined | null,
+): ImageMetadata | null {
   if (!name) return null;
-  const target = name.split('/').pop();
+  const target = name.split("/").pop();
   for (const [fullPath, mod] of Object.entries(imageModules)) {
     if (fullPath.endsWith(`/${target}`)) {
       // @ts-ignore
@@ -30,6 +32,14 @@ function matchByFilename(name: string | undefined | null): ImageMetadata | null 
   return null;
 }
 
-export function getPhotoCover(name: string | undefined | null): ImageMetadata | null {
+export function getPhotoByName(
+  name: string | undefined | null,
+): ImageMetadata | null {
+  return matchByFilename(name);
+}
+
+export function getPhotoCover(
+  name: string | undefined | null,
+): ImageMetadata | null {
   return matchByFilename(name) || DEFAULT_COVER;
 }

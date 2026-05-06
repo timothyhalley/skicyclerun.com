@@ -74,7 +74,7 @@ The frontend's auth layer is intentionally thin and consists of exactly two file
 
 **The frontend does not talk to Cognito directly.** It only POSTs to:
 
-```
+```http
 POST https://api.skicyclerun.com/v2/auth/send-otp
 POST https://api.skicyclerun.com/v2/auth/verify-otp
 ```

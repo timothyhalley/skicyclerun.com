@@ -13,7 +13,7 @@ Paste the prompt, then paste or attach your JSON data immediately after.
 
 ## Prompt
 
-```
+```text
 You are a travel writer. I will give you a JSON array of photo entries, each with
 GPS coordinates and optional timestamps or notes. Your job is to write a short,
 engaging travel blog post summarising the collection — not a per-photo breakdown.

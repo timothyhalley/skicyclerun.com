@@ -17,7 +17,7 @@
  * See: https://tailwindcss.com/docs/v4-beta
  */
 
-@import "@styles/topography.css";
+@import "./topography.css";
 @import "tailwindcss";
 
 @font-face {
