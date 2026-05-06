@@ -1,44 +1,55 @@
-// scripts/update-version.ts  (new file – run with `npx tsx scripts/update-version.ts`)
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import fg from "fast-glob";
 
 const VERSION_PATTERN = /^(\d{4})-(\d{2})-(\d{2}) V(\d{2})\.(\d{3})$/;
 
-interface Options {
-  major?: boolean;
-  date?: string;
-}
-
-function parseArgs(): Options {
-  const options: Options = {};
+function parseArgs() {
+  const options = {};
   const args = process.argv.slice(2);
-  for (const arg of args) {
-    if (arg === "--major") options.major = true;
-    else if (arg.startsWith("--date=")) options.date = arg.split("=")[1];
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--major") {
+      options.major = true;
+      continue;
+    }
+    if (arg === "--date") {
+      const nextArg = args[index + 1];
+      if (nextArg && !nextArg.startsWith("--")) {
+        options.date = nextArg;
+        index += 1;
+      }
+      continue;
+    }
+    if (arg.startsWith("--date=")) {
+      options.date = arg.split("=")[1];
+    }
   }
+
   return options;
 }
 
-function readVersion(): string {
+function readVersion() {
   const file = readFileSync("version.json", "utf8");
-  const { version } = JSON.parse(file) as { version: string };
+  const { version } = JSON.parse(file);
+
   if (!VERSION_PATTERN.test(version)) {
     throw new Error(
       `Version in version.json does not match pattern: ${version}`,
     );
   }
+
   return version;
 }
 
-function formatVersion(date: string, major: number, minor: number) {
-  return `${date} V${major.toString().padStart(2, "0")}.${minor
-    .toString()
-    .padStart(3, "0")}`;
+function formatVersion(date, major, minor) {
+  return `${date} V${major.toString().padStart(2, "0")}.${minor.toString().padStart(3, "0")}`;
 }
 
-function bumpVersion(current: string, opts: Options) {
-  const [, y, m, d, majorStr, minorStr] = current.match(VERSION_PATTERN)!;
+function bumpVersion(current, opts) {
+  const [, year, month, day, majorStr, minorStr] =
+    current.match(VERSION_PATTERN);
   const now = new Date();
   const todayDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const date = opts.date ?? todayDate;
@@ -53,7 +64,7 @@ function bumpVersion(current: string, opts: Options) {
     };
   }
 
-  if (date !== `${y}-${m}-${d}`) {
+  if (date !== `${year}-${month}-${day}`) {
     return {
       version: formatVersion(date, major, 0),
       major,
@@ -68,26 +79,27 @@ function bumpVersion(current: string, opts: Options) {
   };
 }
 
-function writeVersion(newVersion: string) {
+function writeVersion(newVersion) {
   writeFileSync(
     "version.json",
-    JSON.stringify({ version: newVersion }, null, 2) + "\n",
+    `${JSON.stringify({ version: newVersion }, null, 2)}\n`,
   );
   console.log(`📦 version.json → ${newVersion}`);
 }
 
-function updatePackageJson(newVersion: string) {
+function updatePackageJson(newVersion) {
   const pkgPath = "package.json";
   const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
   pkg.version = newVersion;
-  writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
+  writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
   console.log(`📦 ${pkgPath} → ${newVersion}`);
 }
 
-function replaceInFile(filePath: string, pattern: RegExp, replacement: string) {
+function replaceInFile(filePath, pattern, replacement) {
   const absolutePath = join(process.cwd(), filePath);
   const content = readFileSync(absolutePath, "utf8");
   const updated = content.replace(pattern, replacement);
+
   if (updated !== content) {
     writeFileSync(absolutePath, updated);
     console.log(`✏️  ${filePath} updated`);
@@ -116,7 +128,7 @@ async function main() {
   console.log(`✅ Version synchronized to ${newVersion}`);
 }
 
-main().catch((err) => {
-  console.error("Version update failed:", err);
+main().catch((error) => {
+  console.error("Version update failed:", error);
   process.exit(1);
 });
