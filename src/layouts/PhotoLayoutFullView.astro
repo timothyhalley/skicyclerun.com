@@ -1,0 +1,749 @@
+---
+import { getAlbumPhotos } from "@components/Library.astro";
+import { SkiCycleRunConfig } from "../skicyclerun.config";
+import MDXCarousel3 from "./MDXCarousel3.astro";
+import MDXHeroView from "./MDXHeroView.astro";
+import MDXGalleryView from "./MDXGalleryView.astro";
+import { DebugConsole } from "../utils/DebugConsole";
+
+const { frontmatter } = Astro.props;
+const album = frontmatter?.album;
+const dynamicPhotoLimit = SkiCycleRunConfig.photoApi.dynamicPhotos;
+const exitHref = frontmatter?.fullViewExitHref || "/";
+const initialView = ["hero", "gallery", "carousel"].includes(
+  `${frontmatter?.initialView || ""}`,
+)
+  ? `${frontmatter?.initialView}`
+  : "gallery";
+const initialStyle = `${frontmatter?.initialStyle || "random"}`;
+const initialUseDynamic = frontmatter?.useDynamic ? "1" : "0";
+
+if (!album) throw new Error("PhotoLayoutFullView requires frontmatter.album to be set");
+
+const photos = await getAlbumPhotos(album);
+if (!photos || photos.length === 0) {
+  DebugConsole.warn(`Album \"${album}\" returned no photos`);
+}
+---
+
+<article
+  class="photo-full-layout"
+  data-album={album}
+  data-dynamic-photo-limit={dynamicPhotoLimit}
+  data-exit-href={exitHref}
+  data-initial-view={initialView}
+  data-initial-style={initialStyle}
+  data-initial-dynamic={initialUseDynamic}
+>
+  <section class="photo-view" id="photo-full-shell">
+    <div id="photo-hero" style="display:none">
+      <MDXHeroView photos={photos} frontmatter={frontmatter} />
+    </div>
+    <div id="photo-gallery">
+      <MDXGalleryView photos={photos} frontmatter={frontmatter} />
+    </div>
+    <div id="photo-carousel" style="display:none">
+      <MDXCarousel3 photos={photos} />
+    </div>
+
+    <div id="dynamic-loading" style="display:none" class="dynamic-loading">
+      <p>Loading full image library from API...</p>
+      <div class="spinner"></div>
+    </div>
+
+    <div id="full-hint" class="full-hint">Tap photo for controls</div>
+
+    <aside id="full-hud" class="full-hud" aria-label="Fullscreen photo controls">
+      <div class="full-hud-row view-row" role="group" aria-label="Photo view selector">
+        <label><input type="radio" name="photo-view" value="hero" checked={initialView === "hero"} /> Hero</label>
+        <label><input type="radio" name="photo-view" value="gallery" checked={initialView === "gallery"} /> Gallery</label>
+        <label><input type="radio" name="photo-view" value="carousel" checked={initialView === "carousel"} /> Carousel</label>
+      </div>
+
+      <div class="full-hud-row style-row">
+        <label for="lora-style">Style</label>
+        <select id="lora-style">
+          <option value="random" selected={initialStyle === "random"}>Random</option>
+          <option value="Afremov" selected={initialStyle === "Afremov"}>Afremov</option>
+          <option value="Gorillaz" selected={initialStyle === "Gorillaz"}>Gorillaz</option>
+          <option value="Origami" selected={initialStyle === "Origami"}>Origami</option>
+          <option value="PencilDrawing" selected={initialStyle === "PencilDrawing"}>Pencil</option>
+          <option value="FractalGeometry" selected={initialStyle === "FractalGeometry"}>Fractal</option>
+        </select>
+        <label class="dynamic-toggle">
+          <input type="checkbox" id="use-dynamic" checked={initialUseDynamic === "1"} />
+          Full Album
+        </label>
+        <button type="button" id="exit-full-view">Exit</button>
+      </div>
+    </aside>
+  </section>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const debugEnabled = import.meta.env.PUBLIC_DEBUG_OUTPUT === "true";
+      const debugLog = (...args) => {
+        if (debugEnabled) console.log("[DEBUG][FullView]", ...args);
+      };
+      const debugWarn = (...args) => {
+        if (debugEnabled) console.warn("[DEBUG][FullView][WARN]", ...args);
+      };
+      const debugError = (...args) => {
+        if (debugEnabled) console.error("[DEBUG][FullView][ERROR]", ...args);
+      };
+
+      const shell = document.getElementById("photo-full-shell") as HTMLElement | null;
+      const layoutRoot = document.querySelector(".photo-full-layout") as HTMLElement | null;
+      const radios = Array.from(document.querySelectorAll('input[name="photo-view"]'));
+      const dynamicCheckbox = document.getElementById("use-dynamic") as HTMLInputElement | null;
+      const loraSelect = document.getElementById("lora-style") as HTMLSelectElement | null;
+      const loadingEl = document.getElementById("dynamic-loading") as HTMLElement | null;
+      const hintEl = document.getElementById("full-hint") as HTMLElement | null;
+      const hud = document.getElementById("full-hud") as HTMLElement | null;
+      const exitBtn = document.getElementById("exit-full-view") as HTMLButtonElement | null;
+
+      const album = layoutRoot?.getAttribute("data-album");
+      const dynamicPhotoLimit = Number(
+        layoutRoot?.getAttribute("data-dynamic-photo-limit") || "250",
+      );
+      const exitHref = layoutRoot?.getAttribute("data-exit-href") || "/";
+      const initialView = layoutRoot?.getAttribute("data-initial-view") || "gallery";
+      const initialStyle = layoutRoot?.getAttribute("data-initial-style") || "random";
+      const initialDynamic =
+        (layoutRoot?.getAttribute("data-initial-dynamic") || "0") === "1";
+
+      const sections = {
+        hero: document.getElementById("photo-hero"),
+        gallery: document.getElementById("photo-gallery"),
+        carousel: document.getElementById("photo-carousel"),
+      };
+
+      let dynamicPhotosLoaded = false;
+      let dynamicPhotos: any[] = [];
+      let dynamicPhotosFullSet: any[] = [];
+      let staticPhotos: any[] = [];
+      let isInitialLoad = true;
+      let isHudVisible = true;
+      let hudHideTimer: number | null = null;
+      let pointerStartY = 0;
+      let pointerStartX = 0;
+      let pointerStartTs = 0;
+
+      document.body.classList.add("photo-full-view-active");
+
+      if (loraSelect) {
+        loraSelect.value = initialStyle;
+      }
+      if (dynamicCheckbox) {
+        dynamicCheckbox.checked = initialDynamic;
+      }
+      const initialRadio = document.querySelector(
+        `input[name="photo-view"][value="${initialView}"]`,
+      ) as HTMLInputElement | null;
+      if (initialRadio) {
+        initialRadio.checked = true;
+      }
+
+      function hideHint() {
+        if (!hintEl) return;
+        hintEl.classList.add("is-hidden");
+      }
+
+      function clearHudTimer() {
+        if (hudHideTimer !== null) {
+          window.clearTimeout(hudHideTimer);
+          hudHideTimer = null;
+        }
+      }
+
+      function setHudVisible(visible) {
+        isHudVisible = visible;
+        layoutRoot?.classList.toggle("is-hud-visible", visible);
+        layoutRoot?.classList.toggle("is-hud-hidden", !visible);
+      }
+
+      function scheduleHudAutoHide() {
+        clearHudTimer();
+        hudHideTimer = window.setTimeout(() => {
+          setHudVisible(false);
+        }, 1800);
+      }
+
+      function getCurrentView() {
+        const checked = document.querySelector('input[name="photo-view"]:checked');
+        return checked ? checked.getAttribute("value") : "gallery";
+      }
+
+      function emitFullViewState() {
+        document.dispatchEvent(
+          new CustomEvent("photo:maxview-change", {
+            detail: {
+              enabled: true,
+              view: getCurrentView(),
+            },
+          }),
+        );
+      }
+
+      function exitFullView() {
+        if (window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+        window.location.href = exitHref;
+      }
+
+      exitBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        exitFullView();
+      });
+
+      function parseApiPhotoArray(payload) {
+        if (Array.isArray(payload)) return payload;
+        if (payload && Array.isArray(payload.photos)) return payload.photos;
+        if (payload && Array.isArray(payload.data)) return payload.data;
+        if (payload && Array.isArray(payload.items)) return payload.items;
+        return [];
+      }
+
+      function buildAlbumCandidates(rawAlbum) {
+        const base = `${rawAlbum || ""}`.trim();
+        if (!base) return [];
+
+        const camelToDash = base.replace(/([a-z0-9])([A-Z])/g, "$1-$2");
+        const dashToCamel = base.replace(/-([a-zA-Z0-9])/g, (_, c) => `${c}`.toUpperCase());
+
+        const candidates = [
+          base,
+          base.toLowerCase(),
+          base.replace(/\s+/g, "-"),
+          base.replace(/\s+/g, ""),
+          camelToDash,
+          camelToDash.toLowerCase(),
+          dashToCamel,
+          dashToCamel.toLowerCase(),
+        ];
+
+        return [...new Set(candidates.filter(Boolean))];
+      }
+
+      function filterStaticPhotosByStyle(photos, style) {
+        if (style === "random" || !style) return photos;
+
+        const filtered = photos.filter((photo) => {
+          let loraStyle =
+            photo.loraStyle ||
+            photo.lora_style ||
+            photo.LoraStyle ||
+            photo.style;
+
+          if (!loraStyle && photo.src) {
+            const filename = photo.src.split("/").pop();
+            const match = filename.match(/_([A-Za-z]+)_\d+\./);
+            if (match && match[1]) loraStyle = match[1];
+          }
+
+          return loraStyle === style;
+        });
+
+        return filtered.length > 0 ? filtered : photos;
+      }
+
+      function getStaticPhotos() {
+        for (const [viewName, viewDiv] of Object.entries(sections)) {
+          if (!viewDiv) continue;
+          const scriptTag = viewDiv.querySelector('script[type="application/json"]');
+          if (!scriptTag) continue;
+
+          try {
+            const parsed = JSON.parse(scriptTag.textContent || "[]");
+            if (parsed.length > 0) {
+              debugLog(`Found ${parsed.length} static photos in ${viewName}`);
+              return parsed;
+            }
+          } catch (error) {
+            debugWarn(`Failed to parse static photos from ${viewName}`, error);
+          }
+        }
+
+        return [];
+      }
+
+      async function loadDynamicPhotos(loraStyle = "random") {
+        if (dynamicPhotosLoaded && dynamicPhotosFullSet.length > 0) {
+          dynamicPhotos = filterStaticPhotosByStyle(dynamicPhotosFullSet, loraStyle);
+          return dynamicPhotos;
+        }
+
+        if (!album) return [];
+
+        try {
+          if (loadingEl) loadingEl.style.display = "flex";
+
+          const baseUrl =
+            (window as typeof window & { PUBLIC_SKICYCLERUN_API?: string })
+              .PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/v2/";
+          const candidates = buildAlbumCandidates(album);
+          let photoArray: any[] = [];
+
+          for (const candidate of candidates) {
+            const photoURL = `${baseUrl}getphotos?album=${encodeURIComponent(candidate)}`;
+            const res = await fetch(photoURL);
+            const data = await res.json();
+            const parsed = parseApiPhotoArray(data);
+            if (parsed.length > 0) {
+              photoArray = parsed;
+              break;
+            }
+          }
+
+          if (photoArray.length === 0) {
+            for (const candidate of candidates) {
+              const fallbackURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${encodeURIComponent(candidate)}/&numPhotos=${dynamicPhotoLimit}`;
+              const res = await fetch(fallbackURL);
+              const data = await res.json();
+              const parsed = parseApiPhotoArray(data);
+              if (parsed.length > 0) {
+                photoArray = parsed;
+                break;
+              }
+            }
+          }
+
+          if (photoArray.length > 0) {
+            const normalized = photoArray
+              .map((p: any, i: number) => {
+                const src =
+                  typeof p === "string"
+                    ? p
+                    : p?.src || p?.url || p?.image || p?.imageUrl;
+
+                if (!src) return null;
+
+                return {
+                  src,
+                  altText: p?.altText || `Photo ${i + 1}`,
+                  alt: p?.alt,
+                  loraStyle: p?.loraStyle || p?.lora_style || p?.style,
+                  sourceType: "remote",
+                };
+              })
+              .filter(Boolean);
+
+            dynamicPhotosFullSet =
+              dynamicPhotoLimit > 0
+                ? normalized.slice(0, dynamicPhotoLimit)
+                : normalized;
+
+            dynamicPhotos = filterStaticPhotosByStyle(dynamicPhotosFullSet, loraStyle);
+            dynamicPhotosLoaded = true;
+          }
+
+          if (loadingEl) loadingEl.style.display = "none";
+          return dynamicPhotos;
+        } catch (error) {
+          debugError("Failed to load dynamic photos", error);
+          if (loadingEl) {
+            loadingEl.innerHTML = '<p class="error">Failed to load photos from API</p>';
+            setTimeout(() => {
+              if (loadingEl) loadingEl.style.display = "none";
+            }, 3000);
+          }
+          return [];
+        }
+      }
+
+      function updateViewContent(photos) {
+        const heroContainer = sections.hero;
+        if (heroContainer && photos.length > 0) {
+          const heroJsonScript = heroContainer.querySelector('script[type="application/json"]#hero-photos');
+          if (heroJsonScript) {
+            heroJsonScript.textContent = JSON.stringify(photos).replace(/</g, "\\u003c");
+          }
+
+          const heroImg = heroContainer.querySelector("img");
+          if (heroImg && photos[0]) {
+            heroImg.src = photos[0].src;
+            heroImg.alt = photos[0].altText || "Photo";
+            heroImg.dataset.currentIndex = "0";
+          }
+        }
+
+        const galleryContainer = sections.gallery;
+        if (galleryContainer && photos.length > 0) {
+          const galleryDiv = galleryContainer.querySelector(".mdx-gallery");
+          if (galleryDiv) {
+            galleryDiv.dispatchEvent(
+              new CustomEvent("gallery-update", {
+                detail: { photos },
+                bubbles: false,
+              }),
+            );
+          }
+        }
+
+        const carouselContainer = sections.carousel;
+        if (carouselContainer) {
+          const carouselRoot = carouselContainer.querySelector(
+            ".carousel-container",
+          ) as HTMLElement | null;
+          const carouselJsonScript = carouselContainer.querySelector('script[type="application/json"]');
+          if (carouselJsonScript) {
+            carouselJsonScript.textContent = JSON.stringify(photos).replace(/</g, "\\u003c");
+          }
+
+          const track = carouselContainer.querySelector(".carousel-track");
+          if (track) {
+            const existingSlides = Array.from(track.querySelectorAll(".carousel-slide"));
+            const templateSlide = existingSlides[0] || null;
+
+            if (templateSlide) {
+              track.replaceChildren();
+              photos.forEach((photo, i) => {
+                const slide = templateSlide.cloneNode(true);
+                if (!(slide instanceof HTMLElement)) return;
+
+                slide.setAttribute("data-src", photo.src);
+                const img = slide.querySelector("img");
+                if (img) {
+                  img.src = photo.src;
+                  img.alt = photo.altText || `Photo ${i + 1}`;
+                }
+
+                track.appendChild(slide);
+              });
+            }
+
+            if (carouselRoot) {
+              delete carouselRoot.dataset.carouselInitialized;
+              const intervalId = carouselRoot.dataset.carouselInterval;
+              if (intervalId) {
+                clearInterval(Number(intervalId));
+                delete carouselRoot.dataset.carouselInterval;
+              }
+
+              track.scrollLeft = 0;
+
+              const event = new CustomEvent("reinit-carousel", {
+                detail: { containerId: carouselRoot.id },
+              });
+              document.dispatchEvent(event);
+            }
+          }
+        }
+      }
+
+      async function update() {
+        const checked = document.querySelector(
+          'input[name="photo-view"]:checked',
+        );
+        const value = checked ? checked.getAttribute("value") : "gallery";
+        const useDynamic = dynamicCheckbox?.checked || false;
+        const loraStyle = loraSelect?.value || "random";
+
+        Object.keys(sections).forEach((k) => {
+          const el = sections[k];
+          if (!el) return;
+          el.style.display = k === value ? "" : "none";
+        });
+
+        emitFullViewState();
+
+        if (isInitialLoad && !useDynamic && loraStyle === "random") {
+          isInitialLoad = false;
+          return;
+        }
+        isInitialLoad = false;
+
+        if (useDynamic) {
+          const photos = await loadDynamicPhotos(loraStyle);
+          if (photos.length > 0) updateViewContent(photos);
+        } else {
+          if (staticPhotos.length === 0) staticPhotos = getStaticPhotos();
+          const filtered = filterStaticPhotosByStyle(staticPhotos, loraStyle);
+          if (filtered.length > 0) updateViewContent(filtered);
+        }
+      }
+
+      shell?.addEventListener("pointerdown", (event) => {
+        pointerStartY = event.clientY;
+        pointerStartX = event.clientX;
+        pointerStartTs = Date.now();
+
+        const target = event.target as HTMLElement | null;
+        const interactive = target?.closest("button, input, select, label");
+        if (interactive) {
+          scheduleHudAutoHide();
+          return;
+        }
+
+        hideHint();
+        setHudVisible(!isHudVisible);
+        if (!isHudVisible) scheduleHudAutoHide();
+      });
+
+      shell?.addEventListener("pointerup", (event) => {
+        const dy = event.clientY - pointerStartY;
+        const dx = event.clientX - pointerStartX;
+        const dt = Date.now() - pointerStartTs;
+        const swipeDownToExit = dy > 100 && Math.abs(dx) < 100 && dt < 900;
+
+        if (swipeDownToExit) {
+          exitFullView();
+          return;
+        }
+
+        if (isHudVisible) scheduleHudAutoHide();
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          exitFullView();
+        }
+        if (event.key.toLowerCase() === "h") {
+          hideHint();
+          setHudVisible(!isHudVisible);
+          if (!isHudVisible) scheduleHudAutoHide();
+        }
+      });
+
+      radios.forEach((r) => r.addEventListener("change", update));
+      dynamicCheckbox?.addEventListener("change", update);
+      loraSelect?.addEventListener("change", update);
+
+      setHudVisible(true);
+      scheduleHudAutoHide();
+      setTimeout(hideHint, 2200);
+      update();
+
+      document.addEventListener("astro:before-swap", () => {
+        document.body.classList.remove("photo-full-view-active");
+      });
+    });
+  </script>
+</article>
+
+<style>
+  :global(html),
+  :global(body) {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+  }
+
+  :global(body.photo-full-view-active) {
+    overflow: hidden;
+    background: #000;
+  }
+
+  .photo-full-layout {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    background: #000;
+    z-index: 1;
+  }
+
+  .photo-view {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    line-height: 0;
+    touch-action: manipulation;
+  }
+
+  .photo-view > div {
+    width: 100vw;
+    height: 100dvh;
+    max-width: 100vw;
+    max-height: 100dvh;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    overflow: hidden;
+    background: #000;
+    box-shadow: none;
+  }
+
+  .full-hud {
+    position: fixed;
+    top: max(0.45rem, env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(96vw, 780px);
+    padding: 0.45rem;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.62);
+    backdrop-filter: blur(12px) saturate(135%);
+    -webkit-backdrop-filter: blur(12px) saturate(135%);
+    z-index: 60;
+    transition: opacity 0.18s ease, transform 0.2s ease;
+  }
+
+  .full-hud-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .style-row {
+    margin-top: 0.38rem;
+  }
+
+  .full-hud label,
+  .full-hud button,
+  .full-hud select {
+    color: #fff;
+    font-size: 0.83rem;
+  }
+
+  .full-hud label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.24rem;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    padding: 0.24rem 0.55rem;
+  }
+
+  .full-hud input[type="radio"],
+  .full-hud input[type="checkbox"] {
+    margin: 0;
+  }
+
+  .full-hud select {
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    border-radius: 0.5rem;
+    background: rgba(0, 0, 0, 0.52);
+    padding: 0.28rem 0.46rem;
+  }
+
+  .full-hud button {
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 0.28rem 0.68rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .full-hint {
+    position: fixed;
+    left: 50%;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.92);
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    padding: 0.26rem 0.62rem;
+    z-index: 55;
+    transition: opacity 0.18s ease;
+  }
+
+  .full-hint.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .photo-full-layout.is-hud-hidden .full-hud {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-122%);
+    pointer-events: none;
+  }
+
+  .photo-full-layout.is-hud-hidden :global(.carousel-container .controls),
+  .photo-full-layout.is-hud-hidden :global(.carousel-counter),
+  .photo-full-layout.is-hud-hidden :global(.hero-counter-pill),
+  .photo-full-layout.is-hud-hidden :global(.hero-caption) {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .photo-full-layout :global(.mdx-gallery) {
+    padding: 0.18rem;
+  }
+
+  .photo-full-layout :global(.gallery-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-rows: minmax(0, 1fr);
+    gap: 0.18rem;
+    height: 100%;
+  }
+
+  .photo-full-layout :global(.gallery-item) {
+    border-radius: 0.28rem;
+  }
+
+  .photo-full-layout :global(.carousel-slide img.clickable-image) {
+    padding: 0;
+  }
+
+  .dynamic-loading {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.72);
+    z-index: 58;
+  }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.18);
+    border-left-color: #fff;
+    animation: spin 1s linear infinite;
+  }
+
+  .error {
+    color: #fff;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .full-hud {
+      width: calc(100vw - 0.6rem);
+      top: max(0.25rem, env(safe-area-inset-top));
+      padding: 0.34rem;
+    }
+
+    .full-hud-row {
+      gap: 0.32rem;
+    }
+
+    .full-hud label,
+    .full-hud button,
+    .full-hud select {
+      font-size: 0.76rem;
+    }
+
+    .full-hint {
+      font-size: 0.72rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .full-hud,
+    .full-hint {
+      transition: none;
+    }
+  }
+</style>

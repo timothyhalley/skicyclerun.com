@@ -310,6 +310,7 @@ This project is licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/lic
 - **Live Site**: [skicyclerun.com](https://skicyclerun.com)
 - **Documentation**: [Astro Docs](https://docs.astro.build)
 - **Community**: [Astro Discord](https://astro.build/chat)
+- **SVG Repo**: [SVG Repo] (https://www.svgrepo.com)
 
 ## 🔍 SEO & Performance
 

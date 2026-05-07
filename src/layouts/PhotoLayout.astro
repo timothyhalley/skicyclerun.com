@@ -5,8 +5,10 @@ import { SkiCycleRunConfig } from "../skicyclerun.config";
 import MDXCarousel3 from "./MDXCarousel3.astro";
 import MDXHeroView from "./MDXHeroView.astro";
 import MDXGalleryView from "./MDXGalleryView.astro";
+import FullViewTopBar from "@components/FullViewTopBar.astro";
 import { DebugConsole } from "../utils/DebugConsole";
 import { getPhotoByName } from "../utils/getPhotoCover";
+import expandIcon from "../assets/svg_imgs/expand.svg";
 
 const { frontmatter } = Astro.props;
 const album = frontmatter?.album;
@@ -25,7 +27,12 @@ if (!photos || photos.length === 0) {
   class="photo-layout"
   data-album={album}
   data-dynamic-photo-limit={dynamicPhotoLimit}
+  data-title={frontmatter?.title || ""}
+  data-description={frontmatter?.description || ""}
+  data-travel-map={frontmatter?.travelmap || ""}
 >
+  <FullViewTopBar brandLabel="skicyclerun" homeHref="/" />
+
   <header class="photo-layout-header mb-2">
     {
       frontmatter.title && (
@@ -49,30 +56,48 @@ if (!photos || photos.length === 0) {
       <div class="click-hint-pill">👇 Tap photo</div>
     </div>
 
+    <!-- Full-screen hint - appears after tap hint fades, above and right of expand button -->
+    <div
+      id="fullscreen-hint"
+      class="absolute right-6 transition-opacity duration-500 animate-bounce"
+      style="z-index: 30; pointer-events: none; opacity: 0; bottom: calc(100% + 0.35rem);"
+    >
+      <div class="click-hint-pill">Full screen 👇</div>
+    </div>
+
     <nav
-      class="photo-view-nav flex justify-end"
+      class="photo-view-nav flex justify-end pr-6"
       aria-label="Photo view selector"
     >
       <div class="photo-view-nav-group flex gap-4">
         <label class="cursor-pointer">
-          <input type="radio" name="photo-view" value="hero" /> Hero
+          <input type="radio" name="photo-view" value="hero" checked /> Single
         </label>
         <label class="cursor-pointer">
-          <input type="radio" name="photo-view" value="gallery" checked /> Gallery
+          <input type="radio" name="photo-view" value="gallery" /> Gallery
         </label>
         <label class="cursor-pointer">
           <input type="radio" name="photo-view" value="carousel" /> Carousel
         </label>
+        <button
+          type="button"
+          id="open-full-view"
+          class="open-full-view"
+          aria-label="Open full view"
+          title="Open full view"
+        >
+          <img src={expandIcon.src} alt="" class="icon-btn" />
+        </button>
       </div>
     </nav>
   </div>
 
   <div class="photo-stage relative mt-1">
     <section class="photo-view relative">
-      <div id="photo-hero" style="display:none">
+      <div id="photo-hero">
         <MDXHeroView photos={photos} frontmatter={frontmatter} />
       </div>
-      <div id="photo-gallery">
+      <div id="photo-gallery" style="display:none">
         <MDXGalleryView photos={photos} frontmatter={frontmatter} />
       </div>
       <div id="photo-carousel" style="display:none">
@@ -84,12 +109,13 @@ if (!photos || photos.length === 0) {
   <div
     class="photo-style-controls mt-4 flex flex-wrap items-center justify-center gap-3 text-sm"
   >
-    <label for="lora-style" class="font-medium">Art Style:</label>
+    <label for="lora-style" class="font-medium">Style:</label>
     <select
       id="lora-style"
       class="px-3 py-1.5 rounded border border-skin-line bg-skin-fill text-skin-base cursor-pointer"
     >
       <option value="random" selected>Random Mix</option>
+      <option value="purus">Pūrus</option>
       <option value="Afremov">Afremov</option>
       <option value="Gorillaz">Gorillaz</option>
       <option value="Origami">Origami</option>
@@ -162,6 +188,10 @@ if (!photos || photos.length === 0) {
       );
       const loadingEl = document.getElementById("dynamic-loading");
       const clickHint = document.getElementById("click-hint");
+      const fullscreenHint = document.getElementById("fullscreen-hint");
+      const openFullViewBtn = document.getElementById("open-full-view");
+      const exitFullPageBtn = document.getElementById("exit-full-page");
+      const layoutRoot = document.querySelector(".photo-layout");
 
       const sections = {
         hero: document.getElementById("photo-hero"),
@@ -169,9 +199,39 @@ if (!photos || photos.length === 0) {
         carousel: document.getElementById("photo-carousel"),
       };
 
-      // Always start with fast initial mode; full library is explicit opt-in.
+      const currentUrl = new URL(window.location.href);
+      const isFullPageMode = currentUrl.searchParams.get("full") === "1";
+      const initialView = currentUrl.searchParams.get("view");
+      const initialStyle = currentUrl.searchParams.get("style");
+      const initialDynamic = currentUrl.searchParams.get("dynamic") === "1";
+
+      function exitFullPageMode() {
+        const next = new URL(window.location.href);
+        next.searchParams.delete("full");
+        next.searchParams.delete("view");
+        next.searchParams.delete("style");
+        next.searchParams.delete("dynamic");
+        window.location.assign(next.toString());
+      }
+
+      if (initialView && ["hero", "gallery", "carousel"].includes(initialView)) {
+        const radio = document.querySelector(
+          `input[name="photo-view"][value="${initialView}"]`,
+        ) as HTMLInputElement | null;
+        if (radio) radio.checked = true;
+      }
+      if (loraSelect && initialStyle) {
+        loraSelect.value = initialStyle;
+      }
+
+      // Always start with fast initial mode unless query explicitly restores dynamic mode.
       if (dynamicCheckbox) {
-        dynamicCheckbox.checked = false;
+        dynamicCheckbox.checked = isFullPageMode ? initialDynamic : false;
+      }
+
+      if (isFullPageMode) {
+        layoutRoot?.classList.add("is-full-page-mode");
+        document.body.classList.add("photo-full-page-active");
       }
 
       // Show the selector hint only once on initial load, then hide after 2 seconds.
@@ -180,6 +240,16 @@ if (!photos || photos.length === 0) {
           clickHint.style.opacity = "0";
           setTimeout(() => {
             clickHint.style.display = "none";
+            // Show fullscreen hint right after tap hint fully fades
+            if (fullscreenHint) {
+              fullscreenHint.style.opacity = "1";
+              setTimeout(() => {
+                fullscreenHint.style.opacity = "0";
+                setTimeout(() => {
+                  fullscreenHint.style.display = "none";
+                }, 500);
+              }, 2000);
+            }
           }, 500);
         }, 2000);
       }
@@ -188,6 +258,37 @@ if (!photos || photos.length === 0) {
       let dynamicPhotos: any[] = [];
       let dynamicPhotosFullSet: any[] = [];
       let staticPhotos: any[] = []; // Store original static photos
+
+      function openDedicatedFullView() {
+        if (isFullPageMode) {
+          exitFullPageMode();
+          return;
+        }
+
+        const checked = document.querySelector(
+          'input[name="photo-view"]:checked',
+        ) as HTMLInputElement | null;
+        const view = checked?.value || "gallery";
+        const style = loraSelect?.value || "random";
+        const dynamic = dynamicCheckbox?.checked ? "1" : "0";
+
+        const params = new URLSearchParams();
+        params.set("full", "1");
+        params.set("view", view);
+        params.set("style", style);
+        params.set("dynamic", dynamic);
+
+        const fullViewUrl = new URL(window.location.href);
+        fullViewUrl.search = params.toString();
+        window.location.assign(fullViewUrl.toString());
+      }
+
+      openFullViewBtn?.addEventListener("click", openDedicatedFullView);
+      exitFullPageBtn?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        exitFullPageMode();
+      });
 
       // Get initial static photos from the page (try all views)
       function getStaticPhotos() {
@@ -228,6 +329,24 @@ if (!photos || photos.length === 0) {
         if (style === "random" || !style) {
           debugLog("[PhotoLayout] No filtering - showing all photos (random)");
           return photos;
+        }
+
+        // pūrus = photos tagged NoLoRA in the filename
+        if (style === "purus") {
+          const filtered = photos.filter((photo) => {
+            let loraStyle = photo.loraStyle || photo.lora_style || photo.LoraStyle || photo.style;
+            if (!loraStyle && photo.src) {
+              const filename = photo.src.split("/").pop();
+              const match = filename.match(/_([A-Za-z]+)_\d+\./);
+              if (match && match[1]) loraStyle = match[1];
+            }
+            return loraStyle === "NoLoRA";
+          });
+          if (filtered.length === 0) {
+            debugWarn(`[PhotoLayout] No pūrus (NoLoRA) photos found, returning all`);
+            return photos;
+          }
+          return filtered;
         }
 
         const filtered = photos.filter((photo) => {
@@ -594,7 +713,7 @@ if (!photos || photos.length === 0) {
         const checked = document.querySelector(
           'input[name="photo-view"]:checked',
         );
-        const value = checked ? checked.getAttribute("value") : "gallery";
+        const value = checked ? checked.getAttribute("value") : "hero";
         const useDynamic = dynamicCheckbox?.checked || false;
         const loraStyle = loraSelect?.value || "random";
 
@@ -606,7 +725,7 @@ if (!photos || photos.length === 0) {
         });
 
         if (isInitialLoad && !useDynamic && loraStyle === "random") {
-          // SSR already embedded the correct 16 photos in every view — nothing to do.
+          // SSR already embedded the correct 32 photos in every view — nothing to do.
           isInitialLoad = false;
           return;
         }
@@ -622,6 +741,7 @@ if (!photos || photos.length === 0) {
           // Static photos filtered by art style
           if (staticPhotos.length === 0) {
             staticPhotos = getStaticPhotos();
+            updateStyleAvailability(staticPhotos);
           }
           const filteredPhotos = filterStaticPhotosByStyle(
             staticPhotos,
@@ -631,6 +751,39 @@ if (!photos || photos.length === 0) {
             updateViewContent(filteredPhotos);
           }
         }
+      }
+
+      function updateStyleAvailability(photos) {
+        if (!loraSelect) return;
+        const styleValues = ["Afremov", "Gorillaz", "Origami", "PencilDrawing", "FractalGeometry", "purus"];
+        styleValues.forEach((style) => {
+          const opt = loraSelect.querySelector(`option[value="${style}"]`) as HTMLOptionElement | null;
+          if (!opt) return;
+          let filtered;
+          if (style === "purus") {
+            filtered = photos.filter((photo) => {
+              let s = photo.loraStyle || photo.lora_style || photo.LoraStyle || photo.style;
+              if (!s && photo.src) {
+                const m = photo.src.split("/").pop().match(/_([A-Za-z]+)_\d+\./);
+                if (m && m[1]) s = m[1];
+              }
+              return s === "NoLoRA";
+            });
+          } else {
+            filtered = photos.filter((photo) => {
+              let s = photo.loraStyle || photo.lora_style || photo.LoraStyle || photo.style;
+              if (!s && photo.src) {
+                const m = photo.src.split("/").pop().match(/_([A-Za-z]+)_\d+\./);
+                if (m && m[1]) s = m[1];
+              }
+              return s === style;
+            });
+          }
+          const unavailable = filtered.length === 0;
+          opt.disabled = unavailable;
+          opt.style.color = unavailable ? "rgba(128,128,128,0.5)" : "";
+          opt.style.fontStyle = unavailable ? "italic" : "";
+        });
       }
 
       radios.forEach((r) => r.addEventListener("change", update));
@@ -645,6 +798,11 @@ if (!photos || photos.length === 0) {
 </article>
 
 <style>
+  :global(body.photo-full-page-active) {
+    overflow: hidden;
+    background: #000;
+  }
+
   .photo-layout {
     --photo-frame-max-width: 1024px;
     --photo-frame-radius: clamp(0.9rem, 2.6vw, 1.8rem);
@@ -738,6 +896,149 @@ if (!photos || photos.length === 0) {
   .photo-view-nav-group input[type="radio"] {
     margin: 0;
     accent-color: rgb(var(--color-accent));
+  }
+
+  .open-full-view {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border-radius: 999px;
+    border: 1px solid rgba(var(--color-border), 0.56);
+    background: rgba(var(--color-card), 0.82);
+    color: rgb(var(--color-text-base));
+    line-height: 1;
+    transition:
+      transform 0.16s ease,
+      box-shadow 0.2s ease,
+      background 0.2s ease;
+  }
+
+  .open-full-view:hover {
+    background: rgba(var(--color-card), 0.95);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .open-full-view:active {
+    transform: scale(0.95);
+  }
+
+  /* Theme-aware icon styling */
+  .open-full-view .icon-btn {
+    display: block;
+    width: 0.75rem;
+    height: 0.75rem;
+    filter: invert(var(--icon-invert, 0));
+    opacity: 0.9;
+  }
+
+  @media (prefers-color-scheme: light) {
+    .open-full-view .icon-btn {
+      --icon-invert: 0;
+    }
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .open-full-view .icon-btn {
+      --icon-invert: 1;
+    }
+  }
+
+  .photo-layout.is-full-page-mode {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-width: 100vw;
+    padding: 0;
+    margin: 0;
+    z-index: 120;
+    background: #000;
+  }
+
+  .photo-layout.is-full-page-mode .photo-layout-header,
+  .photo-layout.is-full-page-mode .photo-style-controls,
+  .photo-layout.is-full-page-mode #dynamic-loading,
+  .photo-layout.is-full-page-mode > slot,
+  .photo-layout.is-full-page-mode .travel-map-wrap {
+    display: none !important;
+  }
+
+  .photo-layout.is-full-page-mode #click-hint,
+  .photo-layout.is-full-page-mode #fullscreen-hint,
+  .photo-layout.is-full-page-mode .photo-view-nav-group label {
+    display: none !important;
+  }
+
+  .photo-layout.is-full-page-mode .photo-controls-wrap {
+    display: none;
+  }
+
+  .photo-layout.is-full-page-mode .photo-view-nav,
+  .photo-layout.is-full-page-mode .photo-view-nav-group {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .photo-layout.is-full-page-mode .open-full-view {
+    display: none;
+  }
+
+  .photo-layout.is-full-page-mode :global(.full-view-topbar) {
+    display: flex;
+  }
+
+  .photo-layout.is-full-page-mode .photo-stage {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-width: 100vw;
+    margin: 0;
+    z-index: 125;
+    animation: none;
+  }
+
+  .photo-layout.is-full-page-mode .photo-view,
+  .photo-layout.is-full-page-mode .photo-view > div {
+    width: 100vw;
+    height: 100dvh;
+    max-width: 100vw;
+    max-height: 100dvh;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .photo-layout.is-full-page-mode :global(.mdx-gallery) {
+    padding: 0.16rem;
+  }
+
+  .photo-layout.is-full-page-mode :global(.gallery-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-auto-rows: minmax(0, 1fr);
+  }
+
+  .photo-layout.is-full-page-mode :global(.gallery-item) {
+    border-radius: 0.3rem;
+  }
+
+  .photo-layout.is-full-page-mode :global(.carousel-slide img.clickable-image) {
+    padding: 0;
+  }
+
+  :global(body.photo-full-page-active header),
+  :global(body.photo-full-page-active footer),
+  :global(body.photo-full-page-active #primary-links),
+  :global(body.photo-full-page-active .header-wrapper) {
+    display: none !important;
   }
 
   .photo-stage {

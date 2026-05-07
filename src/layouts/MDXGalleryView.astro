@@ -266,6 +266,15 @@ const visibleCount = Math.max(1, Number(matrix) * Number(matrix));
       aspect-ratio: 1 / 1;
     }
 
+    :global(.photo-layout.is-max-view) .gallery-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      grid-auto-rows: minmax(0, 1fr);
+    }
+
+    :global(.photo-layout.is-max-view) .mdx-gallery {
+      padding: 0.14rem;
+    }
+
     @media (max-width: 768px) {
       .mdx-gallery {
         padding: 0.25rem;

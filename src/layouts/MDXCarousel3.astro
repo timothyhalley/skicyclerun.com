@@ -304,6 +304,15 @@ const {
       transition: transform 0.3s ease;
     }
 
+    :global(.photo-layout.is-max-view) .carousel-container {
+      min-height: 100%;
+      border-radius: 0;
+    }
+
+    :global(.photo-layout.is-max-view) .carousel-slide img.clickable-image {
+      padding: 0 0 2rem;
+    }
+
     @keyframes carousel-enter {
       from {
         opacity: 0;
