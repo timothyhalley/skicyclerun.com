@@ -6,6 +6,7 @@ import Breadcrumbs from "@layouts/Breadcrumbs.astro";
 import TravelGlobeComponent from "@components/TravelGlobe.tsx";
 import travelFilter from "@utils/travelFilter";
 import { getPhotoCover } from "@utils/getPhotoCover";
+import { SkiCycleRunConfig } from "skicyclerun.config";
 
 // 1. Fetch all blog posts
 const posts = await getCollection("blog");
@@ -31,15 +32,35 @@ const travelPoints = posts
       cover: coverImagePath, // This is now guaranteed to be a string
       type: post.data.type,
     };
-  });
+  })
+  .sort(
+    (a, b) =>
+      new Date(b.pubDatetime).getTime() - new Date(a.pubDatetime).getTime(),
+  );
 ---
 
 <BaseLayout title="Travel Globe">
   <Header activeNav="travel" />
-  <Breadcrumbs
-    pageTitle="Travel Globe"
-    pageDesc="Global view of places traveled and to be traveled! Click on the pins: 📍"
-  >
-    <TravelGlobeComponent client:only="react" pointsData={travelPoints} />
+  <Breadcrumbs>
+    <div class="hidden min-[1001px]:block">
+      <h1 class="text-2xl sm:text-3xl font-semibold mb-2">Travel Globe</h1>
+      <p class="mt-2 mb-6 italic text-skin-base">
+        Global view of places traveled and to be traveled! Click on the pins:
+        📍
+      </p>
+    </div>
+
+    <div class="block min-[1001px]:hidden">
+      <h1 class="text-2xl sm:text-3xl font-semibold mb-2">Travel</h1>
+      <p class="mt-2 mb-6 italic text-skin-base">
+        Adventures past. Bucket list next.
+      </p>
+    </div>
+
+    <TravelGlobeComponent
+      client:only="react"
+      pointsData={travelPoints}
+      postsPerPage={SkiCycleRunConfig.postsPerPage}
+    />
   </Breadcrumbs>
 </BaseLayout>

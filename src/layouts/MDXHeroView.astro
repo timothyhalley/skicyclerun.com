@@ -1,11 +1,19 @@
 ---
-const { photos = [], frontmatter = {} } = Astro.props;
-const first = photos && photos.length ? photos[0] : null;
+import { normalizePhotoIndex } from "../utils/photoViewState";
+
+const { photos = [], frontmatter = {}, initialIndex = 0 } = Astro.props;
+const activeIndex = normalizePhotoIndex(initialIndex, photos.length, 0);
+const first = photos && photos.length ? photos[activeIndex] || photos[0] : null;
 ---
 
 <div class="mdx-hero">
   {first ? (
-  <figure class="hero-figure" data-photos-json style={`--hero-bg: url('${first.src}')`}>
+  <figure
+    class="hero-figure"
+    data-photos-json
+    data-active-photo-index={activeIndex}
+    style={`--hero-bg: url('${first.src}')`}
+  >
       <!-- Embed the photo list using Astro-recommended JSON block, scoped near usage -->
       <script
         type="application/json"
@@ -18,7 +26,7 @@ const first = photos && photos.length ? photos[0] : null;
         alt={first.alt ?? first.altText ?? frontmatter.title ?? "Hero image"}
         loading="lazy"
         decoding="async"
-        data-current-index={0}
+        data-current-index={activeIndex}
         class="hero-image"
         draggable="false"
         style="cursor: pointer;"
@@ -33,111 +41,143 @@ const first = photos && photos.length ? photos[0] : null;
         </figcaption>
       )}
 
-        <script is:inline>
-(() => {
-          const debug = window.debugLog
-            ? (...args) => window.debugLog("ui", ...args)
-            : () => {};
+        <script>
+          import {
+            PHOTO_ACTIVE_INDEX_CHANGE_EVENT,
+            normalizePhotoIndex,
+          } from "../utils/photoViewState";
 
-  function init() {
-            debug("[Hero] init() called");
-    const container = document.querySelector("figure[data-photos-json]");
-    if (!container) {
-              debug("[Hero] No container found");
-      return;
-    }
-            debug("[Hero] Container found");
-    if (container.dataset.heroInitialized === "1") {
-              debug("[Hero] Already initialized");
-      return;
-    }
+          (() => {
+            const debugLogger = window as typeof window & {
+              debugLog?: (...args: any[]) => void;
+            };
+            const debug = typeof debugLogger.debugLog === "function"
+              ? (...args: any[]) => debugLogger.debugLog?.("ui", ...args)
+              : () => {};
 
-    const img = container.querySelector("img");
-    if (!img) {
-              debug("[Hero] No img found");
-      return;
-    }
-            debug("[Hero] Img found");
+            function init() {
+              debug("[Hero] init() called");
+              const container = document.querySelector<HTMLElement>("figure[data-photos-json]");
+              if (!container) {
+                debug("[Hero] No container found");
+                return;
+              }
 
-    let photos = [];
-    let dataEl;
-    try {
-      dataEl = container.querySelector('script[type="application/json"]#hero-photos') || document.getElementById('hero-photos');
-      if (dataEl) {
-        const raw = (dataEl.textContent || '').trim();
-        debug("[Hero] Raw JSON text:", raw);
-        photos = JSON.parse(raw);
-        debug("[Hero] Photos parsed:", photos.length, "items");
-      } else {
-        debug("[Hero] No data element found");
-      }
-    } catch (e) {
-      debug("[Hero] JSON parse error:", e);
-      debug("[Hero] Error details - raw text was:", dataEl ? (dataEl.textContent || '').trim() : 'no element');
-    }
+              if (container.dataset.heroInitialized === "1") {
+                debug("[Hero] Already initialized");
+                return;
+              }
 
-    if (!Array.isArray(photos) || photos.length === 0) {
-      debug("[Hero] No valid photos array");
-      return;
-    }
+              const img = container.querySelector<HTMLImageElement>("img");
+              if (!img) {
+                debug("[Hero] No img found");
+                return;
+              }
 
-    // Ensure index is tracked on the <img>
-    if (!img.dataset.currentIndex) img.dataset.currentIndex = "0";
-    debug("[Hero] Initial index set to:", img.dataset.currentIndex);
+              const heroContainer = container;
+              const heroImg = img;
 
-    const counterEl = container.querySelector('#hero-counter');
-    function updateHeroCounter(idx) {
-      if (counterEl && photos.length > 1) {
-        counterEl.textContent = `${idx + 1} / ${photos.length}`;
-      }
-    }
+              const counterEl = container.querySelector<HTMLElement>("#hero-counter");
+              const dataEl =
+                container.querySelector('script[type="application/json"]#hero-photos') ||
+                document.getElementById("hero-photos");
 
-      function updateHeroBackground(src) {
-        if (src) {
-          container.style.setProperty("--hero-bg", `url("${src}")`);
-        }
-      }
+              let photos: any[] = [];
+              try {
+                if (dataEl) {
+                  photos = JSON.parse((dataEl.textContent || "").trim());
+                }
+              } catch (error) {
+                debug("[Hero] JSON parse error:", error);
+              }
 
-      updateHeroBackground(img.getAttribute("src") || "");
+              if (!Array.isArray(photos) || photos.length === 0) {
+                debug("[Hero] No valid photos array");
+                return;
+              }
 
-    img.addEventListener("click", () => {
-      let idx = Number(img.dataset.currentIndex) || 0;
-      idx = (idx + 1) % photos.length;
-      img.dataset.currentIndex = String(idx);
-      const p = photos[idx];
-      if (p) {
-        // Bounce-scale feedback then swap src
-        img.style.transform = 'scale(0.93)';
-        img.style.opacity = '0.7';
-        setTimeout(() => {
-          img.src = p.src;
-          img.alt = p.alt || p.altText || "Hero image";
-          updateHeroBackground(p.src);
-          img.style.transform = '';
-          img.style.opacity = '';
-          updateHeroCounter(idx);
-        }, 120);
-      }
-    });
+              let currentIndex = normalizePhotoIndex(
+                container.getAttribute("data-active-photo-index") ||
+                  img.dataset.currentIndex ||
+                  0,
+                photos.length,
+                0,
+              );
 
-    container.dataset.heroInitialized = "1";
-    debug("[Hero] Initialization complete");
-  }
+              function updateHeroCounter(idx) {
+                if (counterEl && photos.length > 1) {
+                  counterEl.textContent = `${idx + 1} / ${photos.length}`;
+                }
+              }
 
-  debug("[Hero] Script loaded, readyState:", document.readyState);
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-    debug("[Hero] Added DOMContentLoaded listener");
-  } else {
-    init();
-  }
+              function updateHeroBackground(src) {
+                if (src) {
+                  heroContainer.style.setProperty("--hero-bg", `url("${src}")`);
+                }
+              }
 
-  document.addEventListener("astro:after-swap", () => {
-    debug("[Hero] astro:after-swap detected");
-    init();
-  });
-})();
-</script>
+              function applyPhoto(index, emitChange = true) {
+                currentIndex = normalizePhotoIndex(index, photos.length, 0);
+                const photo = photos[currentIndex];
+                if (!photo) return;
+
+                const src = photo.src;
+                console.debug("[PHOTO-TRACE][Hero] applyPhoto", {
+                  requestedIndex: index,
+                  currentIndex,
+                  src,
+                });
+                heroContainer.setAttribute("data-active-photo-src", src);
+                heroImg.dataset.currentIndex = String(currentIndex);
+                heroImg.src = src;
+                heroImg.alt = photo.alt || photo.altText || "Hero image";
+                updateHeroBackground(src);
+                updateHeroCounter(currentIndex);
+                heroContainer.setAttribute("data-active-photo-index", String(currentIndex));
+
+                if (emitChange) {
+                  document.dispatchEvent(
+                    new CustomEvent(PHOTO_ACTIVE_INDEX_CHANGE_EVENT, {
+                      detail: {
+                        sourceView: "hero",
+                        index: currentIndex,
+                        src,
+                      },
+                    }),
+                  );
+                }
+              }
+
+              applyPhoto(currentIndex, false);
+
+              heroImg.addEventListener("click", () => {
+                const nextIndex = normalizePhotoIndex(currentIndex + 1, photos.length, 0);
+                applyPhoto(nextIndex, true);
+              });
+
+              heroContainer.addEventListener("hero-update", (event) => {
+                const detail = (event as CustomEvent).detail || {};
+                if (Array.isArray(detail.photos) && detail.photos.length > 0) {
+                  photos = detail.photos;
+                }
+                applyPhoto(detail.activeIndex ?? currentIndex, false);
+              });
+
+              heroContainer.dataset.heroInitialized = "1";
+              debug("[Hero] Initialization complete");
+            }
+
+            if (document.readyState === "loading") {
+              document.addEventListener("DOMContentLoaded", init);
+            } else {
+              init();
+            }
+
+            document.addEventListener("astro:after-swap", () => {
+              init();
+            });
+          })();
+        </script>
     </figure>
   ) : (
     <div>No photos available</div>

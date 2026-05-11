@@ -1,15 +1,19 @@
 ---
-import { getAlbumPhotos } from "@components/Library.astro";
 import { SkiCycleRunConfig } from "../skicyclerun.config";
 import MDXCarousel3 from "./MDXCarousel3.astro";
 import MDXHeroView from "./MDXHeroView.astro";
 import MDXGalleryView from "./MDXGalleryView.astro";
-import { DebugConsole } from "../utils/DebugConsole";
+import { normalizePhotoIndex, parseRequestedPhotoIndex } from "../utils/photoViewState";
 
 const { frontmatter } = Astro.props;
 const album = frontmatter?.album;
 const dynamicPhotoLimit = SkiCycleRunConfig.photoApi.dynamicPhotos;
+const buildTimePhotoLimit = SkiCycleRunConfig.photoApi.buildTimePhotos;
 const exitHref = frontmatter?.fullViewExitHref || "/";
+const initialPhotoIndex = parseRequestedPhotoIndex(
+  Astro.url.searchParams.get("index"),
+);
+const initialPhotoSrc = `${Astro.url.searchParams.get("src") || ""}`;
 const initialView = ["hero", "gallery", "carousel"].includes(
   `${frontmatter?.initialView || ""}`,
 )
@@ -19,31 +23,55 @@ const initialStyle = `${frontmatter?.initialStyle || "random"}`;
 const initialUseDynamic = frontmatter?.useDynamic ? "1" : "0";
 
 if (!album) throw new Error("PhotoLayoutFullView requires frontmatter.album to be set");
-
-const photos = await getAlbumPhotos(album);
-if (!photos || photos.length === 0) {
-  DebugConsole.warn(`Album \"${album}\" returned no photos`);
-}
+const BOOTSTRAP_IMG =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+const photos: any[] = [
+  {
+    src: BOOTSTRAP_IMG,
+    altText: "Loading photos",
+    alt: "Loading photos",
+    sourceType: "local",
+  },
+];
 ---
 
 <article
   class="photo-full-layout"
   data-album={album}
   data-dynamic-photo-limit={dynamicPhotoLimit}
+  data-build-photo-limit={buildTimePhotoLimit}
   data-exit-href={exitHref}
   data-initial-view={initialView}
   data-initial-style={initialStyle}
   data-initial-dynamic={initialUseDynamic}
+  data-initial-photo-index={initialPhotoIndex}
+  data-initial-photo-src={initialPhotoSrc}
 >
   <section class="photo-view" id="photo-full-shell">
     <div id="photo-hero" style="display:none">
-      <MDXHeroView photos={photos} frontmatter={frontmatter} />
+      <MDXHeroView
+        photos={photos}
+        frontmatter={frontmatter}
+        initialIndex={initialPhotoIndex}
+      />
     </div>
     <div id="photo-gallery">
-      <MDXGalleryView photos={photos} frontmatter={frontmatter} />
+      <MDXGalleryView
+        photos={photos}
+        frontmatter={frontmatter}
+        initialIndex={initialPhotoIndex}
+      />
     </div>
     <div id="photo-carousel" style="display:none">
-      <MDXCarousel3 photos={photos} />
+      <MDXCarousel3
+        photos={photos}
+        initialIndex={initialPhotoIndex}
+        initialPlaying={false}
+      />
+    </div>
+
+    <div id="photo-full-counter" class="photo-full-counter" aria-live="polite">
+      1 / 1
     </div>
 
     <div id="dynamic-loading" style="display:none" class="dynamic-loading">
@@ -80,6 +108,11 @@ if (!photos || photos.length === 0) {
   </section>
 
   <script>
+    import {
+      PHOTO_ACTIVE_INDEX_CHANGE_EVENT,
+      normalizePhotoIndex,
+    } from "../utils/photoViewState";
+
     document.addEventListener("DOMContentLoaded", function () {
       const debugEnabled = import.meta.env.PUBLIC_DEBUG_OUTPUT === "true";
       const debugLog = (...args) => {
@@ -101,16 +134,36 @@ if (!photos || photos.length === 0) {
       const hintEl = document.getElementById("full-hint") as HTMLElement | null;
       const hud = document.getElementById("full-hud") as HTMLElement | null;
       const exitBtn = document.getElementById("exit-full-view") as HTMLButtonElement | null;
+      const fullCounterEl = document.getElementById("photo-full-counter") as HTMLElement | null;
 
       const album = layoutRoot?.getAttribute("data-album");
       const dynamicPhotoLimit = Number(
         layoutRoot?.getAttribute("data-dynamic-photo-limit") || "250",
+      );
+      const buildTimePhotoLimit = Number(
+        layoutRoot?.getAttribute("data-build-photo-limit") || "32",
       );
       const exitHref = layoutRoot?.getAttribute("data-exit-href") || "/";
       const initialView = layoutRoot?.getAttribute("data-initial-view") || "gallery";
       const initialStyle = layoutRoot?.getAttribute("data-initial-style") || "random";
       const initialDynamic =
         (layoutRoot?.getAttribute("data-initial-dynamic") || "0") === "1";
+      const initialPhotoSrc = layoutRoot?.getAttribute("data-initial-photo-src") || "";
+      let activePhotoSrc = initialPhotoSrc;
+      let activePhotoIndex = Number(
+        layoutRoot?.getAttribute("data-initial-photo-index") || "0",
+      );
+      if (!Number.isFinite(activePhotoIndex) || activePhotoIndex < 0) {
+        activePhotoIndex = 0;
+      }
+      let activePhotoCount = 0;
+
+      console.debug("[PHOTO-TRACE][FullView] boot", {
+        initialView,
+        initialPhotoIndex: layoutRoot?.getAttribute("data-initial-photo-index"),
+        initialPhotoSrc,
+        activePhotoIndex,
+      });
 
       const sections = {
         hero: document.getElementById("photo-hero"),
@@ -122,6 +175,7 @@ if (!photos || photos.length === 0) {
       let dynamicPhotos: any[] = [];
       let dynamicPhotosFullSet: any[] = [];
       let staticPhotos: any[] = [];
+      let currentPhotos: any[] = [];
       let isInitialLoad = true;
       let isHudVisible = true;
       let hudHideTimer: number | null = null;
@@ -174,23 +228,181 @@ if (!photos || photos.length === 0) {
         return checked ? checked.getAttribute("value") : "gallery";
       }
 
+      function normalizePhotoSource(src) {
+        if (!src) return "";
+        try {
+          const url = new URL(src, window.location.href);
+          return `${url.origin}${url.pathname}`;
+        } catch {
+          return `${src}`.split("?")[0].split("#")[0];
+        }
+      }
+
+      function findPhotoIndexBySource(photos, source) {
+        const target = normalizePhotoSource(source);
+        if (!target) return -1;
+        return photos.findIndex((photo) => normalizePhotoSource(photo?.src) === target);
+      }
+
+      function getPhotoArrayCacheKey(style, useDynamic) {
+        return [
+          "photo-array-cache-v1",
+          album || "",
+          useDynamic ? "dynamic" : "static",
+          style || "random",
+          useDynamic ? String(dynamicPhotoLimit) : String(buildTimePhotoLimit),
+        ].join(":");
+      }
+
+      function readPhotoArrayCache(style, useDynamic) {
+        try {
+          const key = getPhotoArrayCacheKey(style, useDynamic);
+          const raw = window.sessionStorage.getItem(key);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          const photos = Array.isArray(parsed?.photos) ? parsed.photos : [];
+          return photos.filter(
+            (photo) => photo && typeof photo.src === "string" && !photo.src.startsWith("data:image/gif"),
+          );
+        } catch {
+          return [];
+        }
+      }
+
+      function writePhotoArrayCache(style, useDynamic, photos) {
+        if (!Array.isArray(photos) || photos.length === 0) return;
+        try {
+          const key = getPhotoArrayCacheKey(style, useDynamic);
+          window.sessionStorage.setItem(
+            key,
+            JSON.stringify({
+              photos,
+              savedAt: Date.now(),
+            }),
+          );
+        } catch {
+          // Ignore storage quota/browser privacy mode failures.
+        }
+      }
+
       function emitFullViewState() {
         document.dispatchEvent(
           new CustomEvent("photo:maxview-change", {
             detail: {
               enabled: true,
               view: getCurrentView(),
+              index: activePhotoIndex,
             },
           }),
         );
       }
 
-      function exitFullView() {
-        if (window.history.length > 1) {
-          window.history.back();
+      function updateFullCounter() {
+        if (!fullCounterEl) return;
+        const total = Math.max(0, activePhotoCount);
+        if (total <= 0) {
+          fullCounterEl.textContent = "0 / 0";
           return;
         }
-        window.location.href = exitHref;
+        const current = normalizePhotoIndex(activePhotoIndex, total, 0) + 1;
+        const counter = `${current} / ${total}`;
+        fullCounterEl.textContent = counter;
+        console.debug("[PHOTO-TRACE][FullView] counter", {
+          counter,
+          activePhotoIndex,
+          activePhotoCount: total,
+          activePhotoSrc,
+        });
+      }
+
+      function captureActiveFromCurrentView() {
+        const value =
+          (document.querySelector('input[name="photo-view"]:checked') as HTMLInputElement | null)?.value ||
+          "gallery";
+        const currentViewRoot = sections[value as keyof typeof sections];
+        const indexAttr =
+          currentViewRoot
+            ?.querySelector("[data-active-photo-index]")
+            ?.getAttribute("data-active-photo-index") ||
+          currentViewRoot
+            ?.querySelector("img[data-current-index]")
+            ?.getAttribute("data-current-index") ||
+          String(activePhotoIndex);
+        const sourceAttr =
+          currentViewRoot
+            ?.querySelector("[data-active-photo-src]")
+            ?.getAttribute("data-active-photo-src") ||
+          currentViewRoot
+            ?.querySelector("img[data-current-index]")
+            ?.getAttribute("src") ||
+          currentViewRoot?.querySelector("img")?.getAttribute("src") ||
+          activePhotoSrc;
+
+        const parsedIndex = Number(indexAttr);
+        if (Number.isFinite(parsedIndex) && parsedIndex >= 0) {
+          activePhotoIndex = Math.trunc(parsedIndex);
+        }
+        if (sourceAttr) {
+          activePhotoSrc = sourceAttr;
+        }
+
+        updateFullCounter();
+      }
+
+      function syncViewsToActiveState(sourceView = "") {
+        if (!Array.isArray(currentPhotos) || currentPhotos.length === 0) return;
+
+        activePhotoIndex = normalizePhotoIndex(activePhotoIndex, currentPhotos.length, 0);
+        const activePhoto = currentPhotos[activePhotoIndex] || null;
+        if (activePhoto?.src) {
+          activePhotoSrc = activePhoto.src;
+        }
+
+        layoutRoot?.setAttribute("data-initial-photo-index", String(activePhotoIndex));
+        if (activePhotoSrc) {
+          layoutRoot?.setAttribute("data-initial-photo-src", activePhotoSrc);
+        }
+
+        if (sourceView !== "hero") {
+          const heroFigure = sections.hero?.querySelector("figure[data-photos-json]");
+          heroFigure?.dispatchEvent(
+            new CustomEvent("hero-update", {
+              detail: { photos: currentPhotos, activeIndex: activePhotoIndex },
+            }),
+          );
+        }
+
+        if (sourceView !== "gallery") {
+          const galleryDiv = sections.gallery?.querySelector(".mdx-gallery");
+          galleryDiv?.dispatchEvent(
+            new CustomEvent("gallery-update", {
+              detail: { photos: currentPhotos, activeIndex: activePhotoIndex },
+              bubbles: false,
+            }),
+          );
+        }
+
+        const carouselRoot = sections.carousel?.querySelector(
+          ".carousel-container",
+        ) as HTMLElement | null;
+        if (carouselRoot) {
+          carouselRoot.setAttribute("data-active-photo-index", String(activePhotoIndex));
+          if (activePhotoSrc) {
+            carouselRoot.setAttribute("data-active-photo-src", activePhotoSrc);
+          }
+        }
+
+        updateFullCounter();
+      }
+
+      function exitFullView() {
+        captureActiveFromCurrentView();
+        const next = new URL(exitHref, window.location.href);
+        next.searchParams.set("index", String(activePhotoIndex));
+        if (activePhotoSrc) {
+          next.searchParams.set("src", activePhotoSrc);
+        }
+        window.location.href = next.toString();
       }
 
       exitBtn?.addEventListener("click", (event) => {
@@ -269,9 +481,69 @@ if (!photos || photos.length === 0) {
         return [];
       }
 
+      async function sortPhotosByOrientation(photos) {
+        const photosWithAspect = await Promise.all(
+          photos.map((photo) => {
+            if (photo.width && photo.height && photo.width > 0 && photo.height > 0) {
+              return Promise.resolve({ ...photo, aspect: photo.width / photo.height });
+            }
+            return new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => {
+                const aspect = img.naturalWidth / img.naturalHeight;
+                resolve({ ...photo, aspect });
+              };
+              img.onerror = () => resolve({ ...photo, aspect: 1 });
+              img.src = photo.src;
+            });
+          }),
+        );
+
+        const LANDSCAPE_MIN = 1.05;
+        const PORTRAIT_MAX = 0.95;
+
+        const sorted = photosWithAspect.sort((a, b) => {
+          const getBucket = (aspect) => {
+            if (aspect >= LANDSCAPE_MIN) return 0;
+            if (aspect <= PORTRAIT_MAX) return 2;
+            return 1;
+          };
+
+          const aBucket = getBucket(a.aspect);
+          const bBucket = getBucket(b.aspect);
+
+          if (aBucket !== bBucket) return aBucket - bBucket;
+
+          if (aBucket === 0) {
+            if (a.aspect !== b.aspect) return b.aspect - a.aspect;
+          }
+
+          if (aBucket === 1) {
+            const aDelta = Math.abs(a.aspect - 1);
+            const bDelta = Math.abs(b.aspect - 1);
+            if (aDelta !== bDelta) return aDelta - bDelta;
+          }
+
+          if (aBucket === 2) {
+            if (a.aspect !== b.aspect) return a.aspect - b.aspect;
+          }
+
+          return `${a.src || ""}`.localeCompare(`${b.src || ""}`);
+        });
+
+        return sorted.map(({ aspect, ...photo }) => photo);
+      }
+
       async function loadDynamicPhotos(loraStyle = "random") {
         if (dynamicPhotosLoaded && dynamicPhotosFullSet.length > 0) {
           dynamicPhotos = filterStaticPhotosByStyle(dynamicPhotosFullSet, loraStyle);
+          return dynamicPhotos;
+        }
+
+        const stored = readPhotoArrayCache(loraStyle, true);
+        if (stored.length > 0) {
+          dynamicPhotos = stored;
+          activePhotoCount = dynamicPhotos.length;
           return dynamicPhotos;
         }
 
@@ -320,12 +592,17 @@ if (!photos || photos.length === 0) {
 
                 if (!src) return null;
 
+                const w = p?.width != null ? parseInt(String(p.width), 10) : undefined;
+                const h = p?.height != null ? parseInt(String(p.height), 10) : undefined;
+
                 return {
                   src,
                   altText: p?.altText || `Photo ${i + 1}`,
                   alt: p?.alt,
                   loraStyle: p?.loraStyle || p?.lora_style || p?.style,
                   sourceType: "remote",
+                  width: w && w > 0 ? w : undefined,
+                  height: h && h > 0 ? h : undefined,
                 };
               })
               .filter(Boolean);
@@ -335,7 +612,10 @@ if (!photos || photos.length === 0) {
                 ? normalized.slice(0, dynamicPhotoLimit)
                 : normalized;
 
+            dynamicPhotosFullSet = await sortPhotosByOrientation(dynamicPhotosFullSet);
+
             dynamicPhotos = filterStaticPhotosByStyle(dynamicPhotosFullSet, loraStyle);
+            writePhotoArrayCache(loraStyle, true, dynamicPhotos);
             dynamicPhotosLoaded = true;
           }
 
@@ -353,7 +633,97 @@ if (!photos || photos.length === 0) {
         }
       }
 
+      async function loadInitialAlbumPhotos(loraStyle = "random") {
+        const stored = readPhotoArrayCache(loraStyle, false);
+        if (stored.length > 0) {
+          return stored;
+        }
+
+        if (!album) return [];
+
+        try {
+          if (loadingEl) loadingEl.style.display = "flex";
+
+          const baseUrl =
+            (window as typeof window & { PUBLIC_SKICYCLERUN_API?: string })
+              .PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/v2/";
+          const loraParam = loraStyle === "random" ? "" : `&loraStyle=${loraStyle}`;
+          const candidates = buildAlbumCandidates(album);
+          let photoArray: any[] = [];
+
+          for (const candidate of candidates) {
+            const photoURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${encodeURIComponent(candidate)}/&numPhotos=${buildTimePhotoLimit}${loraParam}`;
+            const res = await fetch(photoURL);
+            const data = await res.json();
+            const parsed = parseApiPhotoArray(data);
+            if (parsed.length > 0) {
+              photoArray = parsed;
+              break;
+            }
+          }
+
+          if (photoArray.length === 0) return [];
+
+          const normalized = photoArray
+            .map((p: any, i: number) => {
+              const src =
+                typeof p === "string"
+                  ? p
+                  : p?.src || p?.url || p?.image || p?.imageUrl;
+
+              if (!src) return null;
+
+              const w = p?.width != null ? parseInt(String(p.width), 10) : undefined;
+              const h = p?.height != null ? parseInt(String(p.height), 10) : undefined;
+
+              return {
+                src,
+                altText: p?.altText || `Photo ${i + 1}`,
+                alt: p?.alt,
+                loraStyle: p?.loraStyle || p?.lora_style || p?.style,
+                sourceType: "remote",
+                width: w && w > 0 ? w : undefined,
+                height: h && h > 0 ? h : undefined,
+              };
+            })
+            .filter(Boolean);
+
+          const sorted = await sortPhotosByOrientation(normalized);
+          writePhotoArrayCache(loraStyle, false, sorted);
+          return sorted;
+        } catch (error) {
+          debugError("Failed to load initial album photos", error);
+          return [];
+        } finally {
+          if (loadingEl) loadingEl.style.display = "none";
+        }
+      }
+
       function updateViewContent(photos) {
+        currentPhotos = Array.isArray(photos) ? photos : [];
+        activePhotoCount = photos.length;
+        const sourceMatchIndex = findPhotoIndexBySource(photos, activePhotoSrc);
+        if (sourceMatchIndex >= 0) {
+          activePhotoIndex = sourceMatchIndex;
+        } else {
+          activePhotoIndex = normalizePhotoIndex(activePhotoIndex, activePhotoCount, 0);
+        }
+        layoutRoot?.setAttribute("data-initial-photo-index", String(activePhotoIndex));
+        if (photos[activePhotoIndex]?.src) {
+          activePhotoSrc = photos[activePhotoIndex].src;
+          layoutRoot?.setAttribute("data-initial-photo-src", activePhotoSrc);
+        }
+
+        console.debug("[PHOTO-TRACE][FullView] updateViewContent", {
+          photoCount: photos.length,
+          sourceMatchIndex,
+          activePhotoIndex,
+          activePhotoSrc,
+          firstPhotoSrc: photos[0]?.src,
+        });
+
+        updateFullCounter();
+
         const heroContainer = sections.hero;
         if (heroContainer && photos.length > 0) {
           const heroJsonScript = heroContainer.querySelector('script[type="application/json"]#hero-photos');
@@ -361,12 +731,26 @@ if (!photos || photos.length === 0) {
             heroJsonScript.textContent = JSON.stringify(photos).replace(/</g, "\\u003c");
           }
 
-          const heroImg = heroContainer.querySelector("img");
-          if (heroImg && photos[0]) {
-            heroImg.src = photos[0].src;
-            heroImg.alt = photos[0].altText || "Photo";
-            heroImg.dataset.currentIndex = "0";
+          const heroFigure = heroContainer.querySelector("figure[data-photos-json]") as HTMLElement | null;
+          const heroImg = heroContainer.querySelector("img") as HTMLImageElement | null;
+          const heroPhoto = photos[activePhotoIndex] || photos[0];
+          if (heroFigure && heroImg && heroPhoto) {
+            heroFigure.setAttribute("data-active-photo-index", String(activePhotoIndex));
+            heroImg.src = heroPhoto.src;
+            heroImg.alt = heroPhoto.altText || heroPhoto.alt || "Photo";
+            heroImg.dataset.currentIndex = String(activePhotoIndex);
+            heroFigure.style.setProperty("--hero-bg", `url("${heroPhoto.src}")`);
+            const counterEl = heroFigure.querySelector("#hero-counter") as HTMLElement | null;
+            if (counterEl && photos.length > 1) {
+              counterEl.textContent = `${activePhotoIndex + 1} / ${photos.length}`;
+            }
           }
+
+          heroFigure?.dispatchEvent(
+            new CustomEvent("hero-update", {
+              detail: { photos, activeIndex: activePhotoIndex },
+            }),
+          );
         }
 
         const galleryContainer = sections.gallery;
@@ -375,7 +759,7 @@ if (!photos || photos.length === 0) {
           if (galleryDiv) {
             galleryDiv.dispatchEvent(
               new CustomEvent("gallery-update", {
-                detail: { photos },
+                detail: { photos, activeIndex: activePhotoIndex },
                 bubbles: false,
               }),
             );
@@ -415,22 +799,39 @@ if (!photos || photos.length === 0) {
             }
 
             if (carouselRoot) {
-              delete carouselRoot.dataset.carouselInitialized;
+              const selectedView =
+                (document.querySelector('input[name="photo-view"]:checked') as HTMLInputElement | null)?.value ||
+                "gallery";
+              const shouldPlayCarousel = selectedView === "carousel";
+              carouselRoot.dataset.carouselPlaying = shouldPlayCarousel ? "1" : "0";
+
               const intervalId = carouselRoot.dataset.carouselInterval;
-              if (intervalId) {
+              if (!shouldPlayCarousel && intervalId) {
                 clearInterval(Number(intervalId));
                 delete carouselRoot.dataset.carouselInterval;
               }
 
-              track.scrollLeft = 0;
+              if (shouldPlayCarousel) {
+                delete carouselRoot.dataset.carouselInitialized;
+                if (intervalId) {
+                  clearInterval(Number(intervalId));
+                  delete carouselRoot.dataset.carouselInterval;
+                }
 
-              const event = new CustomEvent("reinit-carousel", {
-                detail: { containerId: carouselRoot.id },
-              });
-              document.dispatchEvent(event);
+                track.scrollLeft = 0;
+
+                const event = new CustomEvent("reinit-carousel", {
+                  detail: {
+                    containerId: carouselRoot.id,
+                    activeIndex: activePhotoIndex,
+                  },
+                });
+                document.dispatchEvent(event);
+              }
             }
           }
         }
+
       }
 
       async function update() {
@@ -447,9 +848,66 @@ if (!photos || photos.length === 0) {
           el.style.display = k === value ? "" : "none";
         });
 
+        const carouselContainer = sections.carousel;
+        const carouselRoot = carouselContainer?.querySelector(
+          ".carousel-container",
+        ) as HTMLElement | null;
+        if (carouselRoot) {
+          const shouldPlayCarousel = value === "carousel";
+          carouselRoot.dataset.carouselPlaying = shouldPlayCarousel ? "1" : "0";
+          if (!shouldPlayCarousel) {
+            const intervalId = carouselRoot.dataset.carouselInterval;
+            if (intervalId) {
+              clearInterval(Number(intervalId));
+              delete carouselRoot.dataset.carouselInterval;
+            }
+          }
+        }
+
+        syncViewsToActiveState();
+
+        if (value === "carousel" && carouselRoot) {
+          document.dispatchEvent(
+            new CustomEvent("reinit-carousel", {
+              detail: {
+                containerId: carouselRoot.id,
+                activeIndex: activePhotoIndex,
+              },
+            }),
+          );
+        }
+
+        const currentViewRoot = sections[value as keyof typeof sections];
+        const indexAttr =
+          currentViewRoot?.querySelector("[data-active-photo-index]")?.getAttribute("data-active-photo-index") ||
+          currentViewRoot?.querySelector("img[data-current-index]")?.getAttribute("data-current-index") ||
+          String(activePhotoIndex);
+        const sourceAttr =
+          currentViewRoot?.querySelector("[data-active-photo-src]")?.getAttribute("data-active-photo-src") ||
+          currentViewRoot?.querySelector("img[data-current-index]")?.getAttribute("src") ||
+          activePhotoSrc;
+        if (sourceAttr) {
+          activePhotoSrc = sourceAttr;
+        }
+        activePhotoIndex = normalizePhotoIndex(Number(indexAttr) || 0, activePhotoCount, 0);
+
+        console.debug("[PHOTO-TRACE][FullView] update() resolved view", {
+          view: value,
+          indexAttr,
+          sourceAttr,
+          activePhotoIndex,
+          activePhotoSrc,
+          activePhotoCount,
+        });
+
         emitFullViewState();
 
         if (isInitialLoad && !useDynamic && loraStyle === "random") {
+          const bootstrapPhotos = await loadInitialAlbumPhotos("random");
+          if (bootstrapPhotos.length > 0) {
+            staticPhotos = bootstrapPhotos;
+            updateViewContent(bootstrapPhotos);
+          }
           isInitialLoad = false;
           return;
         }
@@ -459,7 +917,12 @@ if (!photos || photos.length === 0) {
           const photos = await loadDynamicPhotos(loraStyle);
           if (photos.length > 0) updateViewContent(photos);
         } else {
-          if (staticPhotos.length === 0) staticPhotos = getStaticPhotos();
+          if (staticPhotos.length === 0) {
+            staticPhotos = getStaticPhotos();
+            if (staticPhotos.length === 0) {
+              staticPhotos = await loadInitialAlbumPhotos("random");
+            }
+          }
           const filtered = filterStaticPhotosByStyle(staticPhotos, loraStyle);
           if (filtered.length > 0) updateViewContent(filtered);
         }
@@ -511,10 +974,43 @@ if (!photos || photos.length === 0) {
       dynamicCheckbox?.addEventListener("change", update);
       loraSelect?.addEventListener("change", update);
 
+      sections.hero
+        ?.querySelector("img")
+        ?.addEventListener("click", () => window.setTimeout(captureActiveFromCurrentView, 0));
+      sections.gallery
+        ?.querySelector(".mdx-gallery")
+        ?.addEventListener("click", () => window.setTimeout(captureActiveFromCurrentView, 0));
+      sections.carousel
+        ?.querySelector(".carousel-container")
+        ?.addEventListener("click", () => window.setTimeout(captureActiveFromCurrentView, 0));
+
+      document.addEventListener(PHOTO_ACTIVE_INDEX_CHANGE_EVENT, (event) => {
+        const detail = (event as CustomEvent).detail || {};
+        const sourceView = `${detail.sourceView || ""}`;
+        const nextSrc = `${detail.src || ""}`;
+        const parsedIndex = Number(detail.index);
+
+        if (Number.isFinite(parsedIndex)) {
+          activePhotoIndex = Math.max(0, Math.trunc(parsedIndex));
+        }
+        if (nextSrc) {
+          activePhotoSrc = nextSrc;
+          if (Array.isArray(currentPhotos) && currentPhotos.length > 0) {
+            const srcMatchedIndex = findPhotoIndexBySource(currentPhotos, nextSrc);
+            if (srcMatchedIndex >= 0) {
+              activePhotoIndex = srcMatchedIndex;
+            }
+          }
+        }
+
+        syncViewsToActiveState(sourceView);
+      });
+
       setHudVisible(true);
       scheduleHudAutoHide();
       setTimeout(hideHint, 2200);
       update();
+      updateFullCounter();
 
       document.addEventListener("astro:before-swap", () => {
         document.body.classList.remove("photo-full-view-active");
@@ -544,28 +1040,61 @@ if (!photos || photos.length === 0) {
     height: 100dvh;
     background: #000;
     z-index: 1;
+    display: flex;
+    flex-direction: column;
   }
 
   .photo-view {
-    position: absolute;
-    inset: 0;
+    position: relative;
+    flex: 1;
     width: 100%;
     height: 100%;
     line-height: 0;
     touch-action: manipulation;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .photo-view > div {
-    width: 100vw;
-    height: 100dvh;
+    display: flex;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100%;
+    height: 100%;
     max-width: 100vw;
-    max-height: 100dvh;
-    margin: 0;
+    max-height: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
     border: 0;
     border-radius: 0;
     overflow: hidden;
     background: #000;
     box-shadow: none;
+  }
+
+  .photo-full-counter {
+    position: absolute;
+    top: max(0.65rem, env(safe-area-inset-top));
+    right: max(0.7rem, env(safe-area-inset-right));
+    z-index: 70;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.76rem;
+    letter-spacing: 0.01em;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.45);
+    padding: 0.24rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    pointer-events: none;
+    backdrop-filter: blur(10px) saturate(130%);
+    -webkit-backdrop-filter: blur(10px) saturate(130%);
+    white-space: nowrap;
+  }
+
+  .photo-full-layout :global(.hero-counter-pill) {
+    display: none !important;
   }
 
   .full-hud {
@@ -668,7 +1197,13 @@ if (!photos || photos.length === 0) {
   }
 
   .photo-full-layout :global(.mdx-gallery) {
-    padding: 0.18rem;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: 100%;
+    width: 100%;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .photo-full-layout :global(.gallery-grid) {
@@ -676,14 +1211,58 @@ if (!photos || photos.length === 0) {
     grid-auto-rows: minmax(0, 1fr);
     gap: 0.18rem;
     height: 100%;
+    width: 100%;
   }
 
-  .photo-full-layout :global(.gallery-item) {
-    border-radius: 0.28rem;
+  .photo-full-layout :global(.gallery-item img) {
+    object-fit: contain !important;
+    max-height: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .photo-full-layout :global(.hero-figure) {
+    padding: 0 !important;
+    margin: 0 !important;
+    position: absolute !important;
+    inset: 0 !important;
+    height: 100% !important;
+    width: 100% !important;
+    display: block !important;
+    overflow: hidden !important;
+    background: #000 !important;
+  }
+
+  .photo-full-layout :global(.hero-figure img) {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    object-position: center !important;
+  }
+
+  .photo-full-layout :global(.carousel-container) {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100% !important;
+  }
+
+  .photo-full-layout :global(.carousel-slide) {
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .photo-full-layout :global(.carousel-slide img.clickable-image) {
-    padding: 0;
+    padding: 0 !important;
+    object-fit: contain !important;
+    max-height: 100% !important;
+    max-width: 100% !important;
+    width: auto !important;
+    height: auto !important;
   }
 
   .dynamic-loading {

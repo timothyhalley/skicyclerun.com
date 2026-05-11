@@ -1,10 +1,31 @@
 ---
-const { photos = [], frontmatter = {} } = Astro.props;
+import {
+  getGalleryPageIndexForPhotoIndex,
+  getGalleryStartIndexForPage,
+  normalizePhotoIndex,
+} from "../utils/photoViewState";
+
+const { photos = [], frontmatter = {}, initialIndex = 0 } = Astro.props;
 const matrix = frontmatter?.galleryMatrix || 2;
 const visibleCount = Math.max(1, Number(matrix) * Number(matrix));
+const activeIndex = normalizePhotoIndex(initialIndex, photos.length, 0);
+const initialPageIndex = getGalleryPageIndexForPhotoIndex(
+  activeIndex,
+  visibleCount,
+  photos.length,
+);
+const initialPageStartIndex = getGalleryStartIndexForPage(
+  initialPageIndex,
+  visibleCount,
+  photos.length,
+);
 ---
 
-<div class="mdx-gallery" data-gallery-matrix={matrix}>
+<div
+  class="mdx-gallery"
+  data-gallery-matrix={matrix}
+  data-active-photo-index={activeIndex}
+>
   <!-- 2×2 Grid (4 images visible, page-chunk navigation) -->
   <div
     class="gallery-grid"
@@ -12,7 +33,7 @@ const visibleCount = Math.max(1, Number(matrix) * Number(matrix));
   >
     {
       Array.from({ length: visibleCount }).map((_, i) => {
-        const p = photos[i] || null;
+        const p = photos[initialPageStartIndex + i] || photos[(initialPageStartIndex + i) % photos.length] || null;
         return (
           <div class="gallery-item" data-slot-index={i}>
             {p ? (
@@ -40,11 +61,18 @@ const visibleCount = Math.max(1, Number(matrix) * Number(matrix));
     set:html={JSON.stringify(photos).replace(/</g, "\\u003c")}
   />
 
-  <script is:inline>
+  <script>
+    import {
+      getGalleryPageIndexForPhotoIndex,
+      getGalleryStartIndexForPage,
+      PHOTO_ACTIVE_INDEX_CHANGE_EVENT,
+      normalizePhotoIndex,
+    } from "../utils/photoViewState";
+
     (() => {
       function init() {
         const containers = Array.from(
-          document.querySelectorAll(".mdx-gallery"),
+          document.querySelectorAll<HTMLElement>(".mdx-gallery"),
         );
         if (!containers.length) return;
 
@@ -54,27 +82,36 @@ const visibleCount = Math.max(1, Number(matrix) * Number(matrix));
           const grid = container.querySelector(".gallery-grid");
           if (!grid) return;
 
-          let photos = [];
+          let photos: any[] = [];
           try {
             const dataEl =
-              container.querySelector(
-                'script[type="application/json"]#gallery-photos',
-              ) || document.getElementById("gallery-photos");
+              container.querySelector('script[type="application/json"]#gallery-photos') ||
+              document.getElementById("gallery-photos");
             if (dataEl) {
               photos = JSON.parse((dataEl.textContent || "").trim());
             }
-          } catch (e) {
-            console.error("[Gallery] JSON parse error:", e);
+          } catch (error) {
+            console.error("[Gallery] JSON parse error:", error);
           }
 
           if (!Array.isArray(photos) || photos.length === 0) return;
 
-          const matrix =
-            Number(container.getAttribute("data-gallery-matrix")) || 2;
+          const matrix = Number(container.getAttribute("data-gallery-matrix")) || 2;
           const visibleCount = matrix * matrix;
-          let pageIndex = 0;
+          const slots = Array.from(
+            grid.querySelectorAll<HTMLElement>("[data-slot-index]"),
+          );
 
-          const slots = Array.from(grid.querySelectorAll("[data-slot-index]"));
+          let activeIndex = normalizePhotoIndex(
+            container.getAttribute("data-active-photo-index") || 0,
+            photos.length,
+            0,
+          );
+          let pageIndex = getGalleryPageIndexForPhotoIndex(
+            activeIndex,
+            visibleCount,
+            photos.length,
+          );
 
           function renderSlot(slotEl, photo) {
             slotEl.innerHTML = "";
@@ -93,57 +130,94 @@ const visibleCount = Math.max(1, Number(matrix) * Number(matrix));
             img.style.width = "100%";
             img.style.height = "100%";
             img.style.objectFit = "cover";
+            img.style.objectPosition = "center bottom";
             img.style.display = "block";
             slotEl.appendChild(img);
-          }
-
-          function getPageIndices(idx) {
-            const start = idx * visibleCount;
-            return Array.from(
-              { length: visibleCount },
-              (_, offset) => (start + offset) % photos.length,
-            );
           }
 
           function getPageCount() {
             return Math.max(1, Math.ceil(photos.length / visibleCount));
           }
 
-          function renderVisible() {
-            const pageCount = getPageCount();
-            pageIndex = pageIndex % pageCount;
-            const visibleIndices = getPageIndices(pageIndex);
-            slots.forEach((s, i) => {
-              const photo = photos[visibleIndices[i]] || null;
-              renderSlot(s, photo);
-            });
-            console.debug(
-              `[Gallery] render page ${pageIndex + 1}/${pageCount} with indices [${visibleIndices.join(", ")}] (total photos: ${photos.length})`,
+          function getVisibleIndices() {
+            const start = getGalleryStartIndexForPage(
+              pageIndex,
+              visibleCount,
+              photos.length,
             );
+            return Array.from({ length: visibleCount }, (_, offset) => {
+              if (photos.length === 0) return 0;
+              return (start + offset) % photos.length;
+            });
           }
 
-          // Initial render
+          function renderVisible() {
+            const visibleIndices = getVisibleIndices();
+            slots.forEach((slotEl, slotIndex) => {
+              const photo = photos[visibleIndices[slotIndex]] || null;
+              renderSlot(slotEl, photo);
+            });
+            container.setAttribute("data-active-photo-index", String(activeIndex));
+            const activePhoto = photos[activeIndex] || photos[visibleIndices[0]] || null;
+            if (activePhoto?.src) {
+              container.setAttribute("data-active-photo-src", activePhoto.src);
+            }
+
+            console.debug("[PHOTO-TRACE][Gallery] renderVisible", {
+              activeIndex,
+              pageIndex,
+              visibleIndices,
+              activePhotoSrc: activePhoto?.src,
+            });
+          }
+
+          function applyActiveIndex(index, emitChange = false) {
+            activeIndex = normalizePhotoIndex(index, photos.length, 0);
+            pageIndex = getGalleryPageIndexForPhotoIndex(
+              activeIndex,
+              visibleCount,
+              photos.length,
+            );
+            renderVisible();
+
+            if (emitChange) {
+              const activePhoto = photos[activeIndex] || null;
+              document.dispatchEvent(
+                new CustomEvent(PHOTO_ACTIVE_INDEX_CHANGE_EVENT, {
+                  detail: {
+                    sourceView: "gallery",
+                    index: activeIndex,
+                    src: activePhoto?.src || "",
+                  },
+                }),
+              );
+            }
+          }
+
           renderVisible();
 
-          // Attach click listeners — advance to next fixed page-chunk on tap
-          slots.forEach((slot) => {
-            slot.style.cursor = "pointer";
-            slot.addEventListener("click", () => {
+          slots.forEach((slotEl) => {
+            slotEl.style.cursor = "pointer";
+            slotEl.addEventListener("click", () => {
               const pageCount = getPageCount();
               pageIndex = (pageIndex + 1) % pageCount;
-              renderVisible();
+              const nextIndex = getGalleryStartIndexForPage(
+                pageIndex,
+                visibleCount,
+                photos.length,
+              );
+              applyActiveIndex(nextIndex, true);
             });
           });
 
-          // Dynamic update from PhotoLayout (art style / API)
-          container.addEventListener("gallery-update", (e) => {
-            const newPhotos = e.detail?.photos;
+          container.addEventListener("gallery-update", (event) => {
+            const detail = (event as CustomEvent).detail || {};
+            const newPhotos = detail.photos;
             if (Array.isArray(newPhotos) && newPhotos.length > 0) {
               photos = newPhotos;
-              pageIndex = 0;
-              renderVisible();
+              applyActiveIndex(detail.activeIndex ?? activeIndex, false);
               console.debug(
-                `[Gallery] received gallery-update with ${photos.length} photos; reset to page 1`,
+                `[Gallery] received gallery-update with ${photos.length} photos; keeping active index ${activeIndex + 1}`,
               );
             }
           });
@@ -247,6 +321,7 @@ const visibleCount = Math.max(1, Number(matrix) * Number(matrix));
       width: 100%;
       height: 100%;
       object-fit: cover;
+      object-position: center bottom;
       display: block;
       transition:
         opacity 0.3s ease,

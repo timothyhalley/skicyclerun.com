@@ -31,7 +31,7 @@
  * CANNOT BE REPLACED: No native Astro equivalent exists for 3D globe
  * visualization with this level of interactivity.
  */
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 // Update the Point interface to include all post data
 interface Point {
@@ -50,7 +50,19 @@ interface Point {
 
 interface TravelGlobeProps {
   pointsData: Point[];
+  postsPerPage?: number;
 }
+
+interface LocationPin {
+  locationKey: string;
+  lat: number;
+  lng: number;
+  name: string;
+  posts: Point[];
+}
+
+const locationKeyForPoint = (point: Point) =>
+  `${point.lat.toFixed(4)},${point.lng.toFixed(4)}`;
 
 // NOTE: We dynamically import react-globe.gl on the client inside useEffect to
 // avoid SSR importing modules that reference `window` at module scope.
@@ -114,21 +126,77 @@ const PostCard = ({ post }: { post: Point }) => {
   );
 };
 
-const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
+const DESKTOP_GLOBE_MIN_WIDTH = 1001;
+const GLOBE_DESKTOP_QUERY = `(min-width: ${DESKTOP_GLOBE_MIN_WIDTH}px)`;
+const CAMERA_ANIMATION_MS = 650;
+
+// NOTE: Recurring regression guard.
+// We have repeatedly seen a "globe flashes, then disappears" issue when
+// display mode is derived from delayed width measurements during hydration.
+// Keep desktop/mobile mode detection driven by matchMedia with an immediate
+// sync on mount. If this file is changed, verify first-load behavior on both
+// <=1000px and >=1001px viewports before merging.
+
+const TravelGlobe = ({ pointsData, postsPerPage = 5 }: TravelGlobeProps) => {
   const globeContainerRef = useRef<HTMLDivElement | null>(null);
+  const locationListRef = useRef<HTMLUListElement | null>(null);
+  const selectedCardsRef = useRef<HTMLDivElement | null>(null);
   const globeRef = useRef<any>(null); // Ref to the Globe component
   const [GlobeComponent, setGlobeComponent] = useState<any>(null);
   const [globeWidth, setGlobeWidth] = useState(0);
   const [globeHeight, setGlobeHeight] = useState(0);
-  const [isClient, setIsClient] = useState(false);
+  const [showGlobeLayout, setShowGlobeLayout] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia(GLOBE_DESKTOP_QUERY).matches;
+  });
   const [countryBorders, setCountryBorders] = useState([]);
   const [theme, setTheme] = useState("dark");
   const [loadError, setLoadError] = useState(false);
-  // --- New state for the selected post ---
-  const [selectedPost, setSelectedPost] = useState(null as Point | null);
+  const [selectedLocationKey, setSelectedLocationKey] = useState<string | null>(
+    null,
+  );
+  const [currentCardPage, setCurrentCardPage] = useState(1);
 
   useEffect(() => {
-    setIsClient(true);
+    if (typeof window === "undefined") return;
+
+    const media = window.matchMedia(GLOBE_DESKTOP_QUERY);
+    const syncLayoutMode = () => setShowGlobeLayout(media.matches);
+
+    // Sync immediately to avoid first-paint mode mismatch.
+    syncLayoutMode();
+
+    const onMediaChange = (event: MediaQueryListEvent) => {
+      setShowGlobeLayout(event.matches);
+    };
+
+    media.addEventListener("change", onMediaChange);
+
+    return () => {
+      media.removeEventListener("change", onMediaChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!showGlobeLayout) return;
+
+    const setSize = () => {
+      if (globeContainerRef.current) {
+        setGlobeWidth(globeContainerRef.current.offsetWidth);
+        setGlobeHeight(globeContainerRef.current.offsetHeight);
+      }
+    };
+
+    setSize();
+    window.addEventListener("resize", setSize);
+
+    return () => {
+      window.removeEventListener("resize", setSize);
+    };
+  }, [showGlobeLayout, selectedLocationKey]);
+
+  useEffect(() => {
+    if (!showGlobeLayout) return;
 
     // Log device and browser info for debugging
     console.log("[Globe] Device info:", {
@@ -152,29 +220,31 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
       gl.getParameter(gl.RENDERER),
     );
 
-    // Dynamically import react-globe.gl only on the client to avoid SSR issues
-    // Add timeout to catch hanging imports on slow connections
-    const importTimeout = setTimeout(() => {
-      console.error("[Globe] Import timeout - taking too long to load");
-      setLoadError(true);
-    }, 30000); // 30 second timeout
-
-    import("react-globe.gl")
-      .then((mod) => {
-        clearTimeout(importTimeout);
-        console.log("[Globe] Successfully loaded react-globe.gl");
-        setGlobeComponent(() => mod.default);
-      })
-      .catch((e) => {
-        clearTimeout(importTimeout);
-        console.error("[Globe] Failed to load react-globe.gl:", e);
-        console.error("[Globe] Error details:", {
-          message: e.message,
-          stack: e.stack,
-          name: e.name,
-        });
+    if (!GlobeComponent) {
+      // Dynamically import react-globe.gl only on the client to avoid SSR issues
+      // Add timeout to catch hanging imports on slow connections
+      const importTimeout = setTimeout(() => {
+        console.error("[Globe] Import timeout - taking too long to load");
         setLoadError(true);
-      });
+      }, 30000); // 30 second timeout
+
+      import("react-globe.gl")
+        .then((mod) => {
+          clearTimeout(importTimeout);
+          console.log("[Globe] Successfully loaded react-globe.gl");
+          setGlobeComponent(() => mod.default);
+        })
+        .catch((e) => {
+          clearTimeout(importTimeout);
+          console.error("[Globe] Failed to load react-globe.gl:", e);
+          console.error("[Globe] Error details:", {
+            message: e.message,
+            stack: e.stack,
+            name: e.name,
+          });
+          setLoadError(true);
+        });
+    }
 
     const getTheme = () => {
       // This now checks the 'data-theme' attribute, matching your toggle script
@@ -190,45 +260,36 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
 
     window.addEventListener("theme-change", handleThemeChange);
 
-    // Fetch the LOCAL data file from its new location
-    fetch("/globe/ne_110m_admin_0_countries_lakes.json")
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(
-            `Failed to fetch local country borders: ${res.status}`,
-          );
-        }
-        return res.json();
-      })
-      .then((countries) => {
-        const features = (countries && countries.features) || [];
-        setCountryBorders(features);
-        console.log("[Globe] Loaded borders features:", features.length);
-      })
-      .catch((error) => {
-        console.error("[Globe] Error loading local country borders:", error);
-        setCountryBorders([]);
-      });
-
-    const setSize = () => {
-      if (globeContainerRef.current) {
-        setGlobeWidth(globeContainerRef.current.offsetWidth);
-        setGlobeHeight(globeContainerRef.current.offsetHeight);
-      }
-    };
-
-    setSize();
-    window.addEventListener("resize", setSize);
+    if (countryBorders.length === 0) {
+      // Fetch the LOCAL data file from its new location
+      fetch("/globe/ne_110m_admin_0_countries_lakes.json")
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(
+              `Failed to fetch local country borders: ${res.status}`,
+            );
+          }
+          return res.json();
+        })
+        .then((countries) => {
+          const features = (countries && countries.features) || [];
+          setCountryBorders(features);
+          console.log("[Globe] Loaded borders features:", features.length);
+        })
+        .catch((error) => {
+          console.error("[Globe] Error loading local country borders:", error);
+          setCountryBorders([]);
+        });
+    }
 
     return () => {
-      window.removeEventListener("resize", setSize);
       window.removeEventListener("theme-change", handleThemeChange); // Clean up the custom listener
     };
-  }, []);
+  }, [showGlobeLayout, GlobeComponent, countryBorders.length]);
 
   // --- Effect to set initial globe position (fallback) ---
   useEffect(() => {
-    if (!isClient) return;
+    if (!showGlobeLayout) return;
     // wait a tick for the Globe to mount
     const id = window.setTimeout(() => {
       try {
@@ -243,22 +304,137 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
       }
     }, 0);
     return () => window.clearTimeout(id);
-  }, [isClient, theme]);
+  }, [showGlobeLayout, theme]);
 
-  // --- Updated Handler: Selects a post and rotates the globe ---
-  const handleLocationSelect = (point: Point) => {
-    setSelectedPost(point); // Set the selected post
+  const scrollLocations = useCallback((direction: "up" | "down") => {
+    const listEl = locationListRef.current;
+    if (!listEl) return;
+
+    const step = Math.max(180, Math.floor(listEl.clientHeight * 0.45));
+    listEl.scrollBy({
+      top: direction === "down" ? step : -step,
+      behavior: "smooth",
+    });
+  }, []);
+
+  // Small-screen feed is ordered by pubDatetime (newest first), similar to /tech listing.
+  const pointsByPubDate = useMemo(
+    () =>
+      [...pointsData].sort(
+        (a, b) =>
+          new Date(b.pubDatetime).getTime() - new Date(a.pubDatetime).getTime(),
+      ),
+    [pointsData],
+  );
+
+  const locationPinsByKey = useMemo(() => {
+    const grouped = new Map<string, LocationPin>();
+
+    for (const point of pointsByPubDate) {
+      const locationKey = locationKeyForPoint(point);
+      const existing = grouped.get(locationKey);
+
+      if (existing) {
+        existing.posts.push(point);
+      } else {
+        grouped.set(locationKey, {
+          locationKey,
+          lat: point.lat,
+          lng: point.lng,
+          name: point.name,
+          posts: [point],
+        });
+      }
+    }
+
+    return grouped;
+  }, [pointsByPubDate]);
+
+  // Keep list sorted by location name while each location's posts stay newest-first.
+  const sortedPins = useMemo(
+    () =>
+      [...locationPinsByKey.values()].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    [locationPinsByKey],
+  );
+
+  const selectedLocationPosts = selectedLocationKey
+    ? locationPinsByKey.get(selectedLocationKey)?.posts ?? []
+    : [];
+
+  const hasSelectedLocation = selectedLocationPosts.length > 0;
+
+  const scrollToSelectedCards = useCallback(() => {
+    const cardsEl = selectedCardsRef.current;
+    if (!cardsEl) return;
+
+    const firstCard = cardsEl.querySelector("article") as HTMLElement | null;
+    if (!firstCard) return;
+
+    const cardRect = firstCard.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const topOffset = 92;
+    const bottomPadding = 24;
+    const fitsInViewport =
+      cardRect.height + topOffset + bottomPadding <= viewportHeight;
+
+    let targetTop = firstCard.offsetTop - topOffset;
+    if (fitsInViewport) {
+      const centeredOffset = (viewportHeight - cardRect.height) / 2;
+      targetTop = firstCard.offsetTop - Math.max(topOffset, centeredOffset);
+    }
+
+    window.scrollTo({
+      top: Math.max(0, targetTop),
+      behavior: "smooth",
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!showGlobeLayout || !hasSelectedLocation) {
+      return;
+    }
+
+    // Wait for selected cards to render and globe section to collapse, then reveal.
+    const id = window.setTimeout(() => {
+      scrollToSelectedCards();
+    }, CAMERA_ANIMATION_MS + 80);
+
+    return () => {
+      window.clearTimeout(id);
+    };
+  }, [
+    showGlobeLayout,
+    hasSelectedLocation,
+    scrollToSelectedCards,
+  ]);
+
+  // --- Updated Handler: Selects a location and rotates the globe ---
+  const handleLocationSelect = (pin: LocationPin) => {
+    setSelectedLocationKey(pin.locationKey);
     if (globeRef.current?.pointOfView) {
       globeRef.current.pointOfView(
-        { lat: point.lat, lng: point.lng, altitude: 1.5 },
-        1200,
+        { lat: pin.lat, lng: pin.lng, altitude: 1.5 },
+        CAMERA_ANIMATION_MS,
       );
     }
   };
 
-  // Sort points alphabetically for the list
-  const sortedPoints = [...pointsData].sort((a, b) =>
-    a.name.localeCompare(b.name),
+  const totalCardPages = Math.max(
+    1,
+    Math.ceil(pointsByPubDate.length / postsPerPage),
+  );
+
+  useEffect(() => {
+    if (currentCardPage > totalCardPages) {
+      setCurrentCardPage(totalCardPages);
+    }
+  }, [currentCardPage, totalCardPages]);
+
+  const paginatedCardPoints = pointsByPubDate.slice(
+    (currentCardPage - 1) * postsPerPage,
+    currentCardPage * postsPerPage,
   );
 
   const globeImageUrl =
@@ -268,106 +444,187 @@ const TravelGlobe = ({ pointsData }: { pointsData: Point[] }) => {
 
   return (
     <>
-      <div className="flex flex-col md:flex-row items-start gap-4 md:gap-8 min-h-[70vh]">
-        {/* --- Location List (hidden on mobile/small tablets, visible on larger screens) --- */}
-        <div className="hidden lg:block w-48 xl:w-56 h-[70vh] overflow-y-auto pr-4">
-          <h3 className="mb-4 text-xl font-bold text-skin-base">Locations</h3>
-          <ul className="list-none p-0 m-0 space-y-2">
-            {sortedPoints.map((point) => (
-              <li key={point.slug}>
-                <button
-                  onClick={() => handleLocationSelect(point)}
-                  className={`w-full text-left flex items-center gap-2 px-2 py-1 rounded transition-all ${
-                    selectedPost?.slug === point.slug
-                      ? "font-bold bg-skin-accent text-skin-inverted"
-                      : "text-skin-base hover:bg-skin-fill"
-                  }`}
-                >
-                  <span className="opacity-85" aria-hidden="true">
-                    📍
-                  </span>
-                  <span className="leading-tight">{point.name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {showGlobeLayout ? (
+        <>
+          <div
+            className={`flex flex-col md:flex-row items-start gap-4 md:gap-8 transition-all duration-300 ${
+              hasSelectedLocation ? "min-h-[44vh]" : "min-h-[70vh]"
+            }`}
+          >
+            {/* --- Location List (desktop globe mode) --- */}
+            <div
+              className={`w-56 xl:w-64 pr-3 flex flex-col transition-all duration-300 ${
+                hasSelectedLocation ? "h-[44vh]" : "h-[70vh]"
+              }`}
+            >
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="text-xl font-bold text-skin-base">Locations</h3>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => scrollLocations("up")}
+                    className="px-2 py-1 rounded border border-skin-line text-skin-base hover:bg-skin-fill transition-colors"
+                    aria-label="Scroll locations up"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollLocations("down")}
+                    className="px-2 py-1 rounded border border-skin-line text-skin-base hover:bg-skin-fill transition-colors"
+                    aria-label="Scroll locations down"
+                  >
+                    ↓
+                  </button>
+                </div>
+              </div>
 
-        {/* --- Globe Container --- */}
-        <div
-          ref={globeContainerRef}
-          className="flex-1 w-full min-h-[70vh] h-[70vh] relative cursor-pointer"
-        >
-          {/* Globe (loaded client-side only) */}
-          {loadError ? (
-            <div className="flex flex-col items-center justify-center h-full text-skin-base p-6">
-              <div className="text-6xl mb-4">🌍</div>
-              <h3 className="text-xl font-bold mb-2">Globe Failed to Load</h3>
-              <p className="text-center max-w-md opacity-75 mb-4">
-                The 3D globe visualization couldn't be loaded on your device.
-              </p>
-              <details className="text-sm opacity-75 max-w-md">
-                <summary className="cursor-pointer font-semibold mb-2">
-                  Troubleshooting
-                </summary>
-                <ul className="list-disc pl-5 space-y-1 text-left">
-                  <li>Check browser console for error details</li>
-                  <li>Ensure WebGL is enabled in browser settings</li>
-                  <li>Try clearing browser cache and reloading</li>
-                  <li>iPad users: Disable "Low Power Mode" if enabled</li>
-                  <li>Check your internet connection (1.7MB download)</li>
-                </ul>
-              </details>
+              <ul
+                ref={locationListRef}
+                className="list-none p-0 m-0 space-y-2 h-full overflow-y-auto pr-1 snap-y snap-mandatory"
+              >
+                {sortedPins.map((pin) => (
+                  <li key={pin.locationKey} className="snap-start">
+                    <button
+                      onClick={() => handleLocationSelect(pin)}
+                      className={`w-full text-left flex items-center gap-2 px-2 py-1 rounded transition-all ${
+                        selectedLocationKey === pin.locationKey
+                          ? "font-bold bg-skin-accent text-skin-inverted"
+                          : "text-skin-base hover:bg-skin-fill"
+                      }`}
+                    >
+                      <span className="opacity-85" aria-hidden="true">
+                        📍
+                      </span>
+                      <span className="leading-tight">{pin.name}</span>
+                      {pin.posts.length > 1 && (
+                        <span className="ml-auto text-xs opacity-80">
+                          {pin.posts.length}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
-          ) : GlobeComponent ? (
-            <GlobeComponent
-              key={theme}
-              ref={globeRef}
-              width={globeWidth}
-              height={globeHeight}
-              backgroundColor="rgba(0,0,0,0)"
-              globeImageUrl={globeImageUrl}
-              onGlobeReady={() => {
-                try {
-                  if (globeRef.current?.pointOfView) {
-                    globeRef.current.pointOfView(
-                      { lat: 47.6956, lng: -122.0164, altitude: 2.0 },
-                      0,
-                    );
+
+            {/* --- Globe Container --- */}
+            <div
+              ref={globeContainerRef}
+              className={`flex-1 w-full relative cursor-pointer transition-all duration-300 ${
+                hasSelectedLocation
+                  ? "min-h-[44vh] h-[44vh]"
+                  : "min-h-[70vh] h-[70vh]"
+              }`}
+            >
+              {/* Globe (loaded client-side only) */}
+              {loadError ? (
+                <div className="flex flex-col items-center justify-center h-full text-skin-base p-6">
+                  <div className="text-6xl mb-4">🌍</div>
+                  <h3 className="text-xl font-bold mb-2">Globe Failed to Load</h3>
+                  <p className="text-center max-w-md opacity-75 mb-4">
+                    The 3D globe visualization couldn't be loaded on your device.
+                  </p>
+                  <details className="text-sm opacity-75 max-w-md">
+                    <summary className="cursor-pointer font-semibold mb-2">
+                      Troubleshooting
+                    </summary>
+                    <ul className="list-disc pl-5 space-y-1 text-left">
+                      <li>Check browser console for error details</li>
+                      <li>Ensure WebGL is enabled in browser settings</li>
+                      <li>Try clearing browser cache and reloading</li>
+                      <li>iPad users: Disable "Low Power Mode" if enabled</li>
+                      <li>Check your internet connection (1.7MB download)</li>
+                    </ul>
+                  </details>
+                </div>
+              ) : GlobeComponent ? (
+                <GlobeComponent
+                  key={theme}
+                  ref={globeRef}
+                  width={globeWidth}
+                  height={globeHeight}
+                  backgroundColor="rgba(0,0,0,0)"
+                  globeImageUrl={globeImageUrl}
+                  onGlobeReady={() => {
+                    try {
+                      if (globeRef.current?.pointOfView) {
+                        globeRef.current.pointOfView(
+                          { lat: 47.6956, lng: -122.0164, altitude: 2.0 },
+                          0,
+                        );
+                      }
+                    } catch (e) {
+                      console.warn("[Globe] Initial position failed:", e);
+                    }
+                  }}
+                  polygonsData={countryBorders}
+                  polygonCapColor={() => "rgba(0,0,0,0)"}
+                  polygonSideColor={() => "rgba(0,0,0,0)"}
+                  polygonStrokeColor={() => "#aaa"}
+                  onLabelClick={(label: any) =>
+                    handleLocationSelect(label as LocationPin)
                   }
-                } catch (e) {
-                  console.warn("[Globe] Initial position failed:", e);
-                }
-              }}
-              polygonsData={countryBorders}
-              polygonCapColor={() => "rgba(0,0,0,0)"}
-              polygonSideColor={() => "rgba(0,0,0,0)"}
-              polygonStrokeColor={() => "#aaa"}
-              onLabelClick={(label: any) =>
-                handleLocationSelect(label as Point)
-              }
-              labelsData={pointsData}
-              labelLat={(d: any) => (d as Point).lat}
-              labelLng={(d: any) => (d as Point).lng}
-              labelText={(d: any) => (d as Point).name}
-              labelSize={0.1}
-              labelColor={() => "rgba(255, 107, 1, 0.85)"}
-              labelDotRadius={0.5}
-              labelAltitude={0.01}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-skin-base text-lg">
-              <div className="animate-spin text-4xl mb-4">🌍</div>
-              <p>Loading Globe...</p>
+                  labelsData={sortedPins}
+                  labelLat={(d: any) => (d as LocationPin).lat}
+                  labelLng={(d: any) => (d as LocationPin).lng}
+                  labelText={(d: any) => (d as LocationPin).name}
+                  labelSize={0.1}
+                  labelColor={() => "rgba(255, 107, 1, 0.85)"}
+                  labelDotRadius={0.5}
+                  labelAltitude={0.01}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-skin-base text-lg">
+                  <div className="animate-spin text-4xl mb-4">🌍</div>
+                  <p>Loading Globe...</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* --- Selected location posts (newest first) --- */}
+          {selectedLocationPosts.length > 0 && (
+            <div ref={selectedCardsRef} className="mt-8 w-full flex flex-col gap-6">
+              {selectedLocationPosts.map((post) => (
+                <PostCard key={post.slug} post={post} />
+              ))}
             </div>
           )}
-        </div>
-      </div>
+        </>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {paginatedCardPoints.map((post) => (
+            <PostCard key={post.slug} post={post} />
+          ))}
 
-      {/* --- Conditionally Rendered Post Card (full width, respecting page margins) --- */}
-      {selectedPost && (
-        <div className="mt-8 w-full">
-          <PostCard post={selectedPost} />
+          {totalCardPages > 1 && (
+            <nav className="mt-2 flex items-center justify-center gap-3 text-skin-base">
+              <button
+                type="button"
+                onClick={() => setCurrentCardPage((p) => Math.max(1, p - 1))}
+                disabled={currentCardPage === 1}
+                className="px-3 py-1 rounded border border-skin-line disabled:opacity-50 disabled:cursor-not-allowed hover:bg-skin-fill transition-colors"
+                aria-label="Previous page"
+              >
+                Previous
+              </button>
+              <span className="text-sm opacity-85">
+                Page {currentCardPage} of {totalCardPages}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setCurrentCardPage((p) => Math.min(totalCardPages, p + 1))
+                }
+                disabled={currentCardPage === totalCardPages}
+                className="px-3 py-1 rounded border border-skin-line disabled:opacity-50 disabled:cursor-not-allowed hover:bg-skin-fill transition-colors"
+                aria-label="Next page"
+              >
+                Next
+              </button>
+            </nav>
+          )}
         </div>
       )}
     </>

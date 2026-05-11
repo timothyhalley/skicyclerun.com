@@ -6,6 +6,8 @@ interface Photo {
   src: string | undefined;
   altText: string;
   sourceType: "remote" | "local";
+  width?: number;
+  height?: number;
 }
 
 async function getLocalImages() {
@@ -56,10 +58,14 @@ export default function RemotePhotoGallery({ album }: { album: string }) {
         if (Array.isArray(data)) {
           const remotePhotos = data.map((p: any, i: number) => {
             const src = typeof p === "string" ? p : p?.src;
+            const w = p?.width != null ? parseInt(String(p.width), 10) : undefined;
+            const h = p?.height != null ? parseInt(String(p.height), 10) : undefined;
             return {
               src,
               altText: p?.altText ?? `Photo ${i + 1}`,
               sourceType: "remote" as const,
+              width: w && w > 0 ? w : undefined,
+              height: h && h > 0 ? h : undefined,
             };
           });
           setPhotos(remotePhotos);

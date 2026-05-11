@@ -1,19 +1,16 @@
 ---
-// MDXCarousel3: scroll-snap carousel, iOS-native swipe navigation.
-// .carousel-track / .carousel-slide class names preserved for PhotoLayout compatibility.
 const {
   photos = [],
   carouselId = `carousel-${Math.random().toString(36).slice(2, 8)}`,
+  initialIndex = 0,
+  initialPlaying = false,
 } = Astro.props;
+const initialPhotoIndex = Math.max(0, Math.trunc(Number(initialIndex) || 0));
+const shouldAutoplay = Boolean(initialPlaying);
 ---
 
-<section class="carousel-container" id={carouselId}>
-  <!-- Scroll-snap track: native iOS swipe -->
-  <div
-    class="carousel-track"
-    id={`${carouselId}-track`}
-    style="-webkit-overflow-scrolling: touch;"
-  >
+<section class="carousel-container" id={carouselId} data-active-photo-index={initialPhotoIndex} data-carousel-playing={shouldAutoplay ? "1" : "0"}>
+  <div class="carousel-track" id={`${carouselId}-track`} style="-webkit-overflow-scrolling: touch;">
     {
       photos.map((photo, index) => (
         <div class="carousel-slide" data-src={photo.src}>
@@ -36,21 +33,258 @@ const {
     <button id={`${carouselId}-nextBtn`} aria-label="Next">›</button>
   </div>
 
-  <!-- Slide counter -->
   <div id={`${carouselId}-counter`} class="carousel-counter">
-    {photos.length > 0 ? `1 / ${photos.length}` : ""}
+    {photos.length > 0 ? `${initialPhotoIndex + 1} / ${photos.length}` : ""}
   </div>
 
   <div id={`${carouselId}-modal`} class="modal">
-    <img
-      id={`${carouselId}-modalImage`}
-      src=""
-      alt="Full view"
-      draggable="false"
-    />
+    <img id={`${carouselId}-modalImage`} src="" alt="Full view" draggable="false" />
   </div>
 
   <slot />
+
+  <script>
+    import {
+      PHOTO_ACTIVE_INDEX_CHANGE_EVENT,
+      normalizePhotoIndex,
+    } from "../utils/photoViewState";
+
+    (() => {
+      function setupCarousel(container, forceReinit = false, forcedIndex = null) {
+        if (!container) return;
+        if (container.dataset.carouselInitialized === "1" && !forceReinit) return;
+
+        const version = String(Number(container.dataset.carouselVersion || "0") + 1);
+        container.dataset.carouselVersion = version;
+        const isActiveInstance = () => container.dataset.carouselVersion === version;
+
+        const id = container.id;
+        const track = container.querySelector(".carousel-track") as unknown as HTMLElement | null;
+        const slides = track
+          ? (Array.from(track.querySelectorAll(".carousel-slide")) as unknown as HTMLElement[])
+          : [];
+        const modal = document.getElementById(id + "-modal");
+        const modalImage = document.querySelector<HTMLImageElement>(`#${id}-modalImage`);
+        const counterEl = document.getElementById(id + "-counter");
+
+        if (!track || slides.length === 0) {
+          container.dataset.carouselInitialized = "1";
+          return;
+        }
+
+        const carouselTrack = track;
+
+        let currentIndex = normalizePhotoIndex(
+          forcedIndex ?? container.getAttribute("data-active-photo-index") ?? 0,
+          slides.length,
+          0,
+        );
+        let isPlaying = container.dataset.carouselPlaying === "1";
+        let snapTimer;
+
+        function clearAutoplayInterval() {
+          const active = container.dataset.carouselInterval;
+          if (active) {
+            clearInterval(Number(active));
+            delete container.dataset.carouselInterval;
+          }
+        }
+
+        function getSlideWidth() {
+          return carouselTrack.clientWidth || 0;
+        }
+
+        function updateCounter() {
+          if (counterEl) counterEl.textContent = `${currentIndex + 1} / ${slides.length}`;
+        }
+
+        function updateActiveSource() {
+          const slide = slides[currentIndex];
+          const src = slide?.dataset.src || slide?.querySelector("img")?.getAttribute("src") || "";
+          if (src) {
+            container.dataset.activePhotoSrc = src;
+          }
+        }
+
+        function goToSlide(idx, behavior = "smooth", emitChange = false) {
+          if (!isActiveInstance()) return;
+          currentIndex = normalizePhotoIndex(idx, slides.length, 0);
+          const width = getSlideWidth();
+          if (width > 0) {
+            carouselTrack.scrollTo({ left: currentIndex * width, behavior: behavior as ScrollBehavior });
+          }
+          container.dataset.activePhotoIndex = String(currentIndex);
+          updateActiveSource();
+          console.debug("[PHOTO-TRACE][Carousel] goToSlide", {
+            requestedIndex: idx,
+            currentIndex,
+            behavior,
+            activePhotoSrc: container.dataset.activePhotoSrc,
+          });
+          updateCounter();
+
+          if (emitChange) {
+            document.dispatchEvent(
+              new CustomEvent(PHOTO_ACTIVE_INDEX_CHANGE_EVENT, {
+                detail: {
+                  sourceView: "carousel",
+                  index: currentIndex,
+                  src: container.dataset.activePhotoSrc || "",
+                },
+              }),
+            );
+          }
+        }
+
+        function setPlaying(playing) {
+          if (!isActiveInstance()) return;
+          isPlaying = !!playing;
+          container.dataset.carouselPlaying = isPlaying ? "1" : "0";
+          const toggleBtn = document.getElementById(id + "-toggleBtn");
+          if (toggleBtn) toggleBtn.textContent = isPlaying ? "⏸" : "▶";
+          clearAutoplayInterval();
+          if (isPlaying) {
+            const intervalId = window.setInterval(() => {
+              if (!isActiveInstance()) {
+                clearInterval(intervalId);
+                return;
+              }
+              goToSlide(currentIndex + 1, "smooth", true);
+            }, 4000);
+            container.dataset.carouselInterval = String(intervalId);
+          }
+        }
+
+        function restartAutoplayTimer() {
+          if (!isActiveInstance() || !isPlaying) return;
+          clearAutoplayInterval();
+          const intervalId = window.setInterval(() => {
+            if (!isActiveInstance()) {
+              clearInterval(intervalId);
+              return;
+            }
+            goToSlide(currentIndex + 1, "smooth", true);
+          }, 4000);
+          container.dataset.carouselInterval = String(intervalId);
+        }
+
+        function openModal(src) {
+          if (!isActiveInstance()) return;
+          if (modal && modalImage && src) {
+            modalImage.src = src;
+            modal.style.display = "flex";
+          }
+        }
+
+        function closeModal() {
+          if (!isActiveInstance()) return;
+          if (modal) {
+            modal.style.display = "none";
+            if (modalImage) modalImage.src = "";
+          }
+        }
+
+        ["prevBtn", "nextBtn", "toggleBtn"].forEach((btnKey) => {
+          const btn = document.getElementById(id + "-" + btnKey);
+          if (btn) {
+            const clone = btn.cloneNode(true);
+            btn.parentNode?.replaceChild(clone, btn);
+          }
+        });
+
+        document.getElementById(id + "-prevBtn")?.addEventListener("click", (event) => {
+          event.preventDefault();
+          goToSlide(currentIndex - 1, "smooth", true);
+          restartAutoplayTimer();
+        });
+        document.getElementById(id + "-nextBtn")?.addEventListener("click", (event) => {
+          event.preventDefault();
+          goToSlide(currentIndex + 1, "smooth", true);
+          restartAutoplayTimer();
+        });
+        document.getElementById(id + "-toggleBtn")?.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setPlaying(!isPlaying);
+        });
+
+        slides.forEach((slide: HTMLElement, idx) => {
+          const clone = slide.cloneNode(true) as unknown as HTMLElement;
+          slide.parentNode?.replaceChild(clone, slide);
+          slides[idx] = clone;
+          clone.addEventListener("click", () => {
+            const src = clone.dataset.src || clone.querySelector("img")?.src;
+            openModal(src);
+          });
+        });
+
+        modal?.addEventListener("click", closeModal);
+
+        carouselTrack.addEventListener(
+          "scroll",
+          () => {
+            if (!isActiveInstance()) return;
+            clearTimeout(snapTimer);
+            snapTimer = window.setTimeout(() => {
+              if (!isActiveInstance()) return;
+              const width = getSlideWidth();
+              if (width > 0) {
+                const idx = Math.round(track.scrollLeft / width);
+                if (idx !== currentIndex) {
+                  currentIndex = normalizePhotoIndex(idx, slides.length, 0);
+                  container.dataset.activePhotoIndex = String(currentIndex);
+                  updateActiveSource();
+                  updateCounter();
+                  document.dispatchEvent(
+                    new CustomEvent(PHOTO_ACTIVE_INDEX_CHANGE_EVENT, {
+                      detail: {
+                        sourceView: "carousel",
+                        index: currentIndex,
+                        src: container.dataset.activePhotoSrc || "",
+                      },
+                    }),
+                  );
+                  restartAutoplayTimer();
+                }
+              }
+            }, 60);
+          },
+          { passive: true },
+        );
+
+        clearAutoplayInterval();
+        goToSlide(currentIndex, "auto", false);
+        setPlaying(isPlaying);
+
+        container.dataset.carouselInitialized = "1";
+      }
+
+      function initAll() {
+        document.querySelectorAll<HTMLElement>(".carousel-container").forEach((container) => {
+          setupCarousel(container, false);
+        });
+      }
+
+      document.addEventListener("reinit-carousel", (event) => {
+        const detail = (event as CustomEvent).detail || {};
+        const container = detail.containerId ? document.getElementById(detail.containerId) : null;
+        if (container) {
+          if (detail.activeIndex != null) {
+            container.setAttribute("data-active-photo-index", String(detail.activeIndex));
+          }
+          setupCarousel(container, true, detail.activeIndex);
+        }
+      });
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initAll);
+      } else {
+        initAll();
+      }
+
+      document.addEventListener("astro:after-swap", initAll);
+    })();
+  </script>
 
   <style>
     .carousel-container {
@@ -73,7 +307,7 @@ const {
         rgb(var(--color-fill));
       animation: carousel-enter 560ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     }
-    /* Scroll-snap track */
+
     .carousel-track {
       display: flex;
       overflow-x: scroll;
@@ -82,9 +316,11 @@ const {
       width: 100%;
       height: 100%;
     }
+
     .carousel-track::-webkit-scrollbar {
       display: none;
     }
+
     .carousel-slide {
       min-width: 100%;
       width: 100%;
@@ -99,190 +335,44 @@ const {
       flex-shrink: 0;
     }
 
-    .carousel-slide::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 5.4rem;
-      background: linear-gradient(
-        to top,
-        rgba(0, 0, 0, 0.34),
-        rgba(0, 0, 0, 0.09),
-        rgba(0, 0, 0, 0)
-      );
-      pointer-events: none;
-      z-index: 1;
-    }
-
     .controls {
       position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0.72rem;
+      bottom: 0.5rem;
+      left: 50%;
+      transform: translateX(-50%);
       display: flex;
-      justify-content: center;
-      gap: 0.62rem;
-      z-index: 50;
-      pointer-events: auto;
-      animation: controls-enter 640ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-      animation-delay: 120ms;
+      gap: 0.6rem;
+      z-index: 10;
+      animation: controls-enter 360ms ease both;
     }
 
     .controls button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(
-        135deg,
-        rgba(var(--color-card), 0.84),
-        rgba(var(--color-fill), 0.38)
-      );
-      color: rgb(var(--color-text-base));
-      border: 1px solid rgba(var(--color-border), 0.56);
-      width: 2.65rem;
-      height: 2.65rem;
+      width: 2.5rem;
+      height: 2.5rem;
       border-radius: 999px;
-      font-size: 1.18rem;
-      line-height: 1;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 1.05rem;
       cursor: pointer;
-      transition:
-        transform 0.16s ease,
-        box-shadow 0.2s ease,
-        background 0.2s ease,
-        border-color 0.2s ease;
-      text-align: center;
-      backdrop-filter: blur(12px) saturate(126%);
-      -webkit-backdrop-filter: blur(12px) saturate(126%);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.2),
-        0 10px 30px rgba(0, 0, 0, 0.28);
-    }
-
-    .controls button:hover {
-      border-color: rgba(var(--color-accent), 0.48);
-      background: rgba(var(--color-card), 0.9);
-      transform: translateY(-1px);
-    }
-
-    .controls button:active {
-      transform: scale(0.95);
-    }
-
-    .carousel-slide img.clickable-image {
-      width: 100%;
-      height: 100%;
-      padding: 0.45rem 0.45rem 3.65rem;
-      object-fit: contain;
-      background: transparent;
-      display: block;
-      margin: 0 auto;
-      border-radius: 0.78rem;
-      select: none;
-      transition:
-        transform 0.23s ease,
-        filter 0.23s ease;
-      position: relative;
-      z-index: 0;
-    }
-
-    .carousel-slide img.clickable-image:active {
-      transform: scale(0.985);
-      filter: brightness(1.05);
+      backdrop-filter: blur(10px) saturate(120%);
+      -webkit-backdrop-filter: blur(10px) saturate(120%);
+      box-shadow: none;
     }
 
     .carousel-counter {
       position: absolute;
-      top: 0.8rem;
-      right: 0.8rem;
-      color: rgba(255, 255, 255, 0.88);
-      font-size: 0.72rem;
-      font-weight: 600;
-      background: rgba(0, 0, 0, 0.34);
-      padding: 0.26rem 0.55rem;
-      border-radius: 999px;
+      top: 0.5rem;
+      right: 0.5rem;
+      z-index: 10;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.52);
       border: 1px solid rgba(255, 255, 255, 0.16);
-      pointer-events: none;
-      backdrop-filter: blur(10px) saturate(130%);
-      -webkit-backdrop-filter: blur(10px) saturate(130%);
-      white-space: nowrap;
-      z-index: 55;
-      animation: controls-enter 640ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-      animation-delay: 180ms;
-    }
-
-    @media (max-width: 768px) {
-      .controls {
-        bottom: 0.5rem;
-        gap: 0.5rem;
-      }
-
-      .controls button {
-        width: 2.35rem;
-        height: 2.35rem;
-        font-size: 1.04rem;
-      }
-
-      .carousel-slide img.clickable-image {
-        padding: 0.25rem 0.25rem 3.15rem;
-      }
-
-      .carousel-counter {
-        top: 0.52rem;
-        right: 0.52rem;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .carousel-slide img.clickable-image {
-        padding-bottom: 2.9rem;
-      }
-    }
-
-    @media (min-width: 680px) and (max-width: 940px) {
-      .carousel-container {
-        min-height: min(70svh, 680px);
-      }
-
-      .controls {
-        bottom: 0.48rem;
-        gap: 0.42rem;
-      }
-
-      .controls button {
-        width: 2.22rem;
-        height: 2.22rem;
-        font-size: 0.98rem;
-      }
-
-      .carousel-slide img.clickable-image {
-        padding: 0.24rem 0.24rem 2.95rem;
-        border-radius: 0.62rem;
-      }
-
-      .carousel-counter {
-        top: 0.48rem;
-        right: 0.48rem;
-        font-size: 0.68rem;
-        padding: 0.22rem 0.45rem;
-      }
-    }
-
-    @media (min-width: 941px) and (max-width: 1100px) {
-      .controls {
-        gap: 0.5rem;
-      }
-
-      .controls button {
-        width: 2.42rem;
-        height: 2.42rem;
-        font-size: 1.04rem;
-      }
-
-      .carousel-slide img.clickable-image {
-        padding-bottom: 3.18rem;
-      }
+      border-radius: 999px;
+      padding: 0.18rem 0.46rem;
+      font-size: 0.72rem;
+      backdrop-filter: blur(10px) saturate(120%);
+      -webkit-backdrop-filter: blur(10px) saturate(120%);
     }
 
     .modal {
@@ -297,6 +387,7 @@ const {
       align-items: center;
       z-index: 1000;
     }
+
     .modal img {
       max-width: 90%;
       max-height: 90%;
@@ -343,219 +434,4 @@ const {
       }
     }
   </style>
-
-  <script is:inline>
-    (function initCarousels() {
-      function setupCarousel(container, forceReinit) {
-        if (!container) return;
-        if (container.dataset.carouselInitialized && !forceReinit) return;
-
-        // Increment instance version so stale timers/listeners can self-ignore.
-        const currentVersion =
-          Number(container.dataset.carouselVersion || "0") + 1;
-        const version = String(currentVersion);
-        container.dataset.carouselVersion = version;
-        const isActiveInstance = () =>
-          container.dataset.carouselVersion === version;
-
-        const id = container.id;
-        const track = container.querySelector(".carousel-track");
-        const slides = track
-          ? Array.from(track.querySelectorAll(".carousel-slide"))
-          : [];
-        const modal = document.getElementById(id + "-modal");
-        const modalImage = document.getElementById(id + "-modalImage");
-        const counterEl = document.getElementById(id + "-counter");
-
-        if (!track || slides.length === 0) {
-          container.dataset.carouselInitialized = "1";
-          return;
-        }
-
-        function clearAutoplayInterval() {
-          const active = container.dataset.carouselInterval;
-          if (active) {
-            clearInterval(Number(active));
-            delete container.dataset.carouselInterval;
-          }
-        }
-
-        // Clear existing autoplay interval on reinit.
-        clearAutoplayInterval();
-
-        let currentIndex = 0;
-        let isPlaying = container.dataset.carouselPlaying !== "0";
-
-        function getSlideWidth() {
-          return track.clientWidth || 0;
-        }
-
-        function goToSlide(idx) {
-          if (!isActiveInstance()) return;
-          currentIndex = (idx + slides.length) % slides.length;
-          track.scrollTo({
-            left: currentIndex * getSlideWidth(),
-            behavior: "smooth",
-          });
-          updateCounter();
-        }
-
-        function updateCounter() {
-          if (!isActiveInstance()) return;
-          if (counterEl)
-            counterEl.textContent = `${currentIndex + 1} / ${slides.length}`;
-        }
-
-        function setPlaying(playing) {
-          if (!isActiveInstance()) return;
-          isPlaying = !!playing;
-          container.dataset.carouselPlaying = isPlaying ? "1" : "0";
-          const toggleBtn = document.getElementById(id + "-toggleBtn");
-          if (toggleBtn) toggleBtn.textContent = isPlaying ? "⏸" : "▶";
-          clearAutoplayInterval();
-          if (isPlaying) {
-            const intervalId = window.setInterval(() => {
-              if (!isActiveInstance()) {
-                clearInterval(intervalId);
-                return;
-              }
-              goToSlide(currentIndex + 1);
-            }, 4000);
-            container.dataset.carouselInterval = String(intervalId);
-          }
-        }
-
-        function restartAutoplayTimer() {
-          if (!isActiveInstance()) return;
-          if (!isPlaying) return;
-          clearAutoplayInterval();
-          const intervalId = window.setInterval(() => {
-            if (!isActiveInstance()) {
-              clearInterval(intervalId);
-              return;
-            }
-            goToSlide(currentIndex + 1);
-          }, 4000);
-          container.dataset.carouselInterval = String(intervalId);
-        }
-
-        function openModal(src) {
-          if (!isActiveInstance()) return;
-          if (modal && modalImage && src) {
-            modalImage.src = src;
-            modal.style.display = "flex";
-          }
-        }
-
-        function closeModal() {
-          if (!isActiveInstance()) return;
-          if (modal) {
-            modal.style.display = "none";
-            if (modalImage) modalImage.src = "";
-          }
-        }
-
-        // Clone buttons to strip stale listeners on reinit
-        ["prevBtn", "nextBtn", "toggleBtn"].forEach((btnKey) => {
-          const btn = document.getElementById(id + "-" + btnKey);
-          if (btn) {
-            const clone = btn.cloneNode(true);
-            btn.parentNode?.replaceChild(clone, btn);
-          }
-        });
-
-        // Wire fresh button references
-        document
-          .getElementById(id + "-prevBtn")
-          ?.addEventListener("click", (e) => {
-            e.preventDefault();
-            goToSlide(currentIndex - 1);
-            restartAutoplayTimer();
-          });
-        document
-          .getElementById(id + "-nextBtn")
-          ?.addEventListener("click", (e) => {
-            e.preventDefault();
-            goToSlide(currentIndex + 1);
-            restartAutoplayTimer();
-          });
-        document
-          .getElementById(id + "-toggleBtn")
-          ?.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setPlaying(!isPlaying);
-          });
-
-        // Clone slides to strip stale listeners
-        slides.forEach((slide, idx) => {
-          const clone = slide.cloneNode(true);
-          slide.parentNode?.replaceChild(clone, slide);
-          slides[idx] = clone;
-          clone.addEventListener("click", () => {
-            const src = clone.dataset.src || clone.querySelector("img")?.src;
-            openModal(src);
-          });
-        });
-
-        modal?.addEventListener("click", closeModal);
-
-        // Sync currentIndex when user swipes natively
-        let snapTimer;
-        track.addEventListener(
-          "scroll",
-          () => {
-            if (!isActiveInstance()) return;
-            clearTimeout(snapTimer);
-            snapTimer = setTimeout(() => {
-              if (!isActiveInstance()) return;
-              const w = getSlideWidth();
-              if (w > 0) {
-                const idx = Math.round(track.scrollLeft / w);
-                if (idx !== currentIndex) {
-                  currentIndex = idx;
-                  updateCounter();
-                  restartAutoplayTimer();
-                }
-              }
-            }, 60);
-          },
-          { passive: true },
-        );
-
-        // Reset scroll position on reinit
-        track.scrollLeft = 0;
-        currentIndex = 0;
-        updateCounter();
-        setPlaying(true); // Carousel: auto-play by default
-
-        container.dataset.carouselInitialized = "1";
-        console.log(
-          "[Carousel] Initialized with",
-          slides.length,
-          "slides (scroll-snap)",
-        );
-      }
-
-      function initAll() {
-        document
-          .querySelectorAll(".carousel-container")
-          .forEach((c) => setupCarousel(c, false));
-      }
-
-      document.addEventListener("reinit-carousel", (e) => {
-        const container = e.detail?.containerId
-          ? document.getElementById(e.detail.containerId)
-          : null;
-        if (container) setupCarousel(container, true);
-      });
-
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initAll);
-      } else {
-        initAll();
-      }
-      document.addEventListener("astro:after-swap", initAll);
-    })();
-  </script>
 </section>

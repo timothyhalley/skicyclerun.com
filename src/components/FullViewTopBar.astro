@@ -3,14 +3,34 @@ import contractIcon from "../assets/svg_imgs/contract.svg";
 
 export interface Props {
   brandLabel?: string;
+  sectionLabel?: string;
+  titleLabel?: string;
   homeHref?: string;
 }
 
-const { brandLabel = "skicyclerun", homeHref = "/" } = Astro.props;
+const {
+  brandLabel = "SkiCycleRun",
+  sectionLabel = "Posts",
+  titleLabel = "",
+  homeHref = "/",
+} = Astro.props;
+
+const trailText = titleLabel
+  ? `${brandLabel} - ${sectionLabel} >> ${titleLabel}`
+  : `${brandLabel} - ${sectionLabel}`;
 ---
 
 <div class="full-view-topbar" role="navigation" aria-label="Full view controls">
-  <a href={homeHref} class="full-view-brand" aria-label="Home">SkiCycleRun</a>
+  <div class="full-view-left">
+    <a id="full-view-brand-link" href={homeHref} class="full-view-brand" aria-label="Home"
+      >{trailText}</a
+    >
+  </div>
+  <div class="full-view-right">
+    <span id="full-view-top-counter" class="full-view-counter" aria-live="polite"
+      >1 / 1</span
+    >
+  </div>
   <button
     type="button"
     id="exit-full-page"
@@ -36,19 +56,54 @@ const { brandLabel = "skicyclerun", homeHref = "/" } = Astro.props;
     padding: 0.28rem 0.34rem;
     border-radius: 0.75rem;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(0, 0, 0, 0.42);
+    background: rgba(0, 0, 0, 0.15);
     backdrop-filter: blur(10px) saturate(135%);
     -webkit-backdrop-filter: blur(10px) saturate(135%);
   }
 
+  .full-view-left {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex: 1;
+  }
+
   .full-view-brand {
     color: rgba(255, 255, 255, 0.96);
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    font-size: 0.9rem;
     text-transform: none;
-    padding: 0.22rem 0.48rem;
+    padding: 0.22rem 0.3rem;
+    border-radius: 0.55rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: min(64vw, 760px);
+  }
+
+  .full-view-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .full-view-counter {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.74rem;
+    letter-spacing: 0.01em;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.45);
+    padding: 0.22rem 0.56rem;
     border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    pointer-events: none;
+    white-space: nowrap;
+    min-width: 4.4rem;
+    text-align: right;
   }
 
   .full-view-exit {
@@ -80,8 +135,20 @@ const { brandLabel = "skicyclerun", homeHref = "/" } = Astro.props;
     }
 
     .full-view-brand {
-      font-size: 0.95rem;
-      padding: 0.2rem 0.42rem;
+      font-size: 0.79rem;
+      padding: 0.2rem 0.28rem;
+      max-width: min(56vw, 460px);
+    }
+
+    .full-view-right {
+      gap: 0.3rem;
+      margin-left: 0.35rem;
+    }
+
+    .full-view-counter {
+      font-size: 0.7rem;
+      padding: 0.18rem 0.46rem;
+      min-width: 4rem;
     }
 
     .full-view-exit {

@@ -28,6 +28,7 @@ export async function getAlbumPhotos(
 ): Promise<any[]> {
   try {
     let photos: any[] = [];
+    const shouldLogApiFetchUrl = import.meta.env.DEV && isDebugEnabled();
 
     const parsePhotoArray = (payload: any): any[] => {
       if (Array.isArray(payload)) return payload;
@@ -92,9 +93,11 @@ export async function getAlbumPhotos(
 
         for (const candidate of candidates) {
           const photoURL = `${baseUrl}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${encodeURIComponent(candidate)}/&numPhotos=${SkiCycleRunConfig.photoApi.buildTimePhotos}${loraParam}`;
-          DebugConsole.api(
-            `[Library:getAlbumPhotos] Initial photo fetch URL: ${photoURL}`,
-          );
+          if (shouldLogApiFetchUrl) {
+            DebugConsole.api(
+              `[Library:getAlbumPhotos] Initial photo fetch URL: ${photoURL}`,
+            );
+          }
           const res = await fetch(photoURL);
           const data = await res.json();
           const parsed = parsePhotoArray(data);
@@ -139,7 +142,7 @@ export async function getAlbumPhotos(
         const loraParam =
           loraStyle === "random" ? "" : `&loraStyle=${loraStyle}`;
         DebugConsole.warn("Photo API failed, falling back to local images");
-        if (isDebugEnabled()) {
+        if (shouldLogApiFetchUrl) {
           DebugConsole.api(
             "URL:",
             `${import.meta.env.PUBLIC_SKICYCLERUN_API || "https://api.skicyclerun.com/v2/"}getphotosrandom?bucketName=skicyclerun.lib&albumPath=albums/${album}/&numPhotos=${SkiCycleRunConfig.photoApi.buildTimePhotos}${loraParam}`,
