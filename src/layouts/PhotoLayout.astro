@@ -8,6 +8,8 @@ import FullViewTopBar from "@components/FullViewTopBar.astro";
 import { getPhotoByName } from "../utils/getPhotoCover";
 import { normalizePhotoIndex, parseRequestedPhotoIndex } from "../utils/photoViewState";
 import expandIcon from "../assets/svg_imgs/expand.svg";
+import phoneRotateArrowIcon from "../assets/svg_imgs/phone-rotate-arrow.svg";
+import phoneRotateOrientationIcon from "../assets/svg_imgs/phone-rotate-orientation.svg";
 
 const { frontmatter } = Astro.props;
 const album = frontmatter?.album;
@@ -44,6 +46,7 @@ const photos: any[] = [
   data-travel-map={frontmatter?.travelmap || ""}
   data-active-photo-index={initialPhotoIndex}
   data-active-photo-src={initialPhotoSrc}
+  style={`--rotate-icon-arrow: url('${phoneRotateArrowIcon.src}'); --rotate-icon-orientation: url('${phoneRotateOrientationIcon.src}');`}
 >
   <FullViewTopBar
     brandLabel="SkiCycleRun"
@@ -246,6 +249,7 @@ const photos: any[] = [
       const photoActiveCounter = document.getElementById("photo-active-counter");
       const fullViewTopCounter = document.getElementById("full-view-top-counter");
       const layoutRoot = document.querySelector(".photo-layout");
+      const photoStage = document.querySelector(".photo-stage") as HTMLElement | null;
 
       // ── Shared state store ────────────────────────────────────────────────────
       // resolveInitialPhotoState() checks URL params first (explicit handoff),
@@ -273,6 +277,130 @@ const photos: any[] = [
       const initialStyle = currentUrl.searchParams.get("style");
       const initialDynamic = currentUrl.searchParams.get("dynamic") === "1";
       const selectedInitialView = resolveInitialPhotoView(album || "", initialView);
+      let rotateHintRaf = 0;
+
+      function getCurrentFullViewType(): "hero" | "gallery" | "carousel" {
+        const checked = document.querySelector(
+          'input[name="photo-view"]:checked',
+        ) as HTMLInputElement | null;
+        return checked?.value === "gallery" || checked?.value === "carousel"
+          ? checked.value
+          : "hero";
+      }
+
+      function getCurrentFullViewImageElement(): HTMLImageElement | null {
+        const view = getCurrentFullViewType();
+        if (view === "hero") {
+          return sections.hero?.querySelector(
+            ".hero-figure img",
+          ) as HTMLImageElement | null;
+        }
+
+        if (view === "carousel") {
+          const carouselRoot = sections.carousel?.querySelector(".carousel-container");
+          return (
+            carouselRoot?.querySelector(
+              'img[data-current-index]',
+            ) as HTMLImageElement | null
+          ) ||
+            (carouselRoot?.querySelector(
+              ".carousel-slide img.clickable-image",
+            ) as HTMLImageElement | null);
+        }
+
+        return null;
+      }
+
+      function updateRotateHintVisibility() {
+        if (!isFullPageMode || !layoutRoot || !photoStage) {
+          layoutRoot?.classList.remove("show-rotate-hint");
+          return;
+        }
+
+        const currentView = getCurrentFullViewType();
+        if (currentView === "gallery") {
+          layoutRoot.classList.remove("show-rotate-hint");
+          return;
+        }
+
+        const img = getCurrentFullViewImageElement();
+        if (!img || !img.complete || img.naturalWidth <= 0 || img.naturalHeight <= 0) {
+          layoutRoot.classList.remove("show-rotate-hint");
+          return;
+        }
+
+        const stageWidth = photoStage.clientWidth;
+        const stageHeight = photoStage.clientHeight;
+        if (stageWidth <= 0 || stageHeight <= 0) {
+          layoutRoot.classList.remove("show-rotate-hint");
+          return;
+        }
+
+        const scale = Math.min(
+          stageWidth / img.naturalWidth,
+          stageHeight / img.naturalHeight,
+        );
+        const renderedWidth = img.naturalWidth * scale;
+        const renderedHeight = img.naturalHeight * scale;
+        const sideGap = Math.max(0, (stageWidth - renderedWidth) / 2);
+        const topBottomGap = Math.max(0, (stageHeight - renderedHeight) / 2);
+        const naturalAspect = img.naturalWidth / img.naturalHeight;
+
+        // Suppress hints for extreme-axis images (e.g. panoramas / tall strips).
+        // In these cases gutters are expected and rotating usually won't improve fit.
+        const isExtremeAxisImage = naturalAspect >= 2.15 || naturalAspect <= 0.46;
+
+        // Match CSS clamp(48px, 11.6vw, 72px) used for hint icon size.
+        const hintIconSizePx = Math.min(
+          Math.max(window.innerWidth * 0.116, 48),
+          72,
+        );
+        // To keep the icon fully inside gutter when centered, the gutter must
+        // be at least icon size (plus a tiny buffer).
+        const requiredGutterPx = hintIconSizePx + 4;
+
+        // Keep hint anchors centered within the non-photo gutter regions.
+        layoutRoot.style.setProperty(
+          "--rotate-hint-left-x",
+          `${Math.max(12, sideGap / 2)}px`,
+        );
+        layoutRoot.style.setProperty(
+          "--rotate-hint-right-x",
+          `${Math.min(stageWidth - 12, stageWidth - sideGap / 2)}px`,
+        );
+        layoutRoot.style.setProperty(
+          "--rotate-hint-top-y",
+          `${Math.max(12, topBottomGap / 2)}px`,
+        );
+        layoutRoot.style.setProperty(
+          "--rotate-hint-bottom-y",
+          `${Math.min(stageHeight - 12, stageHeight - topBottomGap / 2)}px`,
+        );
+
+        // Geometry-driven display: show only when there is enough real gutter
+        // area so hints remain in the gray margins and never overlay the photo.
+        const hasSideGutters = sideGap >= requiredGutterPx;
+        const hasTopBottomGutters = topBottomGap >= requiredGutterPx;
+        const showHint = !isExtremeAxisImage && (hasSideGutters || hasTopBottomGutters);
+
+        layoutRoot.classList.toggle("show-rotate-hint", showHint);
+        layoutRoot.classList.toggle("show-rotate-hint-side", showHint && hasSideGutters);
+        layoutRoot.classList.toggle(
+          "show-rotate-hint-topbottom",
+          showHint && !hasSideGutters && hasTopBottomGutters,
+        );
+      }
+
+      function scheduleRotateHintVisibility() {
+        if (!isFullPageMode) return;
+        if (rotateHintRaf) {
+          window.cancelAnimationFrame(rotateHintRaf);
+        }
+        rotateHintRaf = window.requestAnimationFrame(() => {
+          rotateHintRaf = 0;
+          updateRotateHintVisibility();
+        });
+      }
 
       function syncFullModePhotoState() {
         if (!isFullPageMode) return;
@@ -359,6 +487,8 @@ const photos: any[] = [
         const syncOnInteraction = () => {
           window.setTimeout(syncFullModePhotoState, 0);
           window.setTimeout(syncFullModePhotoState, 220);
+          window.setTimeout(scheduleRotateHintVisibility, 0);
+          window.setTimeout(scheduleRotateHintVisibility, 220);
         };
 
         sections.hero
@@ -373,6 +503,10 @@ const photos: any[] = [
         radios.forEach((r) => r.addEventListener("change", syncOnInteraction));
         dynamicCheckbox?.addEventListener("change", syncOnInteraction);
         loraSelect?.addEventListener("change", syncOnInteraction);
+
+        window.addEventListener("resize", scheduleRotateHintVisibility);
+        window.addEventListener("orientationchange", scheduleRotateHintVisibility);
+        scheduleRotateHintVisibility();
 
       }
 
@@ -448,6 +582,7 @@ const photos: any[] = [
         }
 
         updateActiveCounter();
+        scheduleRotateHintVisibility();
       }
 
       function openDedicatedFullView() {
@@ -1016,6 +1151,7 @@ const photos: any[] = [
           layoutRoot?.setAttribute("data-active-photo-src", activePhotoSrc);
         }
         updateActiveCounter();
+        scheduleRotateHintVisibility();
 
         // Update Hero view
         const heroContainer = sections.hero;
@@ -1166,6 +1302,8 @@ const photos: any[] = [
           }
         }
 
+        scheduleRotateHintVisibility();
+
       }
 
       // Track whether this is the very first update call (page load).
@@ -1190,6 +1328,13 @@ const photos: any[] = [
           if (!el) return;
           el.style.display = k === value ? "" : "none";
         });
+
+        // Hero view has its own in-frame counter pill; hide the layout counter
+        // there to avoid duplicate counters in the same corner.
+        if (photoActiveCounter) {
+          photoActiveCounter.style.display =
+            value === "hero" || value === "carousel" ? "none" : "";
+        }
 
         const carouselContainer = sections.carousel;
         const carouselRoot = carouselContainer?.querySelector(
@@ -1324,6 +1469,7 @@ const photos: any[] = [
 
         if (isFullPageMode) {
           window.setTimeout(syncFullModePhotoState, 0);
+          window.setTimeout(scheduleRotateHintVisibility, 0);
         }
       });
 
@@ -1447,8 +1593,10 @@ const photos: any[] = [
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 2rem;
+    height: 2rem;
+    min-width: 44px;
+    min-height: 44px;
     padding: 0;
     border-radius: 999px;
     border: 1px solid rgba(var(--color-border), 0.56);
@@ -1474,8 +1622,8 @@ const photos: any[] = [
   /* Theme-aware icon styling */
   .open-full-view .icon-btn {
     display: block;
-    width: 0.75rem;
-    height: 0.75rem;
+    width: 1.1rem;
+    height: 1.1rem;
     filter: invert(var(--icon-invert, 0));
     opacity: 0.9;
   }
@@ -1536,7 +1684,8 @@ const photos: any[] = [
   }
 
   .photo-layout.is-full-page-mode .photo-active-counter,
-  .photo-layout.is-full-page-mode :global(.hero-counter-pill) {
+  .photo-layout.is-full-page-mode :global(.hero-counter-pill),
+  .photo-layout.is-full-page-mode :global(.carousel-counter) {
     display: none !important;
   }
 
@@ -1576,8 +1725,84 @@ const photos: any[] = [
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    background: #000 !important;
+    background-color: #000 !important;
     aspect-ratio: auto !important;
+  }
+
+  .photo-layout.is-full-page-mode .photo-view {
+    z-index: 1;
+  }
+
+  .photo-layout.is-full-page-mode.show-rotate-hint .photo-view > div::before,
+  .photo-layout.is-full-page-mode.show-rotate-hint .photo-view > div::after {
+    content: "";
+    position: absolute;
+    width: clamp(48px, 11.6vw, 72px);
+    height: clamp(48px, 11.6vw, 72px);
+    background-color: rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .photo-layout.is-full-page-mode.show-rotate-hint-side .photo-view > div::before,
+  .photo-layout.is-full-page-mode.show-rotate-hint-side .photo-view > div::after {
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .photo-layout.is-full-page-mode.show-rotate-hint-side .photo-view > div::before {
+    left: var(--rotate-hint-left-x, 18px);
+    -webkit-mask-image: var(--rotate-icon-arrow);
+    mask-image: var(--rotate-icon-arrow);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+  }
+
+  .photo-layout.is-full-page-mode.show-rotate-hint-side .photo-view > div::after {
+    left: var(--rotate-hint-right-x, calc(100% - 18px));
+    transform: translate(-100%, -50%);
+    -webkit-mask-image: var(--rotate-icon-orientation);
+    mask-image: var(--rotate-icon-orientation);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+  }
+
+  .photo-layout.is-full-page-mode.show-rotate-hint-topbottom .photo-view > div::before,
+  .photo-layout.is-full-page-mode.show-rotate-hint-topbottom .photo-view > div::after {
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .photo-layout.is-full-page-mode.show-rotate-hint-topbottom .photo-view > div::before {
+    top: var(--rotate-hint-top-y, 18px);
+    -webkit-mask-image: var(--rotate-icon-arrow);
+    mask-image: var(--rotate-icon-arrow);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+  }
+
+  .photo-layout.is-full-page-mode.show-rotate-hint-topbottom .photo-view > div::after {
+    top: var(--rotate-hint-bottom-y, calc(100% - 18px));
+    -webkit-mask-image: var(--rotate-icon-orientation);
+    mask-image: var(--rotate-icon-orientation);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
   }
 
   .photo-layout.is-full-page-mode :global(.mdx-gallery) {
@@ -1826,6 +2051,18 @@ const photos: any[] = [
       flex: 1;
       justify-content: center;
       min-height: 2rem;
+    }
+
+    .open-full-view {
+      width: 2.2rem;
+      height: 2.2rem;
+      min-width: 48px;
+      min-height: 48px;
+    }
+
+    .open-full-view .icon-btn {
+      width: 1.2rem;
+      height: 1.2rem;
     }
 
     .photo-view > div {

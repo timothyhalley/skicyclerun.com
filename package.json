@@ -1,7 +1,7 @@
 {
   "name": "skicyclerun.com",
   "type": "module",
-  "version": "2026-05-10 V07.000",
+  "version": "2026-05-12 V07.000",
   "scripts": {
     "dev": "astro dev",
     "prebuild": "npx npm-check-updates -u && npm install",
@@ -35,7 +35,7 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
     "@types/lodash": "4.17.24",
-    "@types/node": "^25.6.2",
+    "@types/node": "^25.7.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "esbuild": "^0.28.0",
