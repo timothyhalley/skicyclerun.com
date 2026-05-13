@@ -36,7 +36,7 @@ const photos: any[] = [
 ---
 
 <article
-  class="photo-full-layout"
+  class="photo-full-layout max-w-screen-lg mx-auto w-full"
   data-album={album}
   data-dynamic-photo-limit={dynamicPhotoLimit}
   data-build-photo-limit={buildTimePhotoLimit}
@@ -482,18 +482,24 @@ const photos: any[] = [
       }
 
       async function sortPhotosByOrientation(photos) {
-        const photosWithAspect = await Promise.all(
+        type PhotoWithAspect = {
+          aspect: number;
+          [key: string]: any;
+        };
+
+        // Get dimensions for each photo — use S3 metadata when available, else load the image
+        const photosWithAspect: PhotoWithAspect[] = await Promise.all(
           photos.map((photo) => {
             if (photo.width && photo.height && photo.width > 0 && photo.height > 0) {
-              return Promise.resolve({ ...photo, aspect: photo.width / photo.height });
+              return Promise.resolve({ ...photo, aspect: photo.width / photo.height } as PhotoWithAspect);
             }
-            return new Promise((resolve) => {
+            return new Promise<PhotoWithAspect>((resolve) => {
               const img = new Image();
               img.onload = () => {
                 const aspect = img.naturalWidth / img.naturalHeight;
-                resolve({ ...photo, aspect });
+                resolve({ ...photo, aspect } as PhotoWithAspect);
               };
-              img.onerror = () => resolve({ ...photo, aspect: 1 });
+              img.onerror = () => resolve({ ...photo, aspect: 1 } as PhotoWithAspect);
               img.src = photo.src;
             });
           }),
@@ -502,36 +508,29 @@ const photos: any[] = [
         const LANDSCAPE_MIN = 1.05;
         const PORTRAIT_MAX = 0.95;
 
-        const sorted = photosWithAspect.sort((a, b) => {
-          const getBucket = (aspect) => {
-            if (aspect >= LANDSCAPE_MIN) return 0;
-            if (aspect <= PORTRAIT_MAX) return 2;
-            return 1;
-          };
+        // Group photos by orientation
+        const landscape: PhotoWithAspect[] = [];
+        const square: PhotoWithAspect[] = [];
+        const portrait: PhotoWithAspect[] = [];
+        for (const p of photosWithAspect) {
+          if (p.aspect >= LANDSCAPE_MIN) landscape.push(p);
+          else if (p.aspect <= PORTRAIT_MAX) portrait.push(p);
+          else square.push(p);
+        }
 
-          const aBucket = getBucket(a.aspect);
-          const bBucket = getBucket(b.aspect);
-
-          if (aBucket !== bBucket) return aBucket - bBucket;
-
-          if (aBucket === 0) {
-            if (a.aspect !== b.aspect) return b.aspect - a.aspect;
+        // Fisher-Yates shuffle
+        function shuffle(arr) {
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
           }
+        }
+        shuffle(landscape);
+        shuffle(square);
+        shuffle(portrait);
 
-          if (aBucket === 1) {
-            const aDelta = Math.abs(a.aspect - 1);
-            const bDelta = Math.abs(b.aspect - 1);
-            if (aDelta !== bDelta) return aDelta - bDelta;
-          }
-
-          if (aBucket === 2) {
-            if (a.aspect !== b.aspect) return a.aspect - b.aspect;
-          }
-
-          return `${a.src || ""}`.localeCompare(`${b.src || ""}`);
-        });
-
-        return sorted.map(({ aspect, ...photo }) => photo);
+        const result: PhotoWithAspect[] = [...landscape, ...square, ...portrait];
+        return result.map(({ aspect, ...photo }) => photo);
       }
 
       async function loadDynamicPhotos(loraStyle = "random") {
@@ -1197,10 +1196,25 @@ const photos: any[] = [
   }
 
   .photo-full-layout :global(.mdx-gallery) {
-    padding: 0 !important;
-    margin: 0 !important;
+    padding: 0.45rem !important;
+    margin: 0 auto !important;
     height: 100%;
     width: 100%;
+    background:
+      radial-gradient(
+        120% 140% at 15% 10%,
+        rgba(var(--color-accent), 0.16),
+        rgba(var(--color-fill), 0.45) 40%,
+        rgba(var(--color-fill), 0.96) 100%
+      ),
+      rgb(var(--color-fill));
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid rgba(var(--color-border), 0.45);
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.16);
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -1216,6 +1230,7 @@ const photos: any[] = [
 
   .photo-full-layout :global(.gallery-item img) {
     object-fit: contain !important;
+    object-position: center center !important;
     max-height: 100% !important;
     max-width: 100% !important;
   }

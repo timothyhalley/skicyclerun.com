@@ -22,7 +22,7 @@ const initialPageStartIndex = getGalleryStartIndexForPage(
 ---
 
 <div
-  class="mdx-gallery"
+  class="mdx-gallery max-w-screen-lg mx-auto w-full"
   data-gallery-matrix={matrix}
   data-active-photo-index={activeIndex}
 >
@@ -130,7 +130,7 @@ const initialPageStartIndex = getGalleryStartIndexForPage(
             img.style.width = "100%";
             img.style.height = "100%";
             img.style.objectFit = "cover";
-            img.style.objectPosition = "center bottom";
+            img.style.objectPosition = "center center";
             img.style.display = "block";
             slotEl.appendChild(img);
           }
@@ -321,7 +321,7 @@ const initialPageStartIndex = getGalleryStartIndexForPage(
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: center bottom;
+      object-position: center center;
       display: block;
       transition:
         opacity 0.3s ease,
