@@ -1,6 +1,8 @@
 import type { CollectionEntry } from "astro:content";
 
 const travelFilter = ({ data }: CollectionEntry<"blog">) => {
+  if (data.draft) return false;
+
   if (data.type === "TRAVEL" || data.type === "VLOG") return true;
 
   const hasCoordinates =

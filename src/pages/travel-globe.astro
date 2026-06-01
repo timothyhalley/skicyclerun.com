@@ -5,6 +5,7 @@ import Header from "@components/Header.astro";
 import Breadcrumbs from "@layouts/Breadcrumbs.astro";
 import TravelGlobeComponent from "@components/TravelGlobe.tsx";
 import travelFilter from "@utils/travelFilter";
+import postFilter from "@utils/postFilter";
 import { getPhotoCover } from "@utils/getPhotoCover";
 import { SkiCycleRunConfig } from "skicyclerun.config";
 
@@ -13,6 +14,7 @@ const posts = await getCollection("blog");
 
 // 2. Filter for travel posts that have lat/lon coordinates
 const travelPoints = posts
+  .filter(postFilter)
   .filter(travelFilter)
   .filter((post) => post.data.lat && post.data.lon)
   .map((post) => {
