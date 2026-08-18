@@ -2,16 +2,15 @@ import { defineConfig } from "astro/config";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import react from "@astrojs/react";
-import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import fs from "fs";
 import { loadEnv } from "vite";
 
-// Derive mode and load .env files so SKICYCLERUN_URL also works from .env.development/.env.production
+import tailwindcss from "@tailwindcss/vite";
+
 const mode = process.env.MODE || process.env.NODE_ENV || "development";
 const env = loadEnv(mode, process.cwd(), "");
 
-// Optional local HTTPS for astro dev when certs are present
 const httpsConfig =
   fs.existsSync("./localhost+2.pem") && fs.existsSync("./localhost+2-key.pem")
     ? {
@@ -21,18 +20,24 @@ const httpsConfig =
     : undefined;
 
 export default defineConfig({
-  // Canonical site URL for sitemap/canonicals, from env first
   site:
     process.env.SKICYCLERUN_URL ??
     env.SKICYCLERUN_URL ??
     "https://skicyclerun.com",
   output: "static",
-  integrations: [mdx(), sitemap(), react()],
+
+  integrations: [
+    mdx(),
+    sitemap(),
+    react()
+  ],
+
   devToolbar: {
     enabled: false,
   },
+
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss()], // ✅  @tailwindcss/vite 
     resolve: {
       alias: {
         "@assets": path.resolve("src/assets"),
@@ -53,12 +58,7 @@ export default defineConfig({
       },
     },
     build: {
-      // Increase chunk size warning limit for react-globe.gl (1.75MB minified)
-      // This library is lazy-loaded only on the travel globe page
-      chunkSizeWarningLimit: 2000, // 2MB (vs default 500KB)
-      // Note: Removed manualChunks for react-globe.gl and three
-      // Manual chunking was causing loading failures on iPad devices
-      // Let Vite handle automatic code splitting
+      chunkSizeWarningLimit: 2000,
     },
     server: {
       https: httpsConfig,
@@ -67,6 +67,7 @@ export default defineConfig({
       https: httpsConfig || true,
     },
   },
+
   server: {
     port: 4321,
     host: "localhost",

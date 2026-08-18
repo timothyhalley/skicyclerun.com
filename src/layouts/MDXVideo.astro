@@ -1,42 +1,41 @@
 ---
 import { YouTube } from "astro-embed";
 const { frontmatter } = Astro.props;
-
 // Support both self-hosted videos and YouTube embeds
 const videoSrc = frontmatter.videoSrc; // Path to self-hosted video (e.g., "/videos/my-video.mp4")
-const videoID = frontmatter.videoID;   // YouTube video ID (fallback)
+const videoID = frontmatter.videoID; // YouTube video ID (fallback)
 const posterImage = frontmatter.poster; // Optional: poster image for self-hosted video
 ---
 
 <div class="video-layout">
   <h1 class="video-title">{frontmatter.title}</h1>
-
   <p class="video-description">{frontmatter.description}</p>
 
-  <div class="video-container" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
-    {videoSrc ? (
-      <!-- Self-hosted video with native HTML5 player -->
-      <video 
-        controls 
-        preload="metadata"
-        poster={posterImage}
-        class="self-hosted-video"
-      >
-        <source src={videoSrc} type="video/mp4" />
-        <source src={videoSrc.replace('.mp4', '.webm')} type="video/webm" />
-        Your browser does not support the video tag.
-      </video>
-    ) : videoID ? (
-      <!-- Fallback to YouTube embed if no self-hosted video -->
-      <YouTube id={videoID} />
-    ) : (
-      <p class="error-message">No video source provided</p>
-    )}
+  <div
+    class="video-container"
+    style="display: block !important; visibility: visible !important; opacity: 1 !important;"
+  >
+    {
+      videoSrc ? (
+        /* Self-hosted video with native HTML5 player */
+        <video
+          controls
+          preload="metadata"
+          poster={posterImage}
+          class="self-hosted-video"
+        >
+          <source src={videoSrc} type="video/mp4" />
+          <source src={videoSrc.replace(".mp4", ".webm")} type="video/webm" />
+          Your browser does not support the video tag.
+        </video>
+      ) : videoID ? (
+        /* Fallback to YouTube embed if no self-hosted video */
+        <YouTube id={videoID} />
+      ) : (
+        <p class="error-message">No video source provided</p>
+      )
+    }
   </div>
-
-  <!-- Markdown content is injected here -->
-  <slot />
-  <!-- Markdown content is injected here -->
 </div>
 
 <style>

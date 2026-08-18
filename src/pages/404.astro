@@ -24,6 +24,8 @@ import LinkButton from "@components/LinkButton.astro";
 </BaseLayout>
 
 <style>
+  @reference "../styles/global.css";
+  
   #main-content {
     @apply mx-auto flex flex-1 items-center justify-center;
     max-width: 48rem;
@@ -33,3 +35,6 @@ import LinkButton from "@components/LinkButton.astro";
     margin-bottom: 3.5rem;
   }
   .not-found-wrapper h1 {
+    @apply text-display font-bold;
+  }
+</style>

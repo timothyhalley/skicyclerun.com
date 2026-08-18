@@ -105,7 +105,7 @@ const layoutProps = {
         <!-- Title rendered outside .prose to avoid .prose h1 overrides and ensure Tailwind utilities win -->
         <header class="mb-6">
           <h1
-            class="profile-title text-4xl md:text-5xl lg:text-6xl font-extrabold text-skin-accent"
+            class="profile-title text-title md:text-title-lg lg:text-display font-extrabold text-skin-accent"
           >
             {title}
           </h1>
@@ -283,20 +283,20 @@ const layoutProps = {
   /* Ensure layout-rendered profile title uses intended Tailwind-equivalent sizes
      and outranks any global .prose h1 rules that may still apply. */
   .profile-title {
-    font-size: 2.25rem !important; /* text-4xl */
+    font-size: 2.25rem !important; /* text-title */
     font-weight: 800 !important;
     line-height: 1.05 !important;
   }
 
   @media (min-width: 768px) {
     .profile-title {
-      font-size: 3rem !important; /* md:text-5xl */
+      font-size: 3rem !important; /* md:text-title-lg */
     }
   }
 
   @media (min-width: 1024px) {
     .profile-title {
-      font-size: 3.75rem !important; /* lg:text-6xl */
+      font-size: 3.75rem !important; /* lg:text-display */
     }
   }
 

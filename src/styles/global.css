@@ -1,0 +1,18 @@
+/* src/styles/global.css */
+@import "tailwindcss";
+
+@theme {
+  --color-skin-base: var(--color-text-base);
+  --color-skin-accent: var(--color-text-accent);
+  --color-skin-line: var(--color-border-line);
+  --color-skin-card: var(--color-bg-card);
+  --color-skin-card-muted: var(--color-bg-card-muted);
+}
+
+/* real definition – adjust values to match your design */
+@utility text-display {
+  font-size: 3.75rem;      /* 60px – matches the comment you had in PostDetails */
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}

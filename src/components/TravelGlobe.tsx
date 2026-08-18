@@ -84,12 +84,12 @@ const PostCard = ({ post }: { post: Point }) => {
           <img
             src={post.cover}
             alt={post.name}
-            className="w-full sm:w-[140px] h-[140px] object-cover rounded-xl bg-skin-card-muted"
+            className="w-full sm:w-35 h-35 object-cover rounded-xl bg-skin-card-muted"
             loading="lazy"
           />
         </a>
       ) : (
-        <div className="w-full sm:w-[140px] h-[140px] rounded-xl bg-skin-card-muted" />
+        <div className="w-full sm:w-35 h-35 rounded-xl bg-skin-card-muted" />
       )}
       <div className="min-w-0">
         <h4 className="m-0 text-xl font-bold text-skin-base">
@@ -215,10 +215,19 @@ const TravelGlobe = ({ pointsData, postsPerPage = 5 }: TravelGlobeProps) => {
       setLoadError(true);
       return;
     }
-    console.log(
-      "[Globe] WebGL is supported, renderer:",
-      gl.getParameter(gl.RENDERER),
-    );
+    const ctx = canvas.getContext("webgl") || canvas.getContext("webgl2");
+
+    if (
+      ctx instanceof WebGLRenderingContext ||
+      ctx instanceof WebGL2RenderingContext
+    ) {
+      console.log(
+        "[Globe] WebGL is supported, renderer:",
+        ctx.getParameter(ctx.RENDERER),
+      );
+    } else {
+      console.warn("[Globe] WebGL not supported");
+    }
 
     if (!GlobeComponent) {
       // Dynamically import react-globe.gl only on the client to avoid SSR issues
@@ -520,7 +529,7 @@ const TravelGlobe = ({ pointsData, postsPerPage = 5 }: TravelGlobeProps) => {
               {/* Globe (loaded client-side only) */}
               {loadError ? (
                 <div className="flex flex-col items-center justify-center h-full text-skin-base p-6">
-                  <div className="text-6xl mb-4">🌍</div>
+                  <div className="text-display mb-4">🌍</div>
                   <h3 className="text-xl font-bold mb-2">Globe Failed to Load</h3>
                   <p className="text-center max-w-md opacity-75 mb-4">
                     The 3D globe visualization couldn't be loaded on your device.
